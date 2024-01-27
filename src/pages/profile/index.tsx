@@ -31,7 +31,7 @@ export default function ProfilePage() {
           />
           {!isLoading ? (
             <div>
-              {user ? <RegisterForm profile={profile} /> : <ProfileMenu />}
+              {!user ? <RegisterForm profile={profile} /> : <ProfileMenu />}
             </div>
           ) : (
             <div className="text-center">

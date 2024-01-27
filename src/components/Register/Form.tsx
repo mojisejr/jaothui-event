@@ -1,3 +1,4 @@
+import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Profile } from "~/interfaces/Profile";
@@ -25,9 +26,20 @@ export default function RegisterForm({ profile }: RegisterFormProp) {
     mutate: createUser,
     isLoading,
     isSuccess,
+    isError,
   } = api.user.create.useMutation();
 
-  // useEffect(() => {}, [isLoading, isSuccess]);
+  const { replace } = useRouter();
+
+  useEffect(() => {
+    if (isSuccess) {
+      replace("/profile/success");
+    }
+
+    if (isError) {
+      replace("/profile/error");
+    }
+  }, [isSuccess, isError]);
 
   const onSubmit = handleSubmit((data) => {
     const preparedData = {

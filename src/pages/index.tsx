@@ -46,7 +46,7 @@ export default function Home() {
             )}
           </div>
         </div>
-        <div className="flex w-full justify-center pb-6">
+        <div className="flex w-full justify-center py-6">
           <motion.div
             initial={{ y: 300, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
