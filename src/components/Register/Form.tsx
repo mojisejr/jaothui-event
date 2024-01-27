@@ -33,11 +33,11 @@ export default function RegisterForm({ profile }: RegisterFormProp) {
 
   useEffect(() => {
     if (isSuccess) {
-      replace("/profile/success");
+      void replace("/profile/success");
     }
 
     if (isError) {
-      replace("/profile/error");
+      void replace("/profile/error");
     }
   }, [isSuccess, isError]);
 

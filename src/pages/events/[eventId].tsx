@@ -11,7 +11,7 @@ export default function RegisterForm() {
   return (
     <div className="p-3">
       <EventForm
-        userId={profile?.userId!}
+        userId={profile ? profile.userId : ""}
         eventId={+query.eventId!}
         name={query.name as string}
       />

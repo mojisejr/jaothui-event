@@ -7,7 +7,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { useRouter } from "next/navigation";
 import { Profile } from "~/interfaces/Profile";
 
 type contextType = {
@@ -22,8 +21,12 @@ const defaultContext: contextType = {
   liff: undefined,
   loggedIn: false,
   profile: undefined,
-  login: () => {},
-  logout: () => {},
+  login: () => {
+    return null;
+  },
+  logout: () => {
+    return null;
+  },
 };
 
 const LineContext = createContext(defaultContext);
@@ -34,11 +37,11 @@ export function LineProvider({ children }: { children: ReactNode }) {
   const [init, setInit] = useState<boolean>(false);
 
   useEffect(() => {
-    initialize();
-    updateLoggedInState();
+    void initialize();
+    void updateLoggedInState();
 
     if (loggedIn) {
-      getProfile();
+      void getProfile();
     }
   }, [init, loggedIn]);
 
@@ -49,10 +52,13 @@ export function LineProvider({ children }: { children: ReactNode }) {
 
   async function initialize() {
     try {
-      liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! }).then(() => {
-        liff.isLoggedIn() ? setLoggedIn(true) : setLoggedIn(false);
-        setInit(true);
-      });
+      liff
+        .init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! })
+        .then(() => {
+          liff.isLoggedIn() ? setLoggedIn(true) : setLoggedIn(false);
+          setInit(true);
+        })
+        .catch((error) => setInit(false));
     } catch (error) {
       console.log(error);
     }

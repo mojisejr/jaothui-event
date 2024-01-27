@@ -11,7 +11,7 @@ export default function ProfilePage() {
   const { replace } = useRouter();
   const { loggedIn, profile } = useLine();
   const { data: user, isLoading } = api.user.getById.useQuery({
-    userId: profile?.userId! ?? "",
+    userId: profile != undefined ? profile.userId : "",
   });
 
   useEffect(() => {

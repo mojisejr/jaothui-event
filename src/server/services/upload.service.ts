@@ -9,11 +9,11 @@ export async function uploadBuffalo(file: File, fileName: string) {
         cacheControl: "0",
         upsert: false,
       });
-    console.log(error);
 
-    const url = supabase.storage
-      .from("images/buffalos")
-      .getPublicUrl(data?.path!).data.publicUrl;
+    const url = data
+      ? supabase.storage.from("images/buffalos").getPublicUrl(data.path).data
+          .publicUrl
+      : null;
 
     return url;
   } catch (error) {
@@ -32,9 +32,10 @@ export async function uploadVaccine(file: File, fileName: string) {
         upsert: false,
       });
 
-    const url = supabase.storage
-      .from("images/vaccine")
-      .getPublicUrl(data?.path!).data.publicUrl;
+    const url = data
+      ? supabase.storage.from("images/vaccine").getPublicUrl(data.path).data
+          .publicUrl
+      : null;
 
     console.log(error);
     return url;
