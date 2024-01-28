@@ -44,7 +44,7 @@ export function LineProvider({ children }: { children: ReactNode }) {
 
     if (init) {
       if (!liff.isInClient()) {
-        replace("/not-in-app");
+        void replace("/not-in-app");
       }
     }
 

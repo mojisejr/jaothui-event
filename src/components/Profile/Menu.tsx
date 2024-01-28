@@ -6,11 +6,7 @@ import { api } from "~/utils/api";
 
 export default function ProfileMenu() {
   const { logout, loggedIn, profile } = useLine();
-  const {
-    data: userData,
-    isLoading,
-    isSuccess,
-  } = api.user.getById.useQuery({
+  const { data: userData } = api.user.getById.useQuery({
     userId: profile ? profile.userId : "",
   });
   const { replace } = useRouter();

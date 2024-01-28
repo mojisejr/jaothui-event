@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Profile } from "~/interfaces/Profile";
+import { type Profile } from "~/interfaces/Profile";
 import { api } from "~/utils/api";
 
 interface RegisterFormProp {
@@ -15,12 +15,7 @@ type RegisterInput = {
 };
 
 export default function RegisterForm({ profile }: RegisterFormProp) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<RegisterInput>();
+  const { register, handleSubmit, formState } = useForm<RegisterInput>();
 
   const {
     mutate: createUser,

@@ -1,10 +1,7 @@
 import DetailTable from "~/components/MyEvents/DetailTable";
-import Loading1 from "~/components/Shared/Loading1";
 import { useLine } from "~/context/lineContext";
-import { api } from "~/utils/api";
 import { useRouter } from "next/router";
 export default function MyEventPage() {
-  const { profile } = useLine();
   const { query } = useRouter();
 
   return (
