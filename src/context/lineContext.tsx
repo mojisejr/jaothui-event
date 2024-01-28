@@ -1,5 +1,6 @@
 import liff from "@line/liff";
 import { Liff } from "@line/liff";
+import { useRouter } from "next/router";
 import {
   ReactNode,
   createContext,
@@ -32,6 +33,7 @@ const defaultContext: contextType = {
 const LineContext = createContext(defaultContext);
 
 export function LineProvider({ children }: { children: ReactNode }) {
+  const { replace } = useRouter();
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [profile, setProfile] = useState<Profile>();
   const [init, setInit] = useState<boolean>(false);
@@ -39,6 +41,14 @@ export function LineProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void initialize();
     void updateLoggedInState();
+
+    if (init) {
+      if (!liff.isInClient()) {
+        replace("/not-in-app");
+      }
+    }
+
+    if (!loggedIn) void replace("/");
 
     if (loggedIn) {
       void getProfile();

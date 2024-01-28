@@ -5,6 +5,8 @@ import { TRPCError } from "@trpc/server";
 import {
   canRgister,
   createNewRegister,
+  getAllRegisteredBy,
+  getById,
 } from "~/server/services/register-event.service";
 
 export const registerEventRouter = createTRPCRouter({
@@ -51,7 +53,6 @@ export const registerEventRouter = createTRPCRouter({
           ownerTel: `${input.ownerTel}`,
         };
 
-        console.log(dto);
         return await createNewRegister(dto);
       } catch (error) {
         console.log(error);
@@ -65,5 +66,15 @@ export const registerEventRouter = createTRPCRouter({
     .input(z.object({ eventId: z.number(), microchip: z.string() }))
     .query(async ({ input }) => {
       return await canRgister(input.eventId, input.microchip);
+    }),
+  getAllRegisteredBy: publicProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input }) => {
+      return await getAllRegisteredBy(input.userId);
+    }),
+  getById: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      return await getById(input.id);
     }),
 });

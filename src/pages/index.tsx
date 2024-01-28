@@ -21,7 +21,7 @@ export default function Home() {
               initial={{ x: -100, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 1.3, ease: "easeInOut" }}
-              className="text-primary text-[48px] font-semibold"
+              className="text-[48px] font-semibold text-primary"
             >
               Jaothui Event
             </motion.h1>
@@ -55,7 +55,7 @@ export default function Home() {
               type: "spring",
               ease: "easeInOut",
             }}
-            className="mockup-phone border-primary w-[300px] border-opacity-80 shadow-[rgba(0,_0,_0,_0.2)_0px_60px_40px_-7px]"
+            className="mockup-phone w-[300px] border-primary border-opacity-80 shadow-[rgba(0,_0,_0,_0.2)_0px_60px_40px_-7px]"
           >
             <div className="camera"></div>
             <div className="display">

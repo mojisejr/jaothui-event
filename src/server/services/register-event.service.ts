@@ -1,6 +1,40 @@
 import { db } from "../db";
 import { CreateNewEventRegisterDTO } from "~/interfaces/CreateNewEventRegisterDTO";
 
+export async function getAllRegisteredBy(userId: string) {
+  try {
+    const events = await db.eventRegister.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        event: true,
+      },
+    });
+    return events;
+  } catch (error) {
+    console.log(error);
+    return [];
+  }
+}
+
+export async function getById(id: number) {
+  try {
+    const events = await db.eventRegister.findFirst({
+      where: {
+        id,
+      },
+      include: {
+        event: true,
+      },
+    });
+    return events;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+}
+
 export async function createNewRegister(event: CreateNewEventRegisterDTO) {
   try {
     return await db.eventRegister.create({ data: event });

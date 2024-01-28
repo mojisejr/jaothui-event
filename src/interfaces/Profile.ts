@@ -4,4 +4,5 @@ export interface Profile {
   statusMessage?: string;
   userId: string;
   email?: string;
+  role?: string;
 }
