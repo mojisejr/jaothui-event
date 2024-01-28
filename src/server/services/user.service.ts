@@ -9,7 +9,6 @@ export async function getUserByUserId(userId: string) {
       },
     });
 
-    console.log(user);
     return user;
   } catch (error) {
     console.log(error);

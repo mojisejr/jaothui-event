@@ -23,6 +23,7 @@ model EventRegister {
     id         Int      @id @default(autoincrement())
     eventId    Int
     type       String
+    level      String
     gender     String
     color      String
     birthday   String

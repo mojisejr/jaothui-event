@@ -1,6 +1,13 @@
-import { CompetitionClass } from "~/constants/CompetitionClass";
+import { CompetitionClass } from "~/constants/competition-class";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
+import { api } from "~/utils/api";
+import { uploadBuffalo } from "~/server/services/upload.service";
+import { uploadVaccine } from "~/server/services/upload.service";
+import { toast } from "react-toastify";
+import { useEffect } from "react";
+import { useRouter } from "next/router";
+import Loading1 from "../Shared/Loading1";
 // 1.รุ่นที่จะลงประกวด
 // 2.ระบุเพศ
 // 3.สี (ดำ,เผือก)
@@ -10,19 +17,19 @@ import { useForm } from "react-hook-form";
 // 7.อัปโหลดเอกสารรับรองการรับวัคซีน
 // 8.ชื่อ-นามสกุลผู้ส่งเข้าประกวด
 // 9.เบอร์โทรศัพท์
-type EventRegisterType = {
+export type EventRegisterType = {
   eventId: number;
   userId: string;
   type: string;
   level: string;
   gender: string;
   color: string;
-  birthDay: number;
+  birthDay: string;
   birthMonth: string;
-  birthYear: number;
-  imageFile: string;
+  birthYear: string;
+  imageFile: FileList;
   microchip: string;
-  vaccineFile: string;
+  vaccineFile: FileList;
   ownerName: string;
   ownerLastname: string;
   ownerTel: string;
@@ -38,81 +45,72 @@ export function EventForm({
   eventId: number;
   name: string;
 }) {
+  const { replace } = useRouter();
+
   const {
     register,
     reset,
     handleSubmit,
     formState: { errors },
   } = useForm<EventRegisterType>();
-  // async function parseFormData(
-  //   formData: FormData,
-  //   eventId: number,
-  //   userId: string,
-  // ) {
-  //   const buffaloImageName = `${eventId}_${userId}_${formData.get(
-  //     "buffaloMicrochip",
-  //   )}_${new Date().getTime().toString()}`;
 
-  //   const buffaloImage = await uploadBuffalo(
-  //     formData.get("buffaloImage") as File,
-  //     buffaloImageName,
-  //   );
+  const {
+    mutate: registerEvent,
+    isLoading: registering,
+    isSuccess: registered,
+    isError: registerError,
+    error: registerErrorObj,
+  } = api.registerEvent.register.useMutation();
 
-  //   const vaccineImage = await uploadVaccine(
-  //     formData.get("buffalovcdocImage") as File,
-  //     `vcc_${eventId}_${userId}_${formData.get("buffaloMicrochip")}_${new Date()
-  //       .getTime()
-  //       .toString()}`,
-  //   );
+  useEffect(() => {
+    if (registered) {
+      void replace("/success");
+    }
+    if (registerError) {
+      toast.error(registerErrorObj.message);
+      // void replace("/error");
+    }
+  }, [registered, registerError]);
 
-  //   if (buffaloImage == null || vaccineImage == null) return null;
+  const onSubmit = handleSubmit(async (data) => {
+    if (data.accept === "yes") {
+      const imageFileName = `${data.microchip}-${data.userId}-${data.eventId}-${new Date().getTime().toString()}`;
+      const vaccineFileName = `vac_${imageFileName}`;
 
-  //   return {
-  //     eventId,
-  //     userId,
-  //     type: formData.get("type"),
-  //     level: formData.get("level"),
-  //     gender: formData.get("buffaloSex"),
-  //     color: formData.get("buffaloColor"),
-  //     birthday: `${formData.get("birthDay")}/${formData.get(
-  //       "birthMonth",
-  //     )}/${formData.get("birthYear")}`,
-  //     imageUrl: buffaloImage,
-  //     microchip: formData.get("buffaloMicrochip"),
-  //     vaccineUrl: vaccineImage,
-  //     ownerName: `${formData.get("ownerName")} ${formData.get("ownerSurname")}`,
-  //     ownerTel: formData.get("tel"),
-  //   };
-  // }
+      const buffaloImageUrl =
+        (await uploadBuffalo(data.imageFile[0]!, imageFileName)) ?? "";
+      const vaccineImageUrl =
+        (await uploadVaccine(data.vaccineFile[0]!, vaccineFileName)) ?? "";
 
-  // async function submit(formData: FormData) {
-  //   "use server";
-  //   if (formData.get("accept") === "no") return;
-  //   const registerData = await parseFormData(
-  //     formData,
-  //     1,
-  //     "U80a7c64f43e4ca136b5b00bd2ffe6ae0",
-  //   );
+      if (buffaloImageUrl == "" || vaccineFileName == "") {
+        toast.error("ิอัพโหลดรูปภาพไม่สำเร็จ");
+        return;
+      }
 
-  //   console.log(registerData);
-
-  //   // redirect()
-  // }
-
-  const onSubmit = handleSubmit((data) => {
-    console.log(data);
+      registerEvent({
+        ...data,
+        userId: userId,
+        eventId: eventId,
+        imageFile: buffaloImageUrl,
+        vaccineFile: vaccineImageUrl,
+      });
+    } else {
+      toast.error("คุณยังไม่ได้กดยินขอมข้อตกลง");
+      return;
+    }
   });
 
   return (
     <div>
-      <h2 className="fron-bold text-primary text-xl">{name}</h2>
+      <h2 className="fron-bold text-xl text-primary">{name}</h2>
       <form onSubmit={onSubmit} className="flex max-w-sm flex-col">
         <div className="form-control">
           <label className="label label-text font-semibold">
             รุ่นที่จะประกวด
           </label>
           <select
-            className="select select-bordered border-primary select-sm rounded-full"
+            disabled={registering}
+            className="select select-bordered select-sm rounded-full border-primary"
             {...register("type", { required: true })}
           >
             <option disabled={true} selected>
@@ -128,8 +126,9 @@ export function EventForm({
         <div className="form-control">
           <label className="label label-text font-semibold">ระดับ</label>
           <select
+            disabled={registering}
             {...register("level", { required: true })}
-            className="select select-bordered border-primary select-sm rounded-full"
+            className="select select-bordered select-sm rounded-full border-primary"
           >
             <option disabled={true} selected>
               เลือก
@@ -141,8 +140,9 @@ export function EventForm({
         <div className="form-control">
           <label className="label label-text font-semibold">เพศของกระบือ</label>
           <select
+            disabled={registering}
             {...register("gender", { required: true })}
-            className="select select-bordered border-primary select-sm rounded-full"
+            className="select select-bordered select-sm rounded-full border-primary"
           >
             <option disabled={true} selected>
               เลือก
@@ -154,8 +154,9 @@ export function EventForm({
         <div className="form-control">
           <label className="label label-text font-semibold">สีของกระบือ</label>
           <select
+            disabled={registering}
             {...register("color", { required: true })}
-            className="select select-bordered border-primary select-sm rounded-full"
+            className="select select-bordered select-sm rounded-full border-primary"
           >
             <option disabled={true} selected>
               เลือก
@@ -172,13 +173,15 @@ export function EventForm({
             <input
               type="number"
               placeholder="วัน"
+              disabled={registering}
               {...register("birthDay", { required: true })}
               required
-              className="input input-primary input-bordered input-sm w-16 rounded-full"
+              className="input input-bordered input-primary input-sm w-16 rounded-full"
             ></input>
             <select
-              className="select select-sm border-primary w-full rounded-full"
+              className="select select-sm w-full rounded-full border-primary"
               required
+              disabled={registering}
               {...register("birthMonth", { required: true })}
             >
               <option disabled selected>
@@ -202,7 +205,7 @@ export function EventForm({
               {...register("birthYear", { required: true })}
               placeholder="พ.ศ."
               required
-              className="input input-primary input-bordered input-sm w-24 rounded-full"
+              className="input input-bordered input-primary input-sm w-24 rounded-full"
             ></input>
           </div>
           {/* <Datepicker /> */}
@@ -213,9 +216,10 @@ export function EventForm({
           </label>
           <input
             type="text"
+            disabled={registering}
             {...register("microchip", { required: true })}
             required
-            className="input input-sm border-primary rounded-full"
+            className="input input-sm rounded-full border-primary"
           />
         </div>
         <div className="form-control">
@@ -224,10 +228,11 @@ export function EventForm({
           </label>
           <input
             type="file"
+            disabled={registering}
             {...register("imageFile", { required: true })}
             required
             accept="image/png,image/jpg,image/jpeg"
-            className="file-input file-input-primary file-input-bordered file-input-sm rounded-full"
+            className="file-input file-input-bordered file-input-primary file-input-sm rounded-full"
           />
         </div>
 
@@ -237,10 +242,11 @@ export function EventForm({
           </label>
           <input
             type="file"
+            disabled={registering}
             {...register("vaccineFile", { required: true })}
             required
             accept="image/png,image/jpg,image/jpeg"
-            className="file-input file-input-primary file-input-bordered file-input-sm rounded-full"
+            className="file-input file-input-bordered file-input-primary file-input-sm rounded-full"
           />
         </div>
 
@@ -252,14 +258,16 @@ export function EventForm({
             <input
               required
               type="text"
+              disabled={registering}
               {...register("ownerName", { required: true })}
-              className="input input-bordered border-primary input-sm rounded-full"
+              className="input input-bordered input-sm rounded-full border-primary"
             />
             <input
               required
               type="text"
+              disabled={registering}
               {...register("ownerLastname", { required: true })}
-              className="input input-bordered border-primary input-sm rounded-full"
+              className="input input-bordered input-sm rounded-full border-primary"
             />
           </div>
         </div>
@@ -269,15 +277,16 @@ export function EventForm({
           <input
             required
             type="text"
+            disabled={registering}
             {...register("ownerTel", { required: true })}
-            className="input input-bordered border-primary input-sm rounded-full"
+            className="input input-bordered input-sm rounded-full border-primary"
           />
         </div>
 
-        <div className="form-group border-primary my-2 rounded-xl border-[1px]">
+        <div className="form-group my-2 rounded-xl border-[1px] border-primary">
           <h3 className="mt-2 px-3 font-semibold">
             ยิมยอนปฎิบัติตามข้อปฎิบัติสำหรับการประกวดควายปลักไทย{" "}
-            <span className="text-info text-xs font-normal hover:underline">
+            <span className="text-xs font-normal text-info hover:underline">
               <Link href="">ข้อปฎิบัติ</Link>
             </span>
           </h3>
@@ -288,6 +297,7 @@ export function EventForm({
                 <input
                   type="radio"
                   required
+                  disabled={registering}
                   {...register("accept", { required: true })}
                   value="yes"
                   className="radio checked:bg-primary"
@@ -301,6 +311,7 @@ export function EventForm({
                   type="radio"
                   required
                   value="no"
+                  disabled={registering}
                   {...register("accept", { required: true })}
                   className="radio checked:bg-primary"
                 ></input>
@@ -310,11 +321,19 @@ export function EventForm({
         </div>
 
         <div className="form-control flex flex-row justify-center gap-2">
-          <button type="submit" className="btn btn-primary">
-            บันทึก
+          <button
+            disabled={registering}
+            type="submit"
+            className="btn btn-primary"
+          >
+            {registering ? <Loading1 /> : "บันทึก"}
           </button>
-          <button type="reset" className="btn btn-outline btn-error">
-            ล้าง
+          <button
+            onClick={() => reset()}
+            disabled={registering}
+            className="btn btn-outline btn-error"
+          >
+            {registering ? <Loading1 /> : "ล้าง"}
           </button>
         </div>
       </form>
