@@ -24,6 +24,7 @@ model EventRegister {
     eventId    Int
     type       String
     level      String
+    name       String
     gender     String
     color      String
     birthday   String
@@ -44,7 +45,13 @@ model Event {
     description   String
     startAt       DateTime
     endAt         DateTime
+    eventAt       DateTime
+    location      String?
+    facebook      String?
+    twitter       String?
+    website       String?
     isActive      Boolean         @default(true)
+    imageUrl      String?
     metadata      String[]
     EventRegister EventRegister[]
 }

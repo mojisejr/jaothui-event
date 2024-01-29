@@ -48,10 +48,9 @@ export default function RegisterForm({ profile }: RegisterFormProp) {
     createUser(preparedData);
   });
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-2">
-      <h3 className="text-center font-bold underline">ลงทะเบียนสมาชิก</h3>
+    <form onSubmit={onSubmit} className="flex flex-col gap-1">
       <div className="form-control">
-        <label className="label label-text">ชื่อ</label>
+        <label className="label label-text text-primary">ชื่อ</label>
         <input
           type="text"
           disabled={isLoading}
@@ -61,7 +60,7 @@ export default function RegisterForm({ profile }: RegisterFormProp) {
         ></input>
       </div>
       <div className="form-control">
-        <label className="label label-text">นามสกุล</label>
+        <label className="label label-text text-primary">นามสกุล</label>
         <input
           type="text"
           disabled={isLoading}
@@ -71,7 +70,7 @@ export default function RegisterForm({ profile }: RegisterFormProp) {
         ></input>
       </div>
       <div className="form-control">
-        <label className="label label-text">โทรศัพท์</label>
+        <label className="label label-text text-primary">โทรศัพท์</label>
         <input
           type="text"
           disabled={isLoading}
@@ -81,7 +80,11 @@ export default function RegisterForm({ profile }: RegisterFormProp) {
           {...register("tel", { required: true })}
         ></input>
       </div>
-      <button disabled={isLoading} type="submit" className="btn btn-primary">
+      <button
+        disabled={isLoading}
+        type="submit"
+        className="btn btn-primary my-2 rounded-full"
+      >
         {isLoading ? (
           <div>
             <div className="loading loading-spinner loading-sm"></div>

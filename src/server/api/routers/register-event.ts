@@ -17,6 +17,7 @@ export const registerEventRouter = createTRPCRouter({
         userId: z.string(),
         type: z.string(),
         level: z.string(),
+        name: z.string(),
         gender: z.string(),
         color: z.string(),
         birthDay: z.string(),
@@ -28,7 +29,7 @@ export const registerEventRouter = createTRPCRouter({
         ownerName: z.string(),
         ownerLastname: z.string(),
         ownerTel: z.string(),
-        accept: z.string(),
+        accept: z.array(z.string()),
       }),
     )
     .mutation(async ({ input }) => {
@@ -42,6 +43,7 @@ export const registerEventRouter = createTRPCRouter({
           userId: input.userId,
           eventId: input.eventId,
           type: input.type,
+          name: input.name,
           level: input.level,
           gender: input.gender,
           color: input.color,

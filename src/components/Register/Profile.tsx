@@ -10,7 +10,7 @@ export function Profile({ avatar, name, email }: ProfileProps) {
         <img src={avatar} alt="avatar" className="w-36 rounded-full" />
       </div>
       <div className="flex flex-col items-center">
-        <div className="text-xl font-semibold">{name}</div>
+        <div className="text-xl font-semibold text-secondary">{name}</div>
         <div className="text-sm font-bold text-slate-400">{email}</div>
       </div>
     </div>

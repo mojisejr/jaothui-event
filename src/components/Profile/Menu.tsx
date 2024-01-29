@@ -22,11 +22,11 @@ export default function ProfileMenu() {
   return (
     <div className="flex flex-col gap-2">
       <h3 className="text-center font-bold">เมนู</h3>
-      <Link className="btn btn-primary" href="/profile/my-events">
-        การประกวดของคุณ
+      <Link className="btn btn-primary rounded-full" href="/profile/my-events">
+        ประวัติลงประกวด
       </Link>
-      <Link className="btn btn-primary" href="/events">
-        รายการประกวด
+      <Link className="btn btn-primary rounded-full" href="/events">
+        รายการประกวดควาย
       </Link>
       {userData?.role === "ADMIN" ? (
         <>
@@ -36,7 +36,7 @@ export default function ProfileMenu() {
         </>
       ) : null}
 
-      <button onClick={() => logout()} className="btn btn-primary">
+      <button onClick={() => logout()} className="btn btn-ghost text-secondary">
         ออกจากระบบ
       </button>
     </div>

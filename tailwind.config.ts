@@ -7,6 +7,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
+        prompt: ["Prompt", ...fontFamily.sans],
       },
     },
   },
@@ -16,12 +17,12 @@ export default {
         mytheme: {
           primary: "#D89A17",
           "primary-content": "#ffffff",
-          secondary: "#ffedd5",
+          secondary: "#ffffff",
+          "secondary-content": "D89A17",
           accent: "#393939",
           "accent-content": "#ffffff",
           error: "#D04848",
           "error-content": "#ffffff",
-          "base-100": "#ffffff",
         },
       },
     ],

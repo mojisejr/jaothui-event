@@ -14,6 +14,8 @@ export default function ProfilePage() {
     userId: profile != undefined ? profile.userId : "",
   });
 
+  console.log(user);
+
   useEffect(() => {
     if (!loggedIn) {
       void replace("/");
@@ -21,9 +23,9 @@ export default function ProfilePage() {
   }, []);
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center">
+    <div className="flex h-full min-h-screen w-full flex-col items-center justify-center">
       {profile ? (
-        <div className="grid-col-1 mt-10 grid gap-10">
+        <div className="grid-col-1 grid w-[220px] gap-10">
           <Profile
             avatar={profile.pictureUrl!}
             name={profile.displayName!}

@@ -37,18 +37,19 @@ export function LineProvider({ children }: { children: ReactNode }) {
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [profile, setProfile] = useState<Profile>();
   const [init, setInit] = useState<boolean>(false);
+  const { pathname } = useRouter();
 
   useEffect(() => {
     void initialize();
     void updateLoggedInState();
 
-    if (init) {
-      if (!liff.isInClient()) {
-        void replace("/not-in-app");
-      }
-    }
+    // if (init) {
+    //   if (!liff.isInClient()) {
+    //     void replace("/not-in-app");
+    //   }
+    // }
 
-    if (!loggedIn) void replace("/");
+    if (!loggedIn && pathname !== "/events") void replace("/");
 
     if (loggedIn) {
       void getProfile();

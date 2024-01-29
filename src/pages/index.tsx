@@ -13,20 +13,22 @@ export default function Home() {
         <meta name="description" content="Jaothui Event App" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className="max-h-[90vh] px-4 py-2">
+      <main className="h-full px-4 py-2">
         <div className="py-3">
           <div>
-            <h3 className="font-semibold">ยินดีต้อนรับเข้าสูระบบ</h3>
+            <h3 className="font-semibold text-secondary">
+              ยินดีต้อนรับเข้าสู่ระบบ
+            </h3>
             <motion.h1
               initial={{ x: -100, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 1.3, ease: "easeInOut" }}
-              className="text-[48px] font-semibold text-primary"
+              className="font-prompt text-[38px] font-semibold text-primary"
             >
-              Jaothui Event
+              JAOTHUI EVENT
             </motion.h1>
           </div>
-          <p className="py-6 pr-6 text-slate-800">
+          <p className="py-6 pr-6 text-secondary">
             ระบบ Jaothui Event ยกระดับการประกวด ยกระดับควายไทย
             ด้วยระบบกิจกรรมการประกวด ดิจิตอล สะดวกรวดเร็วฉับไว มีประสิทธิภาพ
           </p>
@@ -35,13 +37,16 @@ export default function Home() {
             {!loggedIn ? (
               <button
                 onClick={() => login()}
-                className="btn btn-primary shadow"
+                className="btn btn-primary min-w-[150px] rounded-full shadow"
               >
                 เช้าสู่ระบบ
               </button>
             ) : (
-              <Link href="/profile" className="btn btn-primary shadow">
-                เร่ิมกันเลย
+              <Link
+                href="/profile"
+                className="btn btn-primary min-w-[150px] rounded-full shadow"
+              >
+                เริ่มกันเลย
               </Link>
             )}
           </div>
@@ -55,9 +60,14 @@ export default function Home() {
               type: "spring",
               ease: "easeInOut",
             }}
-            className="mockup-phone w-[300px] border-primary border-opacity-80 shadow-[rgba(0,_0,_0,_0.2)_0px_60px_40px_-7px]"
+            className="w-full max-w-[300px]"
           >
-            <div className="camera"></div>
+            <img
+              src="/images/phone1.png"
+              alt="phone with thui logo"
+              className="w-full"
+            />
+            {/* <div className="camera"></div>
             <div className="display">
               <div className="artboard phone-1 relative bg-slate-200">
                 <div className="absolute left-0 top-0">
@@ -69,7 +79,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </motion.div>
         </div>
       </main>

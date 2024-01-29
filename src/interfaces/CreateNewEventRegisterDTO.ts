@@ -3,6 +3,7 @@ export interface CreateNewEventRegisterDTO {
   userId: string;
   type: string;
   level: string;
+  name: string;
   gender: string;
   color: string;
   birthday: string;

@@ -1,4 +1,4 @@
-import { CompetitionClass } from "~/constants/competition-class";
+import { inHouse, national } from "~/constants/competition-class";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { api } from "~/utils/api";
@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Loading1 from "../Shared/Loading1";
+import { rules } from "~/constants/rules";
 // 1.รุ่นที่จะลงประกวด
 // 2.ระบุเพศ
 // 3.สี (ดำ,เผือก)
@@ -22,6 +23,7 @@ export type EventRegisterType = {
   userId: string;
   type: string;
   level: string;
+  name: string;
   gender: string;
   color: string;
   birthDay: string;
@@ -33,7 +35,7 @@ export type EventRegisterType = {
   ownerName: string;
   ownerLastname: string;
   ownerTel: string;
-  accept: string;
+  accept: string[];
 };
 
 export function EventForm({
@@ -46,12 +48,14 @@ export function EventForm({
   name: string;
 }) {
   const [isLoading, setLoading] = useState<boolean>(false);
+  const [selectedLevel, setSelectedLevel] = useState<string>();
   const { replace } = useRouter();
 
   const {
     register,
     reset,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<EventRegisterType>();
 
@@ -62,6 +66,13 @@ export function EventForm({
     isError: registerError,
     error: registerErrorObj,
   } = api.registerEvent.register.useMutation();
+
+  useEffect(() => {
+    const subscription = watch(({ level }) => {
+      setSelectedLevel(level);
+    });
+    return () => subscription.unsubscribe();
+  }, [watch]);
 
   useEffect(() => {
     if (registered) {
@@ -76,78 +87,103 @@ export function EventForm({
 
   const onSubmit = handleSubmit(async (data) => {
     setLoading(true);
-    if (data.accept === "yes") {
-      const imageFileName = `${data.microchip}-${data.userId}-${data.eventId}-${new Date().getTime().toString()}`;
-      const vaccineFileName = `vac_${imageFileName}`;
-
-      const buffaloImageUrl =
-        (await uploadBuffalo(data.imageFile[0]!, imageFileName)) ?? "";
-      const vaccineImageUrl =
-        (await uploadVaccine(data.vaccineFile[0]!, vaccineFileName)) ?? "";
-
-      if (buffaloImageUrl == "" || vaccineFileName == "") {
-        toast.error("ิอัพโหลดรูปภาพไม่สำเร็จ");
-        setLoading(false);
-        return;
-      }
-
-      registerEvent({
-        ...data,
-        userId: userId,
-        eventId: eventId,
-        imageFile: buffaloImageUrl,
-        vaccineFile: vaccineImageUrl,
-      });
-    } else {
-      toast.error("คุณยังไม่ได้กดยินขอมข้อตกลง");
+    if (data.accept.length < 7) {
+      toast.error("คุนต้องยินยอมทุกข้อปฎิบัติ!");
       setLoading(false);
       return;
     }
+
+    const imageFileName = `${data.microchip}-${data.userId}-${data.eventId}-${new Date().getTime().toString()}`;
+    const vaccineFileName = `vac_${imageFileName}`;
+
+    const buffaloImageUrl =
+      (await uploadBuffalo(data.imageFile[0]!, imageFileName)) ?? "";
+    const vaccineImageUrl =
+      (await uploadVaccine(data.vaccineFile[0]!, vaccineFileName)) ?? "";
+
+    if (buffaloImageUrl == "" || vaccineFileName == "") {
+      toast.error("ิอัพโหลดรูปภาพไม่สำเร็จ");
+      setLoading(false);
+      return;
+    }
+
+    registerEvent({
+      ...data,
+      userId: userId,
+      eventId: eventId,
+      imageFile: buffaloImageUrl,
+      vaccineFile: vaccineImageUrl,
+    });
   });
 
   return (
-    <div>
+    <div className="text-secondary">
       <h2 className="fron-bold text-xl text-primary">{name}</h2>
       <form onSubmit={onSubmit} className="flex max-w-sm flex-col">
-        <div className="form-control">
-          <label className="label label-text font-semibold">
-            รุ่นที่จะประกวด
-          </label>
-          <select
-            disabled={registering || isLoading}
-            className="select select-bordered select-sm rounded-full border-primary"
-            {...register("type", { required: true })}
-          >
-            <option disabled={true} selected>
-              เลือก
-            </option>
-            {CompetitionClass.map((c) => (
-              <option key={c.id} value={c.title}>
-                {c.title}
-              </option>
-            ))}
-          </select>
-        </div>
         <div className="form-control">
           <label className="label label-text font-semibold">ระดับ</label>
           <select
             disabled={registering || isLoading}
             {...register("level", { required: true })}
-            className="select select-bordered select-sm rounded-full border-primary"
+            className="select select-bordered select-sm rounded-full border-primary text-primary"
           >
             <option disabled={true} selected>
               เลือก
             </option>
-            <option value="ภายใน">ภายใน</option>
-            <option value="ประเทศ">ประเทศ</option>
+            <option value="ภายในประเทศ">ภายในจังหวัด</option>
+            <option value="ระดับประเทศ">ระดับประเทศ</option>
           </select>
+        </div>
+        <div className="form-control">
+          <label className="label label-text font-semibold">
+            รุ่นที่จะประกวด
+          </label>
+          <select
+            disabled={registering || isLoading || selectedLevel == undefined}
+            className="select select-bordered select-sm rounded-full border-primary text-primary"
+            {...register("type", { required: true })}
+          >
+            <option disabled={true} selected>
+              เลือก
+            </option>
+            {selectedLevel == "ภายในประเทศ" ? (
+              <>
+                {inHouse.map((ih) => (
+                  <option key={ih.id} value={ih.title}>
+                    {ih.title}
+                  </option>
+                ))}
+              </>
+            ) : (
+              <>
+                {national.map((n) => (
+                  <option key={n.id} value={n.title}>
+                    {n.title}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
+        </div>
+
+        <div className="form-control">
+          <label className="label label-text font-semibold ">
+            ชื่อของกระบือ
+          </label>
+          <input
+            type="text"
+            disabled={registering || isLoading}
+            {...register("name", { required: true })}
+            required
+            className="input input-sm rounded-full border-primary text-primary"
+          />
         </div>
         <div className="form-control">
           <label className="label label-text font-semibold">เพศของกระบือ</label>
           <select
             disabled={registering || isLoading}
             {...register("gender", { required: true })}
-            className="select select-bordered select-sm rounded-full border-primary"
+            className="select select-bordered select-sm rounded-full border-primary text-primary"
           >
             <option disabled={true} selected>
               เลือก
@@ -161,7 +197,7 @@ export function EventForm({
           <select
             disabled={registering || isLoading}
             {...register("color", { required: true })}
-            className="select select-bordered select-sm rounded-full border-primary"
+            className="select select-bordered select-sm rounded-full border-primary text-primary"
           >
             <option disabled={true} selected>
               เลือก
@@ -181,10 +217,10 @@ export function EventForm({
               disabled={registering || isLoading}
               {...register("birthDay", { required: true })}
               required
-              className="input input-bordered input-primary input-sm w-16 rounded-full"
+              className="input input-bordered input-primary input-sm w-16 rounded-full text-primary"
             ></input>
             <select
-              className="select select-sm w-full rounded-full border-primary"
+              className="select select-sm w-full rounded-full border-primary text-primary"
               required
               disabled={registering || isLoading}
               {...register("birthMonth", { required: true })}
@@ -211,13 +247,13 @@ export function EventForm({
               placeholder="พ.ศ."
               required
               disabled={registering || isLoading}
-              className="input input-bordered input-primary input-sm w-24 rounded-full"
+              className="input input-bordered input-primary input-sm w-24 rounded-full text-primary"
             ></input>
           </div>
           {/* <Datepicker /> */}
         </div>
         <div className="form-control">
-          <label className="label label-text font-semibold">
+          <label className="label label-text font-semibold ">
             หมายเลขประจำตัวสัตว์
           </label>
           <input
@@ -225,7 +261,7 @@ export function EventForm({
             disabled={registering || isLoading}
             {...register("microchip", { required: true })}
             required
-            className="input input-sm rounded-full border-primary"
+            className="input input-sm rounded-full border-primary text-primary"
           />
         </div>
         <div className="form-control">
@@ -238,7 +274,7 @@ export function EventForm({
             {...register("imageFile", { required: true })}
             required
             accept="image/png,image/jpg,image/jpeg"
-            className="file-input file-input-bordered file-input-primary file-input-sm rounded-full"
+            className="file-input file-input-bordered file-input-primary file-input-sm rounded-full text-primary"
           />
         </div>
 
@@ -252,7 +288,7 @@ export function EventForm({
             {...register("vaccineFile", { required: true })}
             required
             accept="image/png,image/jpg,image/jpeg"
-            className="file-input file-input-bordered file-input-primary file-input-sm rounded-full"
+            className="file-input file-input-bordered file-input-primary file-input-sm rounded-full text-primary"
           />
         </div>
 
@@ -260,20 +296,20 @@ export function EventForm({
           <label className="label label-text font-semibold">
             ชื่อ - นามสกุล ผู้ส่งเข้าประกวด
           </label>
-          <div className="flex justify-evenly gap-2">
+          <div className="flex flex-col justify-evenly gap-2">
             <input
               required
               type="text"
               disabled={registering || isLoading}
               {...register("ownerName", { required: true })}
-              className="input input-bordered input-sm rounded-full border-primary"
+              className="input input-bordered input-sm rounded-full border-primary text-primary"
             />
             <input
               required
               type="text"
               disabled={registering || isLoading}
               {...register("ownerLastname", { required: true })}
-              className="input input-bordered input-sm rounded-full border-primary"
+              className="input input-bordered input-sm rounded-full border-primary text-primary"
             />
           </div>
         </div>
@@ -285,59 +321,40 @@ export function EventForm({
             type="text"
             disabled={registering || isLoading}
             {...register("ownerTel", { required: true })}
-            className="input input-bordered input-sm rounded-full border-primary"
+            className="input input-bordered input-sm rounded-full border-primary text-primary"
           />
         </div>
 
-        <div className="form-group my-2 rounded-xl border-[1px] border-primary">
-          <h3 className="mt-2 px-3 font-semibold">
-            ยิมยอนปฎิบัติตามข้อปฎิบัติสำหรับการประกวดควายปลักไทย{" "}
-            <span className="text-xs font-normal text-info hover:underline">
-              <Link href="">ข้อปฎิบัติ</Link>
-            </span>
-          </h3>
-          <div className="flex justify-evenly">
-            <div className="form-control">
-              <label className="label cursor-pointer">
-                <span className="label-text px-2">ยินยอม</span>
-                <input
-                  type="radio"
-                  required
-                  disabled={registering || isLoading}
-                  {...register("accept", { required: true })}
-                  value="yes"
-                  className="radio checked:bg-primary"
-                ></input>
-              </label>
-            </div>
-            <div className="form-control">
-              <label className="label cursor-pointer">
-                <span className="label-text px-2">ไม่ยินยอม</span>
-                <input
-                  type="radio"
-                  required
-                  value="no"
-                  disabled={registering || isLoading}
-                  {...register("accept", { required: true })}
-                  className="radio checked:bg-primary"
-                ></input>
-              </label>
-            </div>
-          </div>
+        <div className="form-group my-2 rounded-xl border-[1px] border-primary p-2 text-secondary">
+          <h3 className="text-xl font-semibold">กรุณายินยอมข้อตกลง</h3>
+          {rules
+            ? rules.map((rule, index) => (
+                <div className="form-control p-1" key={index}>
+                  <label className="label grid cursor-pointer grid-cols-3">
+                    <input
+                      type="checkbox"
+                      className="checkbox-primary checkbox col-span-1"
+                      {...register("accept")}
+                    />
+                    <span className="label-text col-span-2">{rule}</span>
+                  </label>
+                </div>
+              ))
+            : null}
         </div>
 
         <div className="form-control flex flex-row justify-center gap-2">
           <button
             disabled={registering || isLoading}
             type="submit"
-            className="btn btn-primary"
+            className="btn btn-primary rounded-full"
           >
             {registering || isLoading ? <Loading1 /> : "บันทึก"}
           </button>
           <button
             onClick={() => reset()}
             disabled={registering || isLoading}
-            className="btn btn-outline btn-error"
+            className="btn btn-outline btn-error rounded-full"
           >
             {registering || isLoading ? <Loading1 /> : "ล้าง"}
           </button>

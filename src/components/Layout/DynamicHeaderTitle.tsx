@@ -9,6 +9,6 @@ export default function DynamicHeaderTitle({ pathname }: { pathname: string }) {
     case "/member":
       return <HeaderTitle text={"ข้อมูลสมาชิก"} />;
     default:
-      return <HeaderTitle text={"Jaothui"} />;
+      return <HeaderTitle text={"JAOTHUI"} />;
   }
 }

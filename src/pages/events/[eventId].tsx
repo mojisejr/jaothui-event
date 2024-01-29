@@ -7,7 +7,7 @@ export default function RegisterForm() {
   const { query } = useRouter();
 
   return (
-    <div className="p-6">
+    <div className="h-full max-h-[90vh] overflow-scroll p-6">
       <EventForm
         userId={profile ? profile.userId : ""}
         eventId={+query.eventId!}
