@@ -43,11 +43,11 @@ export function LineProvider({ children }: { children: ReactNode }) {
     void initialize();
     void updateLoggedInState();
 
-    // if (init) {
-    //   if (!liff.isInClient()) {
-    //     void replace("/not-in-app");
-    //   }
-    // }
+    if (init) {
+      if (!liff.isInClient()) {
+        void replace("/not-in-app");
+      }
+    }
 
     if (!loggedIn && pathname !== "/events") void replace("/");
 
