@@ -39,7 +39,7 @@ export default function RegisterForm({ profile }: RegisterFormProp) {
   const onSubmit = handleSubmit((data) => {
     const preparedData = {
       userId: profile.userId,
-      email: profile.email == undefined ? null : profile.email,
+      email: profile.email ?? null,
       name: `${data.firstname} ${data.lastname}`,
       tel: data.tel,
     };
