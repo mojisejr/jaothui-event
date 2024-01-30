@@ -13,6 +13,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@line/bot-sdk": "^8.2.0",
     "@line/liff": "^2.23.1",
     "@prisma/client": "^5.6.0",
     "@supabase/supabase-js": "^2.39.3",
@@ -22,6 +23,7 @@
     "@trpc/next": "^10.43.6",
     "@trpc/react-query": "^10.43.6",
     "@trpc/server": "^10.43.6",
+    "@types/uuid": "^9.0.8",
     "dayjs": "^1.11.10",
     "framer-motion": "^11.0.3",
     "next": "^14.0.4",
@@ -31,6 +33,7 @@
     "react-icons": "^5.0.1",
     "react-toastify": "^10.0.4",
     "superjson": "^2.2.1",
+    "uuid": "^9.0.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {

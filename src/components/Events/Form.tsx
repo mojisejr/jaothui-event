@@ -215,7 +215,7 @@ export function EventForm({
               type="number"
               placeholder="วัน"
               disabled={registering || isLoading}
-              {...register("birthDay", { required: true })}
+              {...register("birthDay", { required: true, max: 31, min: 1 })}
               required
               className="input input-bordered input-primary input-sm w-16 rounded-full text-primary"
             ></input>

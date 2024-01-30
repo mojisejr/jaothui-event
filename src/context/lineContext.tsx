@@ -43,6 +43,7 @@ export function LineProvider({ children }: { children: ReactNode }) {
     void initialize();
     void updateLoggedInState();
 
+    //only access in line app
     if (init) {
       if (!liff.isInClient()) {
         void replace("/not-in-app");
@@ -98,6 +99,7 @@ export function LineProvider({ children }: { children: ReactNode }) {
     liff.logout();
     setLoggedIn(false);
   }
+
   const value = { liff, profile, loggedIn, login, logout };
   return <LineContext.Provider value={value}>{children}</LineContext.Provider>;
 }

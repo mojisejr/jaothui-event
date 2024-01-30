@@ -1,5 +1,7 @@
 import { db } from "../db";
 import { CreateNewEventRegisterDTO } from "~/interfaces/CreateNewEventRegisterDTO";
+import { messageParser } from "../messaging/message-parser";
+import { notify } from "../messaging/notification";
 
 export async function getAllRegisteredBy(userId: string) {
   try {
@@ -37,7 +39,24 @@ export async function getById(id: number) {
 
 export async function createNewRegister(event: CreateNewEventRegisterDTO) {
   try {
-    return await db.eventRegister.create({ data: event });
+    const newRegisteredEvent = await db.eventRegister.create({
+      data: event,
+      include: { event: true },
+    });
+
+    if (!newRegisteredEvent) return null;
+
+    //prepared message for pushing
+    const message = messageParser({
+      ownerName: newRegisteredEvent.ownerName,
+      buffaloName: newRegisteredEvent.name,
+      microchip: newRegisteredEvent.microchip,
+      eventName: newRegisteredEvent.event.name,
+      eventAt: newRegisteredEvent.event.eventAt,
+    });
+
+    // notify user
+    await notify(newRegisteredEvent.userId, message);
   } catch (error) {
     console.log(error);
     return null;
