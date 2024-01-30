@@ -30,7 +30,7 @@ export default function Home() {
           </div>
           <p className="py-6 pr-6 text-secondary">
             ระบบ Jaothui Event ยกระดับการประกวด ยกระดับควายไทย
-            ด้วยระบบกิจกรรมการประกวด ดิจิตอล สะดวกรวดเร็วฉับไว มีประสิทธิภาพ
+            ด้วยระบบกิจกรรมการประกวดดิจิตอล สะดวกรวดเร็วฉับไว มีประสิทธิภาพ
           </p>
 
           <div className="flex gap-2">
