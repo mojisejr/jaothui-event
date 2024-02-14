@@ -1,4 +1,4 @@
-import { inHouse, national } from "~/constants/competition-class";
+import { inHouse } from "~/constants/competition-class-v2";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { api } from "~/utils/api";
@@ -38,7 +38,7 @@ export type EventRegisterType = {
   accept: string[];
 };
 
-export function EventForm({
+export function EventForm2({
   userId,
   eventId,
   name,
@@ -86,6 +86,7 @@ export function EventForm({
   }, [registered, registerError]);
 
   const onSubmit = handleSubmit(async (data) => {
+    console.log(data);
     setLoading(true);
     if (data.accept.length < 7) {
       toast.error("คุนต้องยินยอมทุกข้อปฎิบัติ!");
@@ -130,7 +131,7 @@ export function EventForm({
             <option disabled={true} selected>
               เลือก
             </option>
-            <option value="ภายในประเทศ">ภายในจังหวัด</option>
+            {/* <option value="ภายในจังหวัด">ภายในจังหวัด</option> */}
             <option value="ระดับประเทศ">ระดับประเทศ</option>
           </select>
         </div>
@@ -146,23 +147,11 @@ export function EventForm({
             <option disabled={true} selected>
               เลือก
             </option>
-            {selectedLevel == "ภายในประเทศ" ? (
-              <>
-                {inHouse.map((ih) => (
-                  <option key={ih.id} value={ih.title}>
-                    {ih.title}
-                  </option>
-                ))}
-              </>
-            ) : (
-              <>
-                {national.map((n) => (
-                  <option key={n.id} value={n.title}>
-                    {n.title}
-                  </option>
-                ))}
-              </>
-            )}
+            {inHouse.map((ih) => (
+              <option key={ih.id} value={ih.title}>
+                {ih.title}
+              </option>
+            ))}
           </select>
         </div>
 
