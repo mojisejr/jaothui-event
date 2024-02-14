@@ -9,7 +9,7 @@ export default function RegisterForm() {
 
   return (
     <div className="h-full max-h-[90vh] overflow-scroll p-6">
-      {+query.eventId! && +query.eventId! == 1 ? (
+      {+query.eventId! && +query.eventId! <= 1 ? (
         <EventForm
           userId={profile ? profile.userId : ""}
           eventId={+query.eventId!}
