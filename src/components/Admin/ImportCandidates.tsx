@@ -12,7 +12,11 @@ export function ImportCandidatesButton() {
       disabled={
         selectedEvent == null || selectedEvent == undefined || importing
       }
-      onClick={() => importCandidates({ eventId: selectedEvent?.id! })}
+      onClick={() =>
+        importCandidates({
+          eventId: selectedEvent == undefined ? 0 : selectedEvent.id,
+        })
+      }
       className={clsx("btn btn-primary btn-sm", {
         "text-gray-200 opacity-60":
           selectedEvent == null || selectedEvent == undefined,

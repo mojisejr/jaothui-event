@@ -20,13 +20,12 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<boolean>(false);
   const { liff, profile } = useLine();
   const { data: user, refetch } = api.user.getById.useQuery({
-    userId: profile?.userId!,
+    userId: profile == undefined ? "" : profile.userId,
   });
 
   useEffect(() => {
-    isAdmin();
-    refetch();
-    console.log("user", user?.role);
+    void isAdmin();
+    void refetch();
   }, [user, liff]);
 
   async function isAdmin() {

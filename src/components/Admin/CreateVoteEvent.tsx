@@ -18,7 +18,10 @@ export function CreateVoteEvent() {
 
   const onSubmit = handleSubmit(async (data) => {
     const selected = activeEvent?.find((event) => event.id === +data.eventId);
-    createVoteEvent({ id: selected!.id, name: selected?.name! });
+    createVoteEvent({
+      id: selected == undefined ? 0 : selected.id,
+      name: selected == undefined ? "" : selected.name,
+    });
   });
 
   return (
@@ -44,7 +47,9 @@ export function CreateVoteEvent() {
       </div>
       <button
         disabled={
-          creating || activeEvent?.length! <= 0 || selectedEvent != null
+          creating || activeEvent == undefined
+            ? true
+            : activeEvent.length <= 0 || selectedEvent != null
         }
         type="submit"
         className="btn btn-primary btn-sm w-full rounded-full"

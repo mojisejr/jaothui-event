@@ -12,7 +12,7 @@ export default function VotesPage() {
     isSuccess: getVotedOK,
     isError: getVotedError,
   } = api.votes.voted.useQuery({
-    userId: profile?.userId!,
+    userId: profile == undefined ? "" : profile.userId,
   });
 
   return (

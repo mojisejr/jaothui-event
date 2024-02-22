@@ -1,6 +1,6 @@
 import { Votes } from "./Votes";
 export interface Voters {
   id?: number;
-  userId: String;
+  userId: string;
   voteFor: Votes;
 }

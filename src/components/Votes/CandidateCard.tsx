@@ -32,7 +32,7 @@ export default function CandidateCard({
   useEffect(() => {
     if (isSuccess) {
       toast.success("โหวตสำเร็จ!");
-      replace("/success");
+      void replace("/success");
     }
 
     if (isError) {
@@ -52,7 +52,12 @@ export default function CandidateCard({
         <div className="text-2xl font-bold">{score} คะแนน</div>
         <div className="card-actions justify-end">
           <button
-            onClick={() => void voteFor({ userId: profile?.userId!, votesId })}
+            onClick={() =>
+              void voteFor({
+                userId: profile == undefined ? "" : profile.userId,
+                votesId,
+              })
+            }
             className="btn btn-circle btn-primary"
           >
             {isLoading ? (

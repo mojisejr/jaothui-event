@@ -31,7 +31,7 @@ export function NewCandidateForm() {
     addNewCandidate({
       microchip: data.microchip,
       name: data.name,
-      eventId: selectedEvent?.id!,
+      eventId: selectedEvent == undefined ? 0 : selectedEvent.id,
       imageUrl: imageUrl!,
     });
   });
@@ -103,7 +103,11 @@ export function NewCandidateForm() {
         <button
           type="button"
           disabled={importing}
-          onClick={() => void importCandidates({ eventId: selectedEvent?.id! })}
+          onClick={() =>
+            void importCandidates({
+              eventId: selectedEvent == undefined ? 0 : selectedEvent.id,
+            })
+          }
           className="btn btn-error rounded-full"
         >
           {importing ? "กำลังดึงข้อมูล" : "ดึงข้อมูลจากใบสมัคร"}

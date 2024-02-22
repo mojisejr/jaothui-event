@@ -9,6 +9,7 @@ export default function Ranking() {
           ?.sort((a, b) => a.score + b.score)
           .map((candidates, index) => (
             <RankingCard
+              key={index}
               imageUrl={candidates.imageUrl!}
               name={candidates.name}
               score={candidates.score}

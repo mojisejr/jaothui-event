@@ -12,7 +12,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!admin) {
-      replace("/profile");
+      void replace("/profile");
     }
   }, [admin]);
 
