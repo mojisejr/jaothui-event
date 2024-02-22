@@ -31,7 +31,7 @@ interface RankingCardProps {
 function RankingCard({ imageUrl, name, score, rank }: RankingCardProps) {
   return (
     <div
-      className={clsx("table grid grid-cols-4 place-items-center  p-2", {
+      className={clsx("grid grid-cols-4 place-items-center p-2", {
         "bg-gradient-to-br from-primary to-yellow-300": rank === 1,
         "bg-gradient-to-br from-slate-400 to-yellow-300": rank === 2,
         "bg-gradient-to-br from-slate-500 to-yellow-300": rank === 3,
