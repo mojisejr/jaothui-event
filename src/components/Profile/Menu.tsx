@@ -2,16 +2,13 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useLine } from "~/context/lineContext";
 import { useRouter } from "next/router";
-import { api } from "~/utils/api";
+import AdminMenu from "../Admin/AdminMenu";
+import { useAdmin } from "~/context/adminContext";
 
 export default function ProfileMenu() {
-  const { logout, loggedIn, profile } = useLine();
-  const { data: userData } = api.user.getById.useQuery({
-    userId: profile ? profile.userId : "",
-  });
+  const { logout, loggedIn } = useLine();
   const { replace } = useRouter();
-
-  console.log(profile);
+  const { admin } = useAdmin();
 
   useEffect(() => {
     if (!loggedIn) {
@@ -28,11 +25,18 @@ export default function ProfileMenu() {
       <Link className="btn btn-primary rounded-full" href="/events">
         รายการประกวดควาย
       </Link>
-      {userData?.role === "ADMIN" ? (
+      <Link className="btn btn-primary rounded-full" href="/votes">
+        กิจกรรมการโหวด
+      </Link>
+      <Link className="btn btn-primary rounded-full" href="/votes/ranking">
+        ตารางผลโหวต
+      </Link>
+      {admin ? (
         <>
-          <Link href="/admin/new-event" className="btn btn-primary">
+          <AdminMenu />
+          {/* <Link href="/admin/new-event" className="btn btn-primary">
             สร้างงานประกวด
-          </Link>
+          </Link> */}
         </>
       ) : null}
 

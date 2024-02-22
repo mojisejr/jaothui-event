@@ -14,8 +14,6 @@ export default function ProfilePage() {
     userId: profile != undefined ? profile.userId : "",
   });
 
-  console.log(user);
-
   useEffect(() => {
     if (!loggedIn) {
       void replace("/");

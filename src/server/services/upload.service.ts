@@ -22,6 +22,28 @@ export async function uploadBuffalo(file: File, fileName: string) {
   }
 }
 
+export async function uploadCandidate(file: File, fileName: string) {
+  try {
+    const extension = file?.name.split(".")[1];
+    const { data, error } = await supabase.storage
+      .from("images/candidates")
+      .upload(`${fileName}.${extension}`, file, {
+        cacheControl: "0",
+        upsert: false,
+      });
+
+    const url = data
+      ? supabase.storage.from("images/candidates").getPublicUrl(data.path).data
+          .publicUrl
+      : null;
+
+    return url;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+}
+
 export async function uploadVaccine(file: File, fileName: string) {
   try {
     const extension = file?.name.split(".")[1];

@@ -7,14 +7,17 @@ import { LineProvider } from "~/context/lineContext";
 import Navbar from "~/components/Shared/Navbar";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { AdminProvider } from "~/context/adminContext";
 
 const MyApp: AppType = ({ Component, pageProps }) => {
   return (
     <>
       <LineProvider>
-        <Navbar />
-        <Component {...pageProps} />
-        <ToastContainer limit={1} />
+        <AdminProvider>
+          <Navbar />
+          <Component {...pageProps} />
+          <ToastContainer limit={1} />
+        </AdminProvider>
       </LineProvider>
     </>
   );

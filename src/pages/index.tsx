@@ -67,19 +67,6 @@ export default function Home() {
               alt="phone with thui logo"
               className="w-full"
             />
-            {/* <div className="camera"></div>
-            <div className="display">
-              <div className="artboard phone-1 relative bg-slate-200">
-                <div className="absolute left-0 top-0">
-                  <img src="/images/thuiLogo.png" />
-                  <div className="p-4">
-                    <div className="text-[50px]">Jaothui</div>
-                    <div className="text-[50px]">Events</div>
-                    <div className="text-[50px]">System</div>
-                  </div>
-                </div>
-              </div>
-            </div> */}
           </motion.div>
         </div>
       </main>

@@ -46,11 +46,14 @@ export function LineProvider({ children }: { children: ReactNode }) {
     //only access in line app
     if (init) {
       if (!liff.isInClient()) {
+        if (pathname == "/votes/ranking") {
+          return;
+        }
         void replace("/not-in-app");
       }
     }
 
-    if (!loggedIn && pathname !== "/events") void replace("/");
+    // if (!loggedIn && pathname !== "/events") void replace("/");
 
     if (loggedIn) {
       void getProfile();

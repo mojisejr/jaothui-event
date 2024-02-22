@@ -55,3 +55,26 @@ model Event {
   metadata      String[]
   EventRegister EventRegister[]
 }
+
+model VoteEvent {
+  id    Int     @id
+  name  String
+  Votes Votes[]
+}
+
+model Votes {
+  id        Int       @id @default(autoincrement())
+  name      String
+  microchip String    @unique
+  imageUrl  String?
+  eventId   Int
+  event     VoteEvent @relation(fields: [eventId], references: [id])
+  Voters    Voters[]
+}
+
+model Voters {
+  id      Int    @id @default(autoincrement())
+  userId  String @unique
+  voteFor Votes  @relation(fields: [votesId], references: [id])
+  votesId Int
+}
