@@ -10,15 +10,22 @@ import { useRouter } from "next/router";
 export default function ProfilePage() {
   const { replace } = useRouter();
   const { loggedIn, profile } = useLine();
-  const { data: user, isLoading } = api.user.getById.useQuery({
-    userId: profile != undefined ? profile.userId : "",
+  const {
+    data: user,
+    isLoading,
+    refetch,
+  } = api.user.getById.useQuery({
+    userId: profile?.userId!,
   });
 
   useEffect(() => {
     if (!loggedIn) {
       void replace("/");
     }
-  }, []);
+    if (!user) {
+      refetch();
+    }
+  }, [user]);
 
   return (
     <div className="flex h-full min-h-screen w-full flex-col items-center justify-center">

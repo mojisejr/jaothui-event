@@ -3,6 +3,7 @@ import { db } from "../db";
 import { VoteEvent } from "~/interfaces/VoteEvent";
 import { Voters } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import { getUserByUserId } from "./user.service";
 
 //Create or update event
 export async function createVoteEvent(event: VoteEvent) {
@@ -125,6 +126,17 @@ export async function createVoter(voter: Voters) {
   }
 }
 
+export async function getVoters() {
+  const voters = await db.voters.findMany();
+  const users = await Promise.all(
+    voters.map(async (voter) => await getUserByUserId(voter.userId)),
+  );
+  if (users.length <= 0) {
+    return [];
+  }
+  return users;
+}
+
 export async function getVoterByUserId(userId: string) {
   try {
     const voter = await db.voters.findFirst({ where: { userId } });
@@ -172,4 +184,12 @@ export async function voteFor(userId: string, votesId: number) {
 
     return voteFor;
   }
+}
+
+export async function resetData() {
+  await Promise.all([
+    await db.voters.deleteMany(),
+    await db.votes.deleteMany(),
+    await db.voteEvent.deleteMany(),
+  ]);
 }

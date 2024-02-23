@@ -5,7 +5,9 @@ import {
   getVoteEvent,
   getVotedByuserId,
   getVoterByUserId,
+  getVoters,
   importCandidatesFromRegistered,
+  resetData,
   voteFor,
 } from "~/server/services/votes.service";
 import { z } from "zod";
@@ -48,6 +50,7 @@ export const votesRouter = createTRPCRouter({
       return await addNewCandidate(input);
     }),
   getCandidates: publicProcedure.query(async () => await getCandidates()),
+  getVoters: publicProcedure.query(async () => await getVoters()),
   voteFor: publicProcedure
     .input(
       z.object({
@@ -68,4 +71,7 @@ export const votesRouter = createTRPCRouter({
       // return await getVoterByUserId(input.userId);
       return await getVotedByuserId(input.userId);
     }),
+  reset: publicProcedure.mutation(async () => {
+    await resetData();
+  }),
 });

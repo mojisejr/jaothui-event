@@ -20,7 +20,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<boolean>(false);
   const { liff, profile } = useLine();
   const { data: user, refetch } = api.user.getById.useQuery({
-    userId: profile == undefined ? "" : profile.userId,
+    userId: profile?.userId!,
   });
 
   useEffect(() => {

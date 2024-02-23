@@ -14,6 +14,16 @@ export async function getAllActiveEvents() {
   }
 }
 
+export async function getAllEvents() {
+  try {
+    const events = await db.event.findMany();
+    return events;
+  } catch (error) {
+    console.log(error);
+    return [];
+  }
+}
+
 export async function isRegistered(microchip: string, eventId: number) {
   try {
     const found = await db.event.findMany({

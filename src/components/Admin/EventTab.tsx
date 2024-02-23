@@ -1,3 +1,3 @@
 export default function EventTab() {
-  return <div className="text-primary">Event Tab</div>;
+  return <div className="p-2 text-xl text-primary">กำลังพัฒนา</div>;
 }

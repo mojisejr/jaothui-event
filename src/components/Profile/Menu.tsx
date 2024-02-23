@@ -28,9 +28,6 @@ export default function ProfileMenu() {
       <Link className="btn btn-primary rounded-full" href="/votes">
         กิจกรรมการโหวด
       </Link>
-      <Link className="btn btn-primary rounded-full" href="/votes/ranking">
-        ตารางผลโหวต
-      </Link>
       {admin ? (
         <>
           <AdminMenu />
