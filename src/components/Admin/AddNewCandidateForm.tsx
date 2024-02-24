@@ -27,7 +27,6 @@ export function NewCandidateForm() {
 
   const onSubmit = handleSubmit(async (data) => {
     const imageUrl = await uploadCandidate(data.image[0]!, data.microchip);
-
     addNewCandidate({
       microchip: data.microchip,
       name: data.name,
@@ -61,7 +60,7 @@ export function NewCandidateForm() {
           <input
             type="text"
             disabled={adding || !selectedEvent}
-            {...register("name", { required: true })}
+            {...register("microchip", { required: true })}
             className="input input-bordered input-primary input-sm w-full rounded-full"
           ></input>
         </div>
@@ -70,7 +69,7 @@ export function NewCandidateForm() {
           <input
             type="text"
             disabled={adding || !selectedEvent}
-            {...register("microchip", { required: true })}
+            {...register("name", { required: true })}
             className="input input-bordered input-primary input-sm w-full rounded-full"
           ></input>
         </div>
