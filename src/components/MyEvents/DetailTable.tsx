@@ -49,9 +49,13 @@ export default function DetailTable({ registerId }: DetailTableProp) {
               ข้อมูลการสมัคร
             </div>
             <div className="col-span-2 flex justify-center py-2">
-              <div className="w-48 overflow-hidden rounded-xl shadow">
-                <img src={event?.imageUrl} alt="รูปควาย" />
-              </div>
+              {event?.imageUrl ? (
+                <div className="w-48 overflow-hidden rounded-xl shadow">
+                  <img src={event?.imageUrl!} alt="รูปควาย" />
+                </div>
+              ) : (
+                <div>N/A</div>
+              )}
             </div>
             <div>microchip</div>
             <div>{event?.microchip}</div>
