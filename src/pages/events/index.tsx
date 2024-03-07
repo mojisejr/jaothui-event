@@ -9,6 +9,7 @@ export default function EventPage() {
     isLoading,
     isSuccess,
   } = api.event.getAllActive.useQuery();
+
   return (
     <div>
       <h3 className="text-center text-xl font-bold text-secondary">

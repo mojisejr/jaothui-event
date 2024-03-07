@@ -7,9 +7,9 @@ export interface CreateNewEventRegisterDTO {
   gender: string;
   color: string;
   birthday: string;
-  imageUrl: string;
+  imageUrl?: string;
   microchip: string;
-  vaccineUrl: string;
+  vaccineUrl?: string;
   ownerName: string;
   ownerTel: string;
 }

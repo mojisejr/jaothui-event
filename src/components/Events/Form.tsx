@@ -130,7 +130,7 @@ export function EventForm({
             <option disabled={true} selected>
               เลือก
             </option>
-            <option value="ภายในประเทศ">ภายในจังหวัด</option>
+            <option value="ภายในจังหวัด">ภายในจังหวัด</option>
             <option value="ระดับประเทศ">ระดับประเทศ</option>
           </select>
         </div>

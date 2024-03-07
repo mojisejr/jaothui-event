@@ -9,6 +9,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Loading1 from "../Shared/Loading1";
 import { rules } from "~/constants/rules";
+
+//** IMPLEMENT JUST FOR EVENT ID 3 NEED TO CHANGE IF OTHER EVENT */
+
 // 1.รุ่นที่จะลงประกวด
 // 2.ระบุเพศ
 // 3.สี (ดำ,เผือก)
@@ -94,22 +97,29 @@ export function EventForm2({
       return;
     }
 
-    const imageFileName = `${data.microchip}-${userId}-${eventId}-${new Date().getTime().toString()}`;
-    const vaccineFileName = `vac_${imageFileName}`;
+    // const imageFileName = `${data.microchip}-${userId}-${eventId}-${new Date().getTime().toString()}`;
+    // const vaccineFileName = `vac_${imageFileName}`;
+    const imageFileName = `none`;
+    const vaccineFileName = `none`;
 
-    const buffaloImageUrl =
-      (await uploadBuffalo(data.imageFile[0]!, imageFileName)) ?? "";
-    const vaccineImageUrl =
-      (await uploadVaccine(data.vaccineFile[0]!, vaccineFileName)) ?? "";
+    // const buffaloImageUrl =
+    //   (await uploadBuffalo(data.imageFile[0]!, imageFileName)) ?? "";
+    // const vaccineImageUrl =
+    //   (await uploadVaccine(data.vaccineFile[0]!, vaccineFileName)) ?? "";
 
-    if (buffaloImageUrl == "" || vaccineFileName == "") {
-      toast.error("ิอัพโหลดรูปภาพไม่สำเร็จ");
-      setLoading(false);
-      return;
-    }
+    // if (buffaloImageUrl == "" || vaccineFileName == "") {
+    //   toast.error("ิอัพโหลดรูปภาพไม่สำเร็จ");
+    //   setLoading(false);
+    //   return;
+    // }
+
+    const buffaloImageUrl = "none";
+    const vaccineImageUrl = "none";
 
     registerEvent({
       ...data,
+      //no microchip needed
+      microchip: `${userId}${eventId}${new Date().getTime()}`,
       userId: userId,
       eventId: eventId,
       imageFile: buffaloImageUrl,
@@ -131,7 +141,7 @@ export function EventForm2({
             <option disabled={true} selected>
               เลือก
             </option>
-            {/* <option value="ภายในจังหวัด">ภายในจังหวัด</option> */}
+            <option value="ภายในจังหวัด">ภายในจังหวัด</option>
             <option value="ระดับประเทศ">ระดับประเทศ</option>
           </select>
         </div>
@@ -241,7 +251,7 @@ export function EventForm2({
           </div>
           {/* <Datepicker /> */}
         </div>
-        <div className="form-control">
+        {/* <div className="form-control">
           <label className="label label-text font-semibold ">
             หมายเลขประจำตัวสัตว์
           </label>
@@ -252,8 +262,8 @@ export function EventForm2({
             required
             className="input input-sm rounded-full border-primary text-primary"
           />
-        </div>
-        <div className="form-control">
+        </div> */}
+        {/* <div className="form-control">
           <label className="label label-text font-semibold">
             ภาพบัตรประจำตัวสัตว์
           </label>
@@ -265,9 +275,9 @@ export function EventForm2({
             accept="image/png,image/jpg,image/jpeg"
             className="file-input file-input-bordered file-input-primary file-input-sm rounded-full text-primary"
           />
-        </div>
+        </div> */}
 
-        <div className="form-control">
+        {/* <div className="form-control">
           <label className="label label-text font-semibold">
             เอกสารรับรองการฉีดวัคซีน
           </label>
@@ -279,7 +289,7 @@ export function EventForm2({
             accept="image/png,image/jpg,image/jpeg"
             className="file-input file-input-bordered file-input-primary file-input-sm rounded-full text-primary"
           />
-        </div>
+        </div> */}
 
         <div className="form-control">
           <label className="label label-text font-semibold">

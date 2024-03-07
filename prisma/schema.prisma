@@ -29,8 +29,8 @@ model EventRegister {
   color      String
   birthday   String
   microchip  String
-  imageUrl   String
-  vaccineUrl String
+  imageUrl   String?
+  vaccineUrl String?
   ownerName  String
   ownerTel   String
   userId     String
