@@ -89,9 +89,8 @@ export function EventForm2({
   }, [registered, registerError]);
 
   const onSubmit = handleSubmit(async (data) => {
-    console.log(data);
     setLoading(true);
-    if (data.accept.length < 7) {
+    if (data.accept.length < rules.length) {
       toast.error("คุนต้องยินยอมทุกข้อปฎิบัติ!");
       setLoading(false);
       return;
