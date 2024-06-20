@@ -1,14 +1,9 @@
 import Link from "next/link";
-import { useEffect } from "react";
+import { FaAddressCard } from "react-icons/fa";
 import Loading1 from "~/components/Shared/Loading1";
-import CandidateCard from "~/components/Votes/CandidateCard";
-import VotedCard from "~/components/Votes/VotedCard";
-import { useLine } from "~/context/lineContext";
 import { api } from "~/utils/api";
 export default function VotesPage() {
   const { data: voteEvent, isLoading } = api.votes.getAllEvents.useQuery();
-
-  console.log(voteEvent);
 
   return (
     <div className="min-h-screen text-primary">
@@ -17,19 +12,31 @@ export default function VotesPage() {
           <Loading1 />
         </div>
       ) : (
-        <div className="p-2">
-          {voteEvent?.map((event, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between bg-primary p-2  text-white"
-            >
-              <div>{event.name}</div>
-              <Link className="btn btn-secondary" href={`/votes/${event._id}`}>
-                ไปโหวต
-              </Link>
+        <>
+          {voteEvent && voteEvent.length <= 0 ? (
+            <div className="flex h-screen w-full flex-col items-center justify-center text-secondary">
+              <FaAddressCard size={65} className="text-primary" />
+              <p className="text-2xl">ไม่มีข้อมูล</p>
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="p-2">
+              {voteEvent?.map((event, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between bg-primary p-2  text-white"
+                >
+                  <div>{event.name}</div>
+                  <Link
+                    className="btn btn-secondary"
+                    href={`/votes/${event._id}`}
+                  >
+                    ไปโหวต
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
