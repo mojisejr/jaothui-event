@@ -1,10 +1,8 @@
 import React from "react";
 import { api } from "~/utils/api";
 import CandidateCard from "~/components/Votes/CandidateCard";
-import VotedCard from "~/components/Votes/VotedCard";
 import Loading1 from "~/components/Shared/Loading1";
 import { useRouter } from "next/router";
-import { useLine } from "~/context/lineContext";
 
 const VoteEventDetail = () => {
   const { query } = useRouter();
