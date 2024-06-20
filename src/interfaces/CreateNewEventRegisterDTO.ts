@@ -1,5 +1,5 @@
 export interface CreateNewEventRegisterDTO {
-  eventId: number;
+  eventId: string;
   userId: string;
   type: string;
   level: string;

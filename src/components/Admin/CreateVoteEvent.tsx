@@ -2,25 +2,20 @@ import { api } from "~/utils/api";
 import { useForm } from "react-hook-form";
 
 type InputForm = {
-  eventId: string;
+  eventName: string;
 };
 
 export function CreateVoteEvent() {
   const { register, reset, handleSubmit } = useForm<InputForm>();
 
-  const { data: selectedEvent } = api.votes.getSelectedEvent.useQuery();
-
-  const { data: activeEvent, isLoading: eventLoading } =
-    api.event.getAll.useQuery();
-
   const { isLoading: creating, mutate: createVoteEvent } =
-    api.votes.createVoteEvent.useMutation();
+    api.votes.newVoteEvent.useMutation();
 
-  const onSubmit = handleSubmit(async (data) => {
-    const selected = activeEvent?.find((event) => event.id === +data.eventId);
+  const onSubmit = handleSubmit(async (data, event) => {
+    event?.preventDefault();
+    // const selected = activeEvent?.find((event) => event.id === +data.eventId);
     createVoteEvent({
-      id: selected == undefined ? 0 : selected.id,
-      name: selected == undefined ? "" : selected.name,
+      eventName: data.eventName,
     });
   });
 
@@ -28,8 +23,13 @@ export function CreateVoteEvent() {
     <>
       <form onSubmit={onSubmit} className="flex flex-col gap-2">
         <div className="form-control">
-          <label className="label label-text">งานที่จะโหวต</label>
-          <select
+          <label className="label label-text">ชื่องานที่จะโหวต</label>
+          <input
+            type="text"
+            className="input input-sm rounded-full"
+            {...register("eventName", { required: true })}
+          ></input>
+          {/* <select
             disabled={creating}
             {...register("eventId", { required: true })}
             className="select select-sm rounded-full"
@@ -44,18 +44,14 @@ export function CreateVoteEvent() {
                   </option>
                 ))
               : null}
-          </select>
+          </select> */}
         </div>
         <button
-          disabled={
-            creating || activeEvent == undefined
-              ? true
-              : activeEvent.length <= 0 || selectedEvent != null
-          }
+          disabled={creating}
           type="submit"
           className="btn btn-primary btn-sm w-full rounded-full"
         >
-          {!creating ? "เลือก" : "กำลังบันทึก"}
+          {!creating ? "บันทึก" : "กำลังบันทึก"}
         </button>
       </form>
       <div className="rounded-xl border-[1px] border-primary p-2">

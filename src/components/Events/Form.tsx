@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Loading1 from "../Shared/Loading1";
 import { rules } from "~/constants/rules";
+import { client } from "../../../sanity/lib/client";
 // 1.รุ่นที่จะลงประกวด
 // 2.ระบุเพศ
 // 3.สี (ดำ,เผือก)
@@ -19,7 +20,7 @@ import { rules } from "~/constants/rules";
 // 8.ชื่อ-นามสกุลผู้ส่งเข้าประกวด
 // 9.เบอร์โทรศัพท์
 export type EventRegisterType = {
-  eventId: number;
+  eventId: string;
   userId: string;
   type: string;
   level: string;
@@ -44,7 +45,7 @@ export function EventForm({
   name,
 }: {
   userId: string;
-  eventId: number;
+  eventId: string;
   name: string;
 }) {
   const [isLoading, setLoading] = useState<boolean>(false);
@@ -87,6 +88,7 @@ export function EventForm({
 
   const onSubmit = handleSubmit(async (data) => {
     setLoading(true);
+    console.log(data.accept.length);
     if (data.accept.length < 7) {
       toast.error("คุนต้องยินยอมทุกข้อปฎิบัติ!");
       setLoading(false);
@@ -96,10 +98,23 @@ export function EventForm({
     const imageFileName = `${data.microchip}-${userId}-${eventId}-${new Date().getTime().toString()}`;
     const vaccineFileName = `vac_${imageFileName}`;
 
-    const buffaloImageUrl =
-      (await uploadBuffalo(data.imageFile[0]!, imageFileName)) ?? "";
-    const vaccineImageUrl =
-      (await uploadVaccine(data.vaccineFile[0]!, vaccineFileName)) ?? "";
+    // const buffaloImageUrl =
+    //   (await uploadBuffalo(data.imageFile[0]!, imageFileName)) ?? "";
+    // const vaccineImageUrl =
+    //   (await uploadVaccine(data.vaccineFile[0]!, vaccineFileName)) ?? "";
+
+    const { _id: buffaloImageUrl } = await client.assets.upload(
+      "image",
+      data.imageFile[0]!,
+      {
+        filename: `${imageFileName}`,
+      },
+    );
+    const { _id: vaccineImageUrl } = await client.assets.upload(
+      "image",
+      data.vaccineFile[0]!,
+      { filename: `${vaccineFileName}` },
+    );
 
     if (buffaloImageUrl == "" || vaccineFileName == "") {
       toast.error("ิอัพโหลดรูปภาพไม่สำเร็จ");
@@ -217,7 +232,7 @@ export function EventForm({
               disabled={registering || isLoading}
               {...register("birthDay", { required: true, max: 31, min: 1 })}
               required
-              className="input input-bordered input-primary input-sm w-16 rounded-full text-primary"
+              className="input input-sm input-bordered input-primary w-16 rounded-full text-primary"
             ></input>
             <select
               className="select select-sm w-full rounded-full border-primary text-primary"
@@ -247,7 +262,7 @@ export function EventForm({
               placeholder="พ.ศ."
               required
               disabled={registering || isLoading}
-              className="input input-bordered input-primary input-sm w-24 rounded-full text-primary"
+              className="input input-sm input-bordered input-primary w-24 rounded-full text-primary"
             ></input>
           </div>
           {/* <Datepicker /> */}
@@ -302,14 +317,14 @@ export function EventForm({
               type="text"
               disabled={registering || isLoading}
               {...register("ownerName", { required: true })}
-              className="input input-bordered input-sm rounded-full border-primary text-primary"
+              className="input input-sm input-bordered rounded-full border-primary text-primary"
             />
             <input
               required
               type="text"
               disabled={registering || isLoading}
               {...register("ownerLastname", { required: true })}
-              className="input input-bordered input-sm rounded-full border-primary text-primary"
+              className="input input-sm input-bordered rounded-full border-primary text-primary"
             />
           </div>
         </div>
@@ -321,7 +336,7 @@ export function EventForm({
             type="text"
             disabled={registering || isLoading}
             {...register("ownerTel", { required: true })}
-            className="input input-bordered input-sm rounded-full border-primary text-primary"
+            className="input input-sm input-bordered rounded-full border-primary text-primary"
           />
         </div>
 

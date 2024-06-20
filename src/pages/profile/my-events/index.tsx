@@ -12,7 +12,6 @@ export default function MyEventPage() {
       userId: profile ? profile.userId : "",
     });
 
-  console.log(events);
   return (
     <div className="flex h-screen w-full flex-col items-center gap-2 overflow-y-scroll">
       <h3 className="text-center text-xl font-bold text-secondary">
@@ -39,10 +38,10 @@ export default function MyEventPage() {
             <>
               {events?.map((e) => (
                 <MyEventCard
-                  key={e.id}
-                  title={e.event.name}
-                  date={e.event.eventAt}
-                  eventId={e.id}
+                  key={e._id}
+                  title={e.event.title}
+                  date={new Date(e.event.startAt)}
+                  eventId={e._id}
                   microchip={e.microchip}
                   ownerName={e.ownerName}
                   buffaloName={e.name}

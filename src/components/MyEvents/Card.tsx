@@ -3,7 +3,7 @@ import Link from "next/link";
 interface EventCardProps {
   date: Date;
   title: string;
-  eventId: number;
+  eventId: string;
   ownerName: string;
   buffaloName: string;
   microchip: string;

@@ -13,7 +13,7 @@ export const registerEventRouter = createTRPCRouter({
   register: publicProcedure
     .input(
       z.object({
-        eventId: z.number(),
+        eventId: z.string(),
         userId: z.string(),
         type: z.string(),
         level: z.string(),
@@ -65,7 +65,7 @@ export const registerEventRouter = createTRPCRouter({
       }
     }),
   canRgister: publicProcedure
-    .input(z.object({ eventId: z.number(), microchip: z.string() }))
+    .input(z.object({ eventId: z.string(), microchip: z.string() }))
     .query(async ({ input }) => {
       return await canRgister(input.eventId, input.microchip);
     }),

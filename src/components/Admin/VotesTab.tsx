@@ -12,9 +12,9 @@ export default function VotesTab() {
     <div className="flex max-h-screen w-full flex-col gap-2 overflow-y-scroll px-2 text-primary">
       <VotesTabMenu />
       {menu === "newVotes" ? <CreateVoteEvent /> : null}
-      {menu === "newCandidate" ? <NewCandidateForm /> : null}
+      {/* {menu === "newCandidate" ? <NewCandidateForm /> : null}
       {menu === "control" ? <VoteSetting /> : null}
-      {menu === "reward" ? <VotesRewardControl /> : null}
+      {menu === "reward" ? <VotesRewardControl /> : null} */}
     </div>
   );
 }

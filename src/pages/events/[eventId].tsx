@@ -9,19 +9,19 @@ export default function RegisterForm() {
 
   return (
     <div className="h-full max-h-[90vh] overflow-scroll p-6">
-      {+query.eventId! && +query.eventId! <= 1 ? (
-        <EventForm
-          userId={profile ? profile.userId : ""}
-          eventId={+query.eventId!}
-          name={query.name as string}
-        />
-      ) : (
+      {/* {+query.eventId! && +query.eventId! <= 1 ? ( */}
+      <EventForm
+        userId={profile ? profile.userId : ""}
+        eventId={query.eventId! as string}
+        name={query.name as string}
+      />
+      {/* ) : (
         <EventForm2
           userId={profile ? profile.userId : ""}
           eventId={+query.eventId!}
           name={query.name as string}
         />
-      )}
+      )} */}
     </div>
   );
 }
