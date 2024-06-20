@@ -1,7 +1,8 @@
-import { Votes } from "./Votes";
+import { Candidate } from "./Candidate";
 
 export interface VoteEvent {
-  id: number;
+  _id: string;
   name: string;
-  votes?: Votes[];
+  isAcitve: string;
+  candidates: Candidate[] | null;
 }

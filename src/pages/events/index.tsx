@@ -31,11 +31,11 @@ export default function EventPage() {
               <h1>รายการประกวด</h1>
               {events?.map((e) => (
                 <EventCard
-                  key={e.id}
+                  key={e.eventId}
                   imageUrl={e.imageUrl!}
                   title={e.name}
-                  date={e.eventAt}
-                  eventId={e.id}
+                  date={new Date(e.eventAt)}
+                  eventId={e.eventId}
                 />
               ))}
             </>

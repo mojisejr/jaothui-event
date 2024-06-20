@@ -39,7 +39,7 @@ export default function DetailTable({ registerId }: DetailTableProp) {
               รายละเอียดงาน
             </div>
             <div>งาน</div>
-            <div>{event ? event?.event.name : "N/A"}</div>
+            <div>{event ? event?.event.title : "N/A"}</div>
             <div>วันจัดงาน</div>
             <div>{`${dayjs(new Date(event ? event?.event.startAt : "N/A")).get("date")} / ${Month[dayjs(new Date(event ? event?.event.startAt : "N/A")).get("month")]} / ${+dayjs(new Date(event ? event?.event.startAt : "N/A")).get("year") + 543}`}</div>
           </div>
@@ -49,9 +49,9 @@ export default function DetailTable({ registerId }: DetailTableProp) {
               ข้อมูลการสมัคร
             </div>
             <div className="col-span-2 flex justify-center py-2">
-              {event?.imageUrl ? (
+              {event?.buffaloImage ? (
                 <div className="w-48 overflow-hidden rounded-xl shadow">
-                  <img src={event?.imageUrl!} alt="รูปควาย" />
+                  <img src={event?.buffaloImage!} alt="รูปควาย" />
                 </div>
               ) : (
                 <div>N/A</div>

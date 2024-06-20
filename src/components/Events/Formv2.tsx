@@ -22,7 +22,7 @@ import { rules } from "~/constants/rules";
 // 8.ชื่อ-นามสกุลผู้ส่งเข้าประกวด
 // 9.เบอร์โทรศัพท์
 export type EventRegisterType = {
-  eventId: number;
+  eventId: string;
   userId: string;
   type: string;
   level: string;
@@ -47,7 +47,7 @@ export function EventForm2({
   name,
 }: {
   userId: string;
-  eventId: number;
+  eventId: string;
   name: string;
 }) {
   const [isLoading, setLoading] = useState<boolean>(false);
@@ -215,7 +215,7 @@ export function EventForm2({
               disabled={registering || isLoading}
               {...register("birthDay", { required: true, max: 31, min: 1 })}
               required
-              className="input input-bordered input-primary input-sm w-16 rounded-full text-primary"
+              className="input input-sm input-bordered input-primary w-16 rounded-full text-primary"
             ></input>
             <select
               className="select select-sm w-full rounded-full border-primary text-primary"
@@ -245,7 +245,7 @@ export function EventForm2({
               placeholder="พ.ศ."
               required
               disabled={registering || isLoading}
-              className="input input-bordered input-primary input-sm w-24 rounded-full text-primary"
+              className="input input-sm input-bordered input-primary w-24 rounded-full text-primary"
             ></input>
           </div>
           {/* <Datepicker /> */}
@@ -300,14 +300,14 @@ export function EventForm2({
               type="text"
               disabled={registering || isLoading}
               {...register("ownerName", { required: true })}
-              className="input input-bordered input-sm rounded-full border-primary text-primary"
+              className="input input-sm input-bordered rounded-full border-primary text-primary"
             />
             <input
               required
               type="text"
               disabled={registering || isLoading}
               {...register("ownerLastname", { required: true })}
-              className="input input-bordered input-sm rounded-full border-primary text-primary"
+              className="input input-sm input-bordered rounded-full border-primary text-primary"
             />
           </div>
         </div>
@@ -319,7 +319,7 @@ export function EventForm2({
             type="text"
             disabled={registering || isLoading}
             {...register("ownerTel", { required: true })}
-            className="input input-bordered input-sm rounded-full border-primary text-primary"
+            className="input input-sm input-bordered rounded-full border-primary text-primary"
           />
         </div>
 

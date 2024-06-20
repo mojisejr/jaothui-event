@@ -1,4 +1,6 @@
-import { createNewUser, getUserByUserId } from "~/server/services/user.service";
+import { getUserByUserId } from "~/server/services/user.service";
+
+import { createNewUser } from "~/server/services/user.service";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import z from "zod";
 

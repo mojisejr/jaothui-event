@@ -4,7 +4,7 @@ import { useLine } from "~/context/lineContext";
 interface EventCardProps {
   date: Date;
   title: string;
-  eventId: number;
+  eventId: string;
   imageUrl: string;
 }
 
