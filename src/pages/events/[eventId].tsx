@@ -1,7 +1,6 @@
-import { EventForm } from "~/components/Events/Form";
 import { useRouter } from "next/router";
 import { useLine } from "~/context/lineContext";
-import { EventForm2 } from "~/components/Events/Formv2";
+import FormV3 from "~/components/Events/Formv3";
 
 export default function RegisterForm() {
   const { profile } = useLine();
@@ -9,19 +8,12 @@ export default function RegisterForm() {
 
   return (
     <div className="h-full max-h-[90vh] overflow-scroll p-6">
-      {/* {+query.eventId! && +query.eventId! <= 1 ? ( */}
-      <EventForm
+      <FormV3
         userId={profile ? profile.userId : ""}
         eventId={query.eventId! as string}
+        startAt={query.date as string}
         name={query.name as string}
       />
-      {/* ) : (
-        <EventForm2
-          userId={profile ? profile.userId : ""}
-          eventId={+query.eventId!}
-          name={query.name as string}
-        />
-      )} */}
     </div>
   );
 }

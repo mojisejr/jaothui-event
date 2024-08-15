@@ -4,12 +4,11 @@ export interface CreateNewEventRegisterDTO {
   type: string;
   level: string;
   name: string;
-  gender: string;
+  sex: string;
+  buffaloAge: number;
   color: string;
   birthday: string;
-  imageUrl?: string;
   microchip: string;
-  vaccineUrl?: string;
   ownerName: string;
   ownerTel: string;
 }

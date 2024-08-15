@@ -40,8 +40,8 @@ export default function EventCard({
       </div>
       {loggedIn ? (
         <Link
-          className="btn btn-primary rounded-full"
-          href={`/events/${eventId}?name=${title}`}
+          className="btn btn-primary btn-sm rounded-full"
+          href={`/events/${eventId}?name=${title}&date=${dayjs(date).format("MM/DD/YYYY")}`}
         >
           สมัครเข้าร่วมประกวด
         </Link>

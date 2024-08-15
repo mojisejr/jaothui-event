@@ -10,6 +10,8 @@ import { useRouter } from "next/router";
 export default function ProfilePage() {
   const { replace } = useRouter();
   const { loggedIn, profile } = useLine();
+
+  console.log(profile?.userId);
   const {
     data: user,
     isLoading,

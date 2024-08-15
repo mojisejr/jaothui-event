@@ -4,11 +4,7 @@ import Loading1 from "~/components/Shared/Loading1";
 import { api } from "~/utils/api";
 
 export default function EventPage() {
-  const {
-    data: events,
-    isLoading,
-    isSuccess,
-  } = api.event.getAllActive.useQuery();
+  const { data: events, isLoading } = api.event.getAllActive.useQuery();
 
   return (
     <div>

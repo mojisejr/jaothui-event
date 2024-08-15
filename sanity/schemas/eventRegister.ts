@@ -24,8 +24,8 @@ export const eventRegisterType = defineType({
     }),
 
     defineField({
-      title: "Gender",
-      name: "gender",
+      title: "Sex",
+      name: "sex",
       type: "string",
     }),
 
@@ -48,21 +48,15 @@ export const eventRegisterType = defineType({
     }),
 
     defineField({
-      title: "Buffalo Image",
-      name: "buffaloImage",
-      type: "image",
-    }),
-
-    defineField({
-      title: "Vaccine Image",
-      name: "vaccineImage",
-      type: "image",
-    }),
-
-    defineField({
       title: "Owner Name",
       name: "ownerName",
       type: "string",
+    }),
+
+    defineField({
+      title: "Buffalo Age (Month)",
+      name: "buffaloAge",
+      type: "number",
     }),
 
     defineField({

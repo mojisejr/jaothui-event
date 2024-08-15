@@ -42,12 +42,13 @@ export default function Home() {
                 เช้าสู่ระบบ
               </button>
             ) : (
-              <Link
-                href="/profile"
-                className="btn btn-primary min-w-[150px] rounded-full shadow"
-              >
-                เริ่มกันเลย
-              </Link>
+              <div className="font-semibold text-white">กำลังโหลด...</div>
+              // <Link
+              //   href="/profile"
+              //   className="btn btn-primary min-w-[150px] rounded-full shadow"
+              // >
+              //   เริ่มกันเลย
+              // </Link>
             )}
           </div>
         </div>
