@@ -5,6 +5,7 @@ import { notify } from "../messaging/notification";
 import { client } from "../../../sanity/lib/client";
 import { groq } from "next-sanity";
 import { EventRegister } from "~/interfaces/EventRegister";
+import { TRPCError } from "@trpc/server";
 
 export async function getAllRegisteredBy(userId: string) {
   try {
@@ -81,31 +82,23 @@ export async function getById(id: number) {
 
 export async function createNewRegister(event: CreateNewEventRegisterDTO) {
   try {
+    const query = groq`*[_type == "eventRegister" && event._ref == "${event.eventId}" && microchip == "${event.microchip}"][0]`;
+    const found = await client.fetch(query);
+    if (found) {
+      throw new TRPCError({ code: "CONFLICT" });
+    }
     const newRegisterDocument = {
       _type: "eventRegister",
       type: event.type,
       level: event.level,
       name: event.name,
-      gender: event.gender,
+      sex: event.sex,
       color: event.color,
       birthday: event.birthday,
       microchip: event.microchip,
-      buffaloImage: {
-        _type: "image",
-        asset: {
-          _type: "reference",
-          _ref: event.imageUrl,
-        },
-      },
-      vaccineImage: {
-        _type: "image",
-        asset: {
-          _type: "reference",
-          _ref: event.vaccineUrl,
-        },
-      },
       ownerName: event.ownerName,
       ownerTel: event.ownerTel,
+      buffaloAge: event.buffaloAge,
       user: {
         _type: "reference",
         _ref: event.userId,
@@ -115,8 +108,6 @@ export async function createNewRegister(event: CreateNewEventRegisterDTO) {
         _ref: event.eventId,
       },
     };
-
-    console.log(newRegisterDocument);
 
     const created = await client.create(newRegisterDocument);
 
@@ -145,7 +136,7 @@ export async function createNewRegister(event: CreateNewEventRegisterDTO) {
 
 export async function canRgister(eventId: string, microchip: string) {
   try {
-    const query = groq`*[_type == "eventRegister" && eventId == "${eventId}" && microchip == "${microchip}"][0]`;
+    const query = groq`*[_type == "eventRegister" && event._ref == "${eventId}" && microchip == "${microchip}"][0]`;
     const found = await client.fetch<any>(query);
 
     if (!found) {

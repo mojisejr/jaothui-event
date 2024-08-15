@@ -57,6 +57,7 @@ export function LineProvider({ children }: { children: ReactNode }) {
 
     if (loggedIn) {
       void getProfile();
+      void replace("/profile");
     }
   }, [init, loggedIn]);
 
@@ -89,8 +90,6 @@ export function LineProvider({ children }: { children: ReactNode }) {
   async function getProfile() {
     const profile = await liff.getProfile();
     const email = liff.getDecodedIDToken()?.email;
-
-    console.log({ profile, email });
 
     setProfile({
       ...profile,

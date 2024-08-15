@@ -4,6 +4,7 @@ import { eventRouter } from "./routers/event";
 import { registerEventRouter } from "./routers/register-event";
 // import { votesRouter } from "./routers/votes";
 import { votesRouterV2 } from "./routers/votes-v2";
+import { metadataRouter } from "./routers/metadata";
 
 /**
  * This is the primary router for your server.
@@ -15,6 +16,7 @@ export const appRouter = createTRPCRouter({
   event: eventRouter,
   registerEvent: registerEventRouter,
   votes: votesRouterV2,
+  metadata: metadataRouter,
 });
 
 // export type definition of API
