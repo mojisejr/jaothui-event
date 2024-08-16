@@ -15,14 +15,14 @@ export function DashboardMenu() {
       >
         Event
       </Link>
-      <Link
+      {/* <Link
         href="/admin?tab=votes&menu=newVotes"
         className={clsx("btn-bordered btn text-white", {
           "bg-primary text-primary-content": tab == "votes",
         })}
       >
         Votes
-      </Link>
+      </Link> */}
     </div>
   );
 }
