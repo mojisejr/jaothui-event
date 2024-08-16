@@ -1,7 +1,6 @@
 import Head from "next/head";
 import { motion } from "framer-motion";
 import { useLine } from "~/context/lineContext";
-import Link from "next/link";
 
 export default function Home() {
   const { loggedIn, login } = useLine();

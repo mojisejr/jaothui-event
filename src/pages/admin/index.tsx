@@ -25,7 +25,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             {tab === "event" ? <EventTab /> : null}
-            {tab === "votes" ? <VotesTab /> : null}
+            {/* {tab === "votes" ? <VotesTab /> : null} */}
           </div>
         </div>
       ) : (

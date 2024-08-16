@@ -103,7 +103,7 @@ const FormV3 = ({
         const diff = dayjs(startAt).diff(buffaloBirthDate, "month");
         setCalculatedAge(diff);
         setInputMicrochip(microchip);
-        console.log(competitionLevel);
+        // console.log(competitionLevel);
         if (competitionLevel == "การประกวดระดับ") return;
         setSelectedLevel(competitionLevel);
       },
@@ -248,9 +248,10 @@ const FormV3 = ({
           </div>
         </div>
         <div className="form-control">
+          <label className="label label-text">อายุกระบือ {"(เดือน)"}</label>
           <input
             type="text"
-            placeholder="อายุกระบือ (เดือน/วัน)"
+            placeholder="อายุกระบือ (เดือน)"
             className="input input-sm input-bordered text-black"
             disabled={searching || registering}
             {...register("buffaloAge", { required: true })}

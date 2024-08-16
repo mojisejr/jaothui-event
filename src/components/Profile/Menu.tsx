@@ -25,9 +25,9 @@ export default function ProfileMenu() {
       <Link className="btn btn-primary rounded-full" href="/events">
         รายการประกวดควาย
       </Link>
-      <Link className="btn btn-primary rounded-full" href="/votes">
+      {/* <Link className="btn btn-primary rounded-full" href="/votes">
         กิจกรรมการโหวด
-      </Link>
+      </Link> */}
       {admin ? (
         <>
           <AdminMenu />
