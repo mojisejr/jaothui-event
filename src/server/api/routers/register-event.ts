@@ -28,11 +28,11 @@ export const registerEventRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      if (!(await canRgister(input.eventId, input.microchip)))
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "ควายตัวนี้สมัครไปแล้ว",
-        });
+      // if (!(await canRgister(input.eventId, input.microchip)))
+      //   throw new TRPCError({
+      //     code: "CONFLICT",
+      //     message: "ควายตัวนี้สมัครไปแล้ว",
+      //   });
       try {
         const dto: CreateNewEventRegisterDTO = {
           userId: input.userId,

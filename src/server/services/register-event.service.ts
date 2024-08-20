@@ -82,11 +82,11 @@ export async function getById(id: number) {
 
 export async function createNewRegister(event: CreateNewEventRegisterDTO) {
   try {
-    const query = groq`*[_type == "eventRegister" && event._ref == "${event.eventId}" && microchip == "${event.microchip}"][0]`;
-    const found = await client.fetch(query);
-    if (found) {
-      throw new TRPCError({ code: "CONFLICT" });
-    }
+    // const query = groq`*[_type == "eventRegister" && event._ref == "${event.eventId}" && microchip == "${event.microchip}"][0]`;
+    // const found = await client.fetch(query);
+    // if (found) {
+    //   throw new TRPCError({ code: "CONFLICT" });
+    // }
     const newRegisterDocument = {
       _type: "eventRegister",
       type: event.type,
