@@ -46,7 +46,7 @@ export function LineProvider({ children }: { children: ReactNode }) {
     //only access in line app
     if (init) {
       if (!liff.isInClient()) {
-        if (pathname == "/studio") {
+        if (pathname == "/studio" || pathname.includes("/tools")) {
           return;
         }
         void replace("/not-in-app");
