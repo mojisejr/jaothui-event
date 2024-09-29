@@ -3,7 +3,11 @@ import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import { api } from "~/utils/api";
-import { inHouse, national } from "~/constants/competition-class";
+import {
+  // inHouse,
+  // national,
+  getCompetitionData,
+} from "~/constants/competition-class";
 
 type EventRegisterType = {
   firstName: string;
@@ -28,16 +32,21 @@ const FormV3 = ({
   eventId,
   name,
   startAt,
+  isNational,
+  isInHouse,
 }: {
   userId: string;
   eventId: string;
   name: string;
   startAt: string;
+  isNational: boolean;
+  isInHouse: boolean;
 }) => {
   const { replace } = useRouter();
   const [selectedLevel, setSelectedLevel] = useState<string>();
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
   const [inputMicrochip, setInputMicrochip] = useState<string>();
+  const { inHouse, national } = getCompetitionData(eventId);
 
   const {
     data: metadata,
@@ -269,8 +278,8 @@ const FormV3 = ({
             <option disabled selected>
               การประกวดระดับ
             </option>
-            <option value="จังหวัด">ระดับจังหวัด</option>
-            <option value="ประเทศ">ระดับประเทศ</option>
+            {isInHouse ? <option value="จังหวัด">ระดับจังหวัด</option> : null}
+            {isNational ? <option value="ประเทศ">ระดับประเทศ</option> : null}
           </select>
         </div>
         <div className="form-control">
@@ -295,7 +304,7 @@ const FormV3 = ({
               </>
             ) : (
               <>
-                {national.map((n) => (
+                {national?.map((n) => (
                   <option key={n} value={n}>
                     {n}
                   </option>

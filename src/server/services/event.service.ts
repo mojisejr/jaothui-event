@@ -34,6 +34,7 @@ export async function getAllEvents() {
       "imageUrl": image.asset -> url,
       "name": title,
       "eventAt": startAt,
+      metadata
       }`;
 
     const events = await client.fetch<Event>(query);

@@ -3,4 +3,5 @@ export interface Event {
   imageUrl: string;
   name: string;
   eventAt: string;
+  metadata: string[] | null;
 }

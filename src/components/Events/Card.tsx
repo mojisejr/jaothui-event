@@ -6,6 +6,7 @@ interface EventCardProps {
   title: string;
   eventId: string;
   imageUrl: string;
+  metadata: string[] | null;
 }
 
 const Month = [
@@ -28,20 +29,24 @@ export default function EventCard({
   title,
   eventId,
   imageUrl,
+  metadata,
 }: EventCardProps) {
   const { loggedIn, login } = useLine();
+  const national = metadata != null ? metadata?.includes("national") : true;
+  const inhouse = metadata != null ? metadata?.includes("inhouse") : true;
+
   return (
     <div className="event-card-container flex w-full max-w-[300px] flex-col items-center gap-2">
       <div className="event-image-container flex flex-col">
         <img src={imageUrl} />
-        <caption className="font-thin text-secondary text-slate-400">
+        {/* <caption className="font-thin text-secondary text-slate-400">
           รายละเอียดการประกวด
-        </caption>
+        </caption> */}
       </div>
       {loggedIn ? (
         <Link
           className="btn btn-primary btn-sm rounded-full"
-          href={`/events/${eventId}?name=${title}&date=${dayjs(date).format("MM/DD/YYYY")}`}
+          href={`/events/${eventId}?name=${title}&date=${dayjs(date).format("MM/DD/YYYY")}&national=${national}&inhouse=${inhouse}`}
         >
           สมัครเข้าร่วมประกวด
         </Link>
