@@ -5,6 +5,7 @@ import { api } from "~/utils/api";
 
 export default function EventPage() {
   const { data: events, isLoading } = api.event.getAllActive.useQuery();
+  // const { data: events, isLoading } = api.event.getAll.useQuery();
 
   return (
     <div>
@@ -32,6 +33,7 @@ export default function EventPage() {
                   title={e.name}
                   date={new Date(e.eventAt)}
                   eventId={e.eventId}
+                  metadata={e.metadata}
                 />
               ))}
             </>
