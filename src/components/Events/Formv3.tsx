@@ -8,6 +8,7 @@ import {
   // national,
   getCompetitionData,
 } from "~/constants/competition-class";
+import { parseThaiDate } from "~/utils/parseThaiDate";
 
 type EventRegisterType = {
   firstName: string;
@@ -42,6 +43,7 @@ const FormV3 = ({
   isNational: boolean;
   isInHouse: boolean;
 }) => {
+  const thaiDate = parseThaiDate(new Date(startAt).getTime());
   const { replace } = useRouter();
   const [selectedLevel, setSelectedLevel] = useState<string>();
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
@@ -371,7 +373,8 @@ const FormV3 = ({
             </div>
             <div className="form-control">
               <label className="label label-text">
-                3. การเลือกรุ่นประกวด ให้นับอายุถึง วันที่ 12 ตุลาคม 2567
+                3. การเลือกรุ่นประกวด ให้นับอายุถึง{" "}
+                {`วันที่ ${thaiDate.date} ${thaiDate.thaiMonth}  พ.ศ. ​${thaiDate.thaiYear}`}
               </label>
               <div className="grid grid-cols-2 place-items-center gap-2">
                 <div className="flex items-center gap-2">
