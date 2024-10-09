@@ -234,11 +234,9 @@ const FormV3 = ({
               <select
                 className="select select-sm text-black disabled:text-slate-300"
                 disabled={searching || registering}
+                required
                 {...register("buffaloColor", { required: true })}
               >
-                <option disabled selected>
-                  สี
-                </option>
                 <option value="black">ดำ</option>
                 <option value="albino">เผือก</option>
               </select>
@@ -247,11 +245,9 @@ const FormV3 = ({
               <select
                 className="select select-sm text-black disabled:text-slate-300"
                 disabled={searching || registering}
-                {...register("buffaloSex")}
+                required
+                {...register("buffaloSex", { required: true })}
               >
-                <option disabled selected>
-                  เพศ
-                </option>
                 <option value="male">เพศผู้</option>
                 <option value="female">เพศเมีย</option>
               </select>
@@ -275,11 +271,9 @@ const FormV3 = ({
           <select
             className="select select-bordered select-sm text-black"
             disabled={searching || registering}
-            {...register("competitionLevel")}
+            required
+            {...register("competitionLevel", { required: true })}
           >
-            <option disabled selected>
-              การประกวดระดับ
-            </option>
             {isInHouse ? <option value="จังหวัด">ระดับจังหวัด</option> : null}
             {isNational ? <option value="ประเทศ">ระดับประเทศ</option> : null}
           </select>
@@ -293,9 +287,6 @@ const FormV3 = ({
             disabled={selectedLevel == undefined || searching || registering}
             className="select select-bordered select-sm text-black"
           >
-            <option disabled={true} selected>
-              เลือก
-            </option>
             {selectedLevel == "จังหวัด" ? (
               <>
                 {inHouse.map((ih) => (

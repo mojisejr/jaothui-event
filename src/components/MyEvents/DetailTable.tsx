@@ -26,8 +26,6 @@ export default function DetailTable({ registerId }: DetailTableProp) {
     id: registerId,
   });
 
-  console.log(event);
-
   return (
     <>
       {isLoading ? (
