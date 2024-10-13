@@ -111,7 +111,15 @@ const FormV3 = ({
   useEffect(() => {
     const subscription = watch(
       ({ competitionLevel, buffaloBirthDate, microchip }) => {
-        const diff = dayjs(startAt).diff(buffaloBirthDate, "month");
+        // const diff = dayjs(startAt).diff(buffaloBirthDate, "month");
+        const start = dayjs(startAt);
+        const end = dayjs(buffaloBirthDate);
+        let diff = end.diff(start, "month");
+        const remainderDays = end.diff(start.add(diff, "month"), "day");
+
+        if (remainderDays > 0) {
+          diff += 1;
+        }
         setCalculatedAge(diff);
         setInputMicrochip(microchip);
         // console.log(competitionLevel);

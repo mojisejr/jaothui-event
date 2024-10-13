@@ -14,7 +14,15 @@ const AgeCalculator = () => {
   const onSubmit = handleSubmit(async (data, event) => {
     setCalculated(0);
     event?.preventDefault();
-    const diff = dayjs(data.end).diff(data.start, "month");
+    const start = dayjs(data.start);
+    const end = dayjs(data.end);
+    let diff = end.diff(start, "month");
+    const remainderDays = end.diff(start.add(diff, "month"), "day");
+
+    if (remainderDays > 0) {
+      diff += 1;
+    }
+
     if (diff < 0) {
       alert("ไม่สามารถคำนวนได้ ตรวจสอบข้อมูลอีกครั้ง");
       setCalculated(0);
