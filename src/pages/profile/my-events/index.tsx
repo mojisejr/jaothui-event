@@ -4,6 +4,7 @@ import { useLine } from "~/context/lineContext";
 import { api } from "~/utils/api";
 import { FaAddressCard } from "react-icons/fa";
 import Link from "next/link";
+import HistoryTable from "~/components/MyEvents/HistoryTable";
 
 export default function MyEventPage() {
   const { profile } = useLine();
@@ -36,7 +37,8 @@ export default function MyEventPage() {
             </div>
           ) : (
             <>
-              {events?.map((e) => (
+              <HistoryTable userId={profile?.userId!} />
+              {/* {events?.map((e) => (
                 <MyEventCard
                   key={e._id}
                   title={e.event.title}
@@ -46,7 +48,7 @@ export default function MyEventPage() {
                   ownerName={e.ownerName}
                   buffaloName={e.name}
                 />
-              ))}
+              ))} */}
             </>
           )}
         </div>
