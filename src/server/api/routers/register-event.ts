@@ -24,7 +24,11 @@ export const registerEventRouter = createTRPCRouter({
         microchip: z.string(),
         ownerName: z.string(),
         ownerTel: z.string(),
+        fatherName: z.string(),
+        motherName: z.string(),
+        farmName: z.string(),
         buffaloAge: z.number(),
+        province: z.string(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -47,6 +51,10 @@ export const registerEventRouter = createTRPCRouter({
           ownerName: input.ownerName,
           ownerTel: input.ownerTel,
           buffaloAge: input.buffaloAge,
+          fatherName: input.fatherName,
+          motherName: input.motherName,
+          farmName: input.farmName,
+          province: input.province,
         };
 
         return await createNewRegister(dto);

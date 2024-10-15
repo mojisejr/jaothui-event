@@ -60,6 +60,30 @@ export const eventRegisterType = defineType({
     }),
 
     defineField({
+      title: "Father Name",
+      name: "fatherName",
+      type: "string",
+    }),
+
+    defineField({
+      title: "Mother Name",
+      name: "motherName",
+      type: "string",
+    }),
+
+    defineField({
+      title: "Farm Name",
+      name: "farmName",
+      type: "string",
+    }),
+
+    defineField({
+      title: "Province",
+      name: "province",
+      type: "string",
+    }),
+
+    defineField({
       title: "Owner Tel",
       name: "ownerTel",
       type: "string",

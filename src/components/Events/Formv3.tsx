@@ -22,6 +22,11 @@ type EventRegisterType = {
   buffaloAge: number;
   competitionLevel: string;
   competitionType: string;
+  //new 15-oct-2024
+  farmName: string;
+  fatherName: string;
+  motherName: string;
+  province: string;
   accept1: string;
   accept2: string;
   accept3: string;
@@ -85,6 +90,8 @@ const FormV3 = ({
       return;
     }
 
+    console.log(data);
+
     registerEvent({
       name: data.buffaloName,
       type: data.competitionType,
@@ -96,6 +103,10 @@ const FormV3 = ({
       birthdate: data.buffaloBirthDate,
       microchip: data.microchip,
       ownerTel: data.tel,
+      fatherName: data.fatherName,
+      motherName: data.motherName,
+      farmName: data.farmName,
+      province: data.province,
       userId,
       eventId,
     });
@@ -112,8 +123,8 @@ const FormV3 = ({
     const subscription = watch(
       ({ competitionLevel, buffaloBirthDate, microchip }) => {
         // const diff = dayjs(startAt).diff(buffaloBirthDate, "month");
-        const start = dayjs(startAt);
-        const end = dayjs(buffaloBirthDate);
+        const start = dayjs(buffaloBirthDate);
+        const end = dayjs(startAt);
         let diff = end.diff(start, "month");
         const remainderDays = end.diff(start.add(diff, "month"), "day");
 
@@ -192,6 +203,28 @@ const FormV3 = ({
             {...register("tel", { required: true })}
           />
         </div>
+        <div className="form-control">
+          <input
+            type="text"
+            className="input input-sm input-bordered text-black"
+            placeholder="ชื่อฟาร์ม"
+            required
+            disabled={searching || registering}
+            {...register("farmName", { required: true })}
+          />
+        </div>
+
+        <div className="form-control">
+          <input
+            type="text"
+            className="input input-sm input-bordered text-black"
+            placeholder="ฟาร์มอยู่จังหวัด"
+            required
+            disabled={searching || registering}
+            {...register("province", { required: true })}
+          />
+        </div>
+
         <div className="form-group">
           <label className="label label-text">ข้อมูลกระบือ</label>
           <div className="grid grid-cols-1 gap-2">
@@ -273,6 +306,26 @@ const FormV3 = ({
             value={calculatedAge}
             readOnly
           />
+          <div className="form-control">
+            <input
+              type="text"
+              className="input input-sm input-bordered text-black"
+              placeholder="ชื่อพ่อ"
+              required
+              disabled={searching || registering}
+              {...register("fatherName", { required: true })}
+            />
+          </div>
+          <div className="form-control">
+            <input
+              type="text"
+              className="input input-sm input-bordered text-black"
+              placeholder="ชื่อแม่"
+              required
+              disabled={searching || registering}
+              {...register("motherName", { required: true })}
+            />
+          </div>
         </div>
         <div className="form-control">
           <label className="label label-text font-semibold">ระดับ</label>
