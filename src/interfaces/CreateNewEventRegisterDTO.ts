@@ -11,4 +11,9 @@ export interface CreateNewEventRegisterDTO {
   microchip: string;
   ownerName: string;
   ownerTel: string;
+  //new: 15-oct-2024
+  fatherName: string;
+  motherName: string;
+  farmName: string;
+  province: string;
 }
