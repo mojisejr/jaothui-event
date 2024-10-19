@@ -20,8 +20,9 @@ export async function getAllRegisteredBy(userId: string) {
     "user": user->{_id, role},
     "buffaloImage": buffaloImage.asset->url,
     "vaccineImage": vaccineImage.asset->url,
-    "event": event->{title, description,startAt,endAt,isActive}
+    "event": *[_type=="event" && endAt > now()]{title, description,startAt,endAt,isActive}
     }`;
+
     const found = await client.fetch<EventRegister[]>(query);
 
     console.log(found);
