@@ -74,7 +74,7 @@ export async function createNewRegister(event: CreateNewEventRegisterDTO) {
       ownerTel: event.ownerTel,
       buffaloAge: event.buffaloAge,
       //new 15-oct-2024
-      fatherName: event.farmName,
+      fatherName: event.fatherName,
       motherName: event.motherName,
       farmName: event.farmName,
       province: event.province,
