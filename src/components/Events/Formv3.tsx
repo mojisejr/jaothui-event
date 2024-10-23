@@ -90,8 +90,6 @@ const FormV3 = ({
       return;
     }
 
-    console.log(data);
-
     registerEvent({
       name: data.buffaloName,
       type: data.competitionType,
@@ -335,6 +333,9 @@ const FormV3 = ({
             required
             {...register("competitionLevel", { required: true })}
           >
+            <option value={undefined} disabled selected>
+              เลือก
+            </option>
             {isInHouse ? <option value="จังหวัด">ระดับจังหวัด</option> : null}
             {isNational ? <option value="ประเทศ">ระดับประเทศ</option> : null}
           </select>
@@ -344,10 +345,14 @@ const FormV3 = ({
             รุ่นที่จะประกวด
           </label>
           <select
+            required
             {...register("competitionType", { required: true })}
             disabled={selectedLevel == undefined || searching || registering}
             className="select select-bordered select-sm text-black"
           >
+            <option value={undefined} disabled selected>
+              เลือก
+            </option>
             {selectedLevel == "จังหวัด" ? (
               <>
                 {inHouse.map((ih) => (
@@ -477,8 +482,12 @@ const FormV3 = ({
             </div>
           </div>
         </div>
-        <button type="submit" className="btn btn-primary btn-sm my-2">
-          ยืนยันการลงทะเบียน
+        <button
+          disabled={registering}
+          type="submit"
+          className="btn btn-primary btn-sm my-2"
+        >
+          {registering ? "กำลังยืนยัน" : "ยืนยันการลงทะเบียน"}
         </button>
       </form>
     </div>
