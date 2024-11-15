@@ -63,6 +63,24 @@ export const national2 = [
   "รุ่นควายยักษ์ รวมสี ฟันแท้",
 ];
 
+export const royal = [
+  "รุ่นลูกควาย (Calf division) 10 เดือน ถึง 12 เดือน",
+  "รุ่นลูกควาย (Calf division) มากกว่า 12 เดือน ถึง 15 เดือน",
+  "รุ่นลูกควาย (Calf division) มากกว่า 15 เดือน ถึง 18 เดือน",
+
+  "รุ่นควายรุ่น (Intermediate division) มากกว่า 18 เดือน ถึง 20 เดือน",
+  "รุ่นควายรุ่น (Intermediate division) มากกว่า 20 เดือน ถึง 22 เดือน",
+  "รุ่นควายรุ่น (Intermediate division) มากกว่า 22 เดือน ถึง 24 เดือน",
+
+  "รุ่นควายหนุ่ม-สาว (Junior division) มากกว่า 24 เดือน ถึง 28 เดือน",
+  "รุ่นควายหนุ่ม-สาว (Junior division) มากกว่า 28 เดือน ถึง 32 เดือน",
+  "รุ่นควายหนุ่ม-สาว (Junior division) มากกว่า 32 เดือน ถึง 36 เดือน",
+
+  "รุ่นควายโตเต็มวัย (Senior division) มากกว่า 36 เดือน ถึง 40 เดือน",
+  "รุ่นควายโตเต็มวัย (Senior division) มากกว่า 40 เดือน ถึง 44 เดือน",
+  "รุ่นควายโตเต็มวัย (Senior division) มากกว่า 44 เดือน ถึง 48 เดือน",
+];
+
 export const getCompetitionData = (id: string) => {
   switch (id) {
     default:

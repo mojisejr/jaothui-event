@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FaAddressCard } from "react-icons/fa6";
 import EventCard from "~/components/Events/Card";
 import Loading1 from "~/components/Shared/Loading1";

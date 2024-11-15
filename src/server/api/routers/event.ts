@@ -1,8 +1,10 @@
 import {
   getAllActiveEvents,
   getAllEvents,
+  getEventById,
 } from "~/server/services/event.service";
 import { createTRPCRouter, publicProcedure } from "../trpc";
+import { z } from "zod";
 
 export const eventRouter = createTRPCRouter({
   getAllActive: publicProcedure.query(async () => {
@@ -10,5 +12,8 @@ export const eventRouter = createTRPCRouter({
   }),
   getAll: publicProcedure.query(async () => {
     return await getAllEvents();
+  }),
+  getById: publicProcedure.input(z.string()).query(async ({ input }) => {
+    return await getEventById(input);
   }),
 });

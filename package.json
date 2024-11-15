@@ -13,9 +13,10 @@
     "start": "next start"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.687.0",
     "@line/bot-sdk": "^8.2.0",
     "@line/liff": "^2.23.1",
-    "@prisma/client": "^5.6.0",
+    "@prisma/client": "^5.22.0",
     "@sanity/image-url": "^1.0.2",
     "@sanity/vision": "^3.46.1",
     "@supabase/supabase-js": "^2.39.3",
@@ -37,6 +38,7 @@
     "react-icons": "^5.0.1",
     "react-toastify": "^10.0.4",
     "sanity": "^3.46.1",
+    "sanity-plugin-media": "^2.3.2",
     "styled-components": "^6.1.11",
     "superjson": "^2.2.1",
     "uuid": "^9.0.1",
@@ -59,7 +61,7 @@
     "postcss": "^8.4.31",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
-    "prisma": "^5.6.0",
+    "prisma": "^5.22.0",
     "tailwindcss": "^3.3.5",
     "typescript": "^5.1.6"
   },

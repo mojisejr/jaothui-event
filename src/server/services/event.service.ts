@@ -3,6 +3,31 @@ import { client } from "../../../sanity/lib/client";
 import { groq } from "next-sanity";
 import { Event } from "~/interfaces/Event";
 
+export async function getEventById(eventId: string) {
+  try {
+    const query = groq`*[_type == "event" && _id == "${eventId}"] {
+    "eventId": _id,
+    "imageUrl": image.asset -> url,
+    "name": title,
+    "eventAt": startAt,
+    metadata
+    }[0]`;
+
+    const event = await client.fetch<Event>(query);
+    // const events = await db.event.findMany({
+    //   where: {
+    //     isActive: true,
+    //   },
+    // });
+    // return events;
+    console.log(event);
+    return event;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+}
+
 export async function getAllActiveEvents() {
   try {
     const query = groq`*[_type == "event" && isActive == true] {
