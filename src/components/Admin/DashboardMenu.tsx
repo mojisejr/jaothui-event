@@ -13,7 +13,7 @@ export function DashboardMenu() {
           "bg-primary text-primary-content": tab == "event",
         })}
       >
-        Event
+        จัดการงานประกวด
       </Link>
       {/* <Link
         href="/admin?tab=votes&menu=newVotes"

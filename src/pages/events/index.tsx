@@ -37,6 +37,18 @@ export default function EventPage() {
                   metadata={e.metadata}
                 />
               ))}
+
+              <EventCard
+                imageUrl={
+                  "https://cdn.sanity.io/images/q38mtihr/production/94642e3b93f88b40acc69d27245e89a91afcea6e-1080x1350.jpg"
+                }
+                title={
+                  "ประกวดกระบือปลักไทยชิงถ้วยพระราชทาน งานวันอนุรักษ์และพัฒนากระบือปลักไทย ประจำปี๒๕๖๘"
+                }
+                date={new Date()}
+                eventId={"royal"}
+                metadata={[]}
+              />
             </>
           )}
         </div>

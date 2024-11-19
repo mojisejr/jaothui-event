@@ -1,4 +1,3 @@
-import { db } from "../db";
 import { client } from "../../../sanity/lib/client";
 import { groq } from "next-sanity";
 import { Event } from "~/interfaces/Event";
@@ -20,7 +19,6 @@ export async function getEventById(eventId: string) {
     //   },
     // });
     // return events;
-    console.log(event);
     return event;
   } catch (error) {
     console.log(error);
@@ -60,23 +58,15 @@ export async function getAllEvents() {
       "imageUrl": image.asset -> url,
       "name": title,
       "eventAt": startAt,
+      isActive,
       metadata
       }`;
 
-    const events = await client.fetch<Event>(query);
-    // const events = await db.event.findMany({
-    //   where: {
-    //     isActive: true,
-    //   },
-    // });
-    // return events;
-    console.log(events);
+    const events = await client.fetch<Event[]>(query);
     return events;
-    // const events = await db.event.findMany();
-    // return events;
   } catch (error) {
     console.log(error);
-    return [];
+    return null;
   }
 }
 
