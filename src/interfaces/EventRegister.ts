@@ -7,14 +7,16 @@ export interface EventRegister {
   ownerTel: string;
   color: string;
   birthday: string;
-  gender: string;
+  sex: string;
   microchip: string;
+  motherName: string;
+  fatherName: string;
+  farmName: string;
+  buffaloAge: number;
   user: {
     _id: string;
     role: string;
   };
-  buffaloImage: string;
-  vaccineImage: string;
   event: {
     title: string;
     description: string;

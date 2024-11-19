@@ -1,4 +1,4 @@
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { admin, createTRPCRouter, publicProcedure } from "../trpc";
 import z from "zod";
 import { CreateNewEventRegisterDTO } from "~/interfaces/CreateNewEventRegisterDTO";
 import { TRPCError } from "@trpc/server";
@@ -7,6 +7,7 @@ import {
   createNewRegister,
   getAllRegisteredBy,
   getById,
+  getRegisterByEvent,
 } from "~/server/services/register-event.service";
 import { TRPCClientError } from "@trpc/client";
 import {
@@ -207,8 +208,13 @@ export const registerEventRouter = createTRPCRouter({
       return await getAllRegisteredBy(input.userId);
     }),
   getById: publicProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       return await getById(input.id);
+    }),
+  getAllRegisterByEvent: admin
+    .input(z.object({ userId: z.string(), eventId: z.string() }))
+    .query(async ({ input }) => {
+      return await getRegisterByEvent(input.eventId);
     }),
 });

@@ -6,12 +6,13 @@
  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
  * need to use are documented accordingly near the end.
  */
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { db } from "~/server/db";
+import { isAdmin } from "../services/admin.service";
 
 /**
  * 1. CONTEXT
@@ -33,11 +34,12 @@ type CreateContextOptions = Record<string, never>;
  *
  * @see https://create.t3.gg/en/usage/trpc#-serverapitrpcts
  */
-const createInnerTRPCContext = (_opts: CreateContextOptions) => {
-  return {
-    db,
-  };
-};
+// const createInnerTRPCContext = (_opts: CreateContextOptions) => {
+//   return {
+//     userId: "",
+//     db,
+//   };
+// };
 
 /**
  * This is the actual context you will use in your router. It will be used to process every request
@@ -46,7 +48,11 @@ const createInnerTRPCContext = (_opts: CreateContextOptions) => {
  * @see https://trpc.io/docs/context
  */
 export const createTRPCContext = (_opts: CreateNextContextOptions) => {
-  return createInnerTRPCContext({});
+  const data = contextParser(_opts.req.query.input as string);
+  return {
+    userId: data?.userId,
+    db,
+  };
 };
 
 /**
@@ -93,3 +99,43 @@ export const createTRPCRouter = t.router;
  * are logged in.
  */
 export const publicProcedure = t.procedure;
+
+export const royalAdmin = t.procedure.use(async (_opts) => {
+  if (!_opts.ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+  const admin = await isAdmin(_opts.ctx.userId);
+
+  if (!admin) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+  return _opts.next();
+});
+
+export const admin = t.procedure.use(async (_opts) => {
+  if (!_opts.ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+  const admin = await isAdmin(_opts.ctx.userId);
+
+  if (!admin) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+  return _opts.next();
+});
+
+type InputData = {
+  "0": {
+    json: {
+      userId?: string;
+    };
+  };
+};
+
+export function contextParser(input: string) {
+  try {
+    const data = JSON.parse(input) as InputData;
+    const json = data["0"].json as { userId?: string };
+    if (json != undefined || json != null) {
+      return json;
+    } else {
+      return null;
+    }
+  } catch (error) {
+    return null;
+  }
+}

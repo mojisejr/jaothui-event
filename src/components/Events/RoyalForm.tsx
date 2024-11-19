@@ -44,6 +44,8 @@ type RoyalFormTypes = {
   accept4: string;
   accept5: string;
   accept6: string;
+  accept7: string;
+  accept8: string;
 };
 
 const RoyalForm = ({
@@ -106,7 +108,9 @@ const RoyalForm = ({
       data.accept3 == "n" ||
       data.accept4 == "n" ||
       data.accept5 == "n" ||
-      data.accept6 == "n"
+      data.accept6 == "n" ||
+      data.accept7 == "n" ||
+      data.accept8 == "n"
     ) {
       alert("ต้องยินยอมข้อตกลงทุกข้อก่อนยืนยันการลงทะเบียน");
       setSubmiting(false);
@@ -774,6 +778,59 @@ const RoyalForm = ({
                   </div>
                 </div>
               </div>
+
+              <div className="form-control">
+                <label className="label label-text">
+                  7. กระบือที่ส่งเข้าประกวดต้องเกิดจากพ่อ-แม่พันธุ์
+                  กระบือปลักไทย เท่านั้น
+                </label>
+                <div className="grid grid-cols-2 place-items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      className="radio"
+                      value="y"
+                      {...register("accept7", { required: true })}
+                    />
+                    <span className="text-white">ยินยอม</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      className="radio"
+                      value="n"
+                      {...register("accept7", { required: true })}
+                    />
+                    <span className="text-white">ไม่ยินยอม</span>
+                  </div>
+                </div>
+              </div>
+              <div className="form-control">
+                <label className="label label-text">
+                  8. กระบือที่ได้รับรางวัลต้องมีคุณสมบัติครบถ้วน
+                  หากตรวจพบว่าข้อมูลเป็นเท็จ จะตัดสิทธิ์ การได้รับรางวัล
+                </label>
+                <div className="grid grid-cols-2 place-items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      className="radio"
+                      value="y"
+                      {...register("accept8", { required: true })}
+                    />
+                    <span className="text-white">ยินยอม</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      className="radio"
+                      value="n"
+                      {...register("accept8", { required: true })}
+                    />
+                    <span className="text-white">ไม่ยินยอม</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <button
@@ -781,7 +838,14 @@ const RoyalForm = ({
             type="submit"
             className="btn btn-primary btn-sm my-2"
           >
-            {formSubmiting ? "กำลังยืนยัน" : "ยืนยันการลงทะเบียน"}
+            {formSubmiting ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="loading loading-spinner"></div>
+                กำลังยืนยัน...
+              </div>
+            ) : (
+              "ยืนยันการลงทะเบียน"
+            )}
           </button>
         </form>
       </div>

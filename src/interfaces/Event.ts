@@ -3,5 +3,6 @@ export interface Event {
   imageUrl: string;
   name: string;
   eventAt: string;
+  isActive?: boolean;
   metadata: string[] | null;
 }
