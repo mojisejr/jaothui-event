@@ -33,6 +33,8 @@ export async function getAllRegisteredBy(userId: string) {
       dayjs(new Date()).isBefore(dayjs(e.event.endAt)),
     );
 
+    console.log(filter);
+
     return filter;
   } catch (error) {
     console.log(error);
