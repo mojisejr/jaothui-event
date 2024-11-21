@@ -145,7 +145,20 @@ export async function getRegisterByEvent(eventId: string) {
       "event": event->{title, description,startAt,endAt,isActive}
     }`;
     const results = await client.fetch<EventRegister[]>(query);
-    return results;
+
+    const resultsWithApprovement = await Promise.all(
+      results.map(async (m) => {
+        const query = groq`*[_type == "approvment" && eventRegister._ref == "${m._id}"]{ approvementResult }[0]`;
+        const data = await client.fetch(query);
+
+        return {
+          ...m,
+          approvementResult: !data ? null : data.approvementResult,
+        };
+      }),
+    );
+
+    return resultsWithApprovement;
   } catch (error) {
     console.log(error);
     return null;

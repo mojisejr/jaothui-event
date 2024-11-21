@@ -24,4 +24,5 @@ export interface EventRegister {
     endAt: string;
     isActive: boolean;
   };
+  approvementResult: boolean | null;
 }

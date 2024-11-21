@@ -94,6 +94,7 @@ export default function EventMemberList() {
         <table className="table table-sm text-white">
           <thead>
             <tr>
+              <th>การอนุมัติ</th>
               <th>ลำดับ</th>
               <th>ชื่อผู้สมัคร</th>
               <th>ชื่อควาย</th>
@@ -103,6 +104,19 @@ export default function EventMemberList() {
           <tbody>
             {currentData?.map((e, i) => (
               <tr key={i}>
+                <td>
+                  {e.approvementResult == null ? (
+                    <div className="badge"></div>
+                  ) : (
+                    <>
+                      {e.approvementResult == true ? (
+                        <div className="badge badge-success"></div>
+                      ) : (
+                        <div className="badge badge-error"></div>
+                      )}
+                    </>
+                  )}
+                </td>
                 <td>{i + 1}</td>
                 <td>{e.ownerName}</td>
                 <td>{e.name}</td>

@@ -48,11 +48,26 @@ type CreateContextOptions = Record<string, never>;
  * @see https://trpc.io/docs/context
  */
 export const createTRPCContext = (_opts: CreateNextContextOptions) => {
-  const data = contextParser(_opts.req.query.input as string);
-  return {
-    userId: data?.userId,
-    db,
-  };
+  if (_opts.req.query.input != undefined) {
+    const data = contextParser(_opts.req.query.input as string);
+    return {
+      userId: data?.userId,
+      db,
+    };
+  } else if (_opts.req.body != undefined) {
+    console.log(_opts.req.body);
+    const data = contextParser(JSON.stringify(_opts.req.body) as string);
+    console.log(data);
+    return {
+      userId: data?.userId,
+      db,
+    };
+  } else {
+    return {
+      userId: null,
+      db,
+    };
+  }
 };
 
 /**

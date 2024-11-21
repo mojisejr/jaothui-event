@@ -1,4 +1,5 @@
-import React from "react";
+import { useRouter } from "next/router";
+import React, { useEffect } from "react";
 import { api } from "~/utils/api";
 
 interface RegisterApprovementDetailProps {
@@ -10,10 +11,45 @@ export default function RegisterApprovementDetail({
   userId,
   eventRegisterId,
 }: RegisterApprovementDetailProps) {
+  const { replace } = useRouter();
+
   const { data, isLoading } = api.royal.getApprovement.useQuery({
     userId: userId,
     targetId: eventRegisterId,
   });
+
+  const {
+    mutate: approve,
+    isLoading: approving,
+    isSuccess: approved,
+    isError: approveError,
+  } = api.royal.approve.useMutation();
+
+  const handleApprovement = () => {
+    if (!data?._id) {
+      alert("ไม่พบ _id ของเอกสารยืนยัน");
+      return;
+    }
+
+    approve({ userId, docId: data?._id, result: true });
+  };
+
+  const handleRejection = () => {
+    if (!data?._id) {
+      alert("ไม่พบ _id ของเอกสารยืนยัน");
+      return;
+    }
+    approve({ userId, docId: data?._id, result: false });
+  };
+
+  useEffect(() => {
+    if (approved) {
+      void replace("/success");
+    }
+    if (approveError) {
+      void replace("/error");
+    }
+  }, [approved, approveError]);
 
   if (isLoading) {
     return <div className="loading loading-spinner"></div>;
@@ -26,7 +62,9 @@ export default function RegisterApprovementDetail({
       <h2>ผลการอนุมัติ</h2>
       <>
         {data.approvementResult == null ? (
-          <div>รอการอนุมัติ</div>
+          <div className="rounded-md bg-white p-2 font-bold text-blue-500">
+            รอการอนุมัติ
+          </div>
         ) : (
           <div>
             {!data.approvementResult ? (
@@ -34,16 +72,29 @@ export default function RegisterApprovementDetail({
                 ไม่อนุมัติ
               </div>
             ) : (
-              <div className="rounded-md bg-white p-2 font-bold text-green-500">
+              <div className="rounded-md bg-green-500 p-2 font-bold text-white">
                 อนุมัติเรียบร้อย
               </div>
             )}
           </div>
         )}
-        {data.approvementResult != null ? (
+        {data.approvementResult == null ? (
           <div className="flex gap-2">
-            <button className="btn btn-primary">อนุมัติ</button>
-            <button className="btn btn-error">ไม่อนุมัติ</button>
+            {!approving ? (
+              <>
+                <button onClick={handleApprovement} className="btn btn-primary">
+                  อนุมัติ
+                </button>
+                <button onClick={handleRejection} className="btn btn-error">
+                  ไม่อนุมัติ
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="loading loading-spinner"></div>
+                <div className="text-white">กำลังยืนยัน...</div>
+              </>
+            )}
           </div>
         ) : null}
       </>
