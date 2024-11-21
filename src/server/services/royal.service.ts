@@ -200,12 +200,12 @@ export const getApprovement = async (userId: string) => {
   }
 };
 
-export const approve = async (docId: string) => {
+export const approve = async (docId: string, approve: boolean) => {
   try {
     const result = await client
       .patch(docId)
       .set({
-        approve: true,
+        approvementResult: approve,
       })
       .commit();
 

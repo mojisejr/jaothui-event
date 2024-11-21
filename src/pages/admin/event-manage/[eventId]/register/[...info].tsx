@@ -32,14 +32,18 @@ export default function RegisterDetailPage() {
     return <div>ไม่พบข้อมูล</div>;
   }
 
+  if (!profile) {
+    return <div className="loading loading-spinner"></div>;
+  }
+
   return (
     <div className="h-screen w-full overflow-y-scroll text-white">
       <div className="flex flex-col gap-2 p-2">
         <RegisterGeneralDetail userId={registerId} />
-        <RegisterAddressDetail userId={profile?.userId!} targetId={targetId} />
-        <RegisterImagesDetail userId={profile?.userId!} targetId={targetId} />
+        <RegisterAddressDetail userId={profile?.userId} targetId={targetId} />
+        <RegisterImagesDetail userId={profile?.userId} targetId={targetId} />
         <RegisterApprovementDetail
-          userId={profile?.userId!}
+          userId={profile?.userId}
           eventRegisterId={registerId}
         />
       </div>

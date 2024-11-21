@@ -35,8 +35,10 @@ export const royalAdminRoutes = createTRPCRouter({
       return await getApprovement(input.targetId);
     }),
   approve: royalAdmin
-    .input(z.object({ docId: z.string() }))
+    .input(
+      z.object({ docId: z.string(), result: z.boolean(), userId: z.string() }),
+    )
     .mutation(async ({ input }) => {
-      return await approve(input.docId);
+      return await approve(input.docId, input.result);
     }),
 });
