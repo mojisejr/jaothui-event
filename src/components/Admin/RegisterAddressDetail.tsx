@@ -15,8 +15,6 @@ export default function RegisterAddressDetail({
     targetId: targetId,
   });
 
-  console.log(data);
-
   if (isLoading) {
     return <div className="loading loading-spinner"></div>;
   }

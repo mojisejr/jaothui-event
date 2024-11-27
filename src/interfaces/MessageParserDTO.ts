@@ -4,4 +4,5 @@ export interface MessageParserDTO {
   buffaloName: string;
   eventName: string;
   eventAt: Date;
+  docId: string;
 }

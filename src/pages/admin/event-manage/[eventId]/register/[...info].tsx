@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { useRouter } from "next/router";
-import { api } from "~/utils/api";
 import { useLine } from "~/context/lineContext";
 import { useAdmin } from "~/context/adminContext";
 import RegisterGeneralDetail from "~/components/Admin/RegisterGeneralDetail";
@@ -44,6 +43,7 @@ export default function RegisterDetailPage() {
         <RegisterImagesDetail userId={profile?.userId} targetId={targetId} />
         <RegisterApprovementDetail
           userId={profile?.userId}
+          targetId={targetId}
           eventRegisterId={registerId}
         />
       </div>

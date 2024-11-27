@@ -6,6 +6,11 @@ export const eventImageType = defineType({
   type: "document",
   fields: [
     defineField({
+      title: "Title",
+      name: "title",
+      type: "string",
+    }),
+    defineField({
       title: "For Event",
       name: "event",
       type: "reference",
