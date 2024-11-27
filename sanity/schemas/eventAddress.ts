@@ -6,6 +6,12 @@ export const eventAddressType = defineType({
   type: "document",
   fields: [
     defineField({
+      title: "Title",
+      name: "title",
+      type: "string",
+    }),
+
+    defineField({
       title: "Of User",
       name: "user",
       type: "reference",

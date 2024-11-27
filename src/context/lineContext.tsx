@@ -53,11 +53,11 @@ export function LineProvider({ children }: { children: ReactNode }) {
     //   }
     // }
 
-    // if (!loggedIn && pathname !== "/events") void replace("/");
+    // if (!loggedIn && !pathname.includes("/public")) void replace("/");
 
     if (loggedIn) {
       void getProfile();
-      void replace("/profile");
+      if (!pathname.includes("/public")) void replace("/profile");
     }
   }, [init, loggedIn]);
 

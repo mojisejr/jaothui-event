@@ -130,6 +130,7 @@ export const registerEventRouter = createTRPCRouter({
           ownerName: input.ownerName,
           buffaloName: input.name,
           microchip: input.microchip,
+          docId: approvementResult._id,
         });
 
         await notify(input.userId, message);

@@ -6,6 +6,12 @@ export const eventApprovementType = defineType({
   type: "document",
   fields: [
     defineField({
+      title: "Title",
+      name: "title",
+      type: "string",
+    }),
+
+    defineField({
       title: "Of Event",
       name: "event",
       type: "reference",
@@ -24,6 +30,12 @@ export const eventApprovementType = defineType({
       name: "eventImage",
       type: "reference",
       to: [{ type: "eventImage" }],
+    }),
+
+    defineField({
+      title: "Approvement Comment",
+      name: "comment",
+      type: "string",
     }),
 
     defineField({

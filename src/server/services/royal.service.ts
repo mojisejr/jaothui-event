@@ -6,6 +6,8 @@ import { groq } from "next-sanity";
 import { EventImages } from "~/interfaces/EventImage";
 import { EventApprovement } from "~/interfaces/EventApprovement";
 import { EventAddress } from "~/interfaces/EventAddress";
+import { royalApprovementMessageParser } from "../messaging/message-parser";
+import { notify } from "../messaging/notification";
 
 export const royalEventId = "dc6428a0-814c-430c-878a-42e8365adbb0";
 
@@ -14,6 +16,7 @@ export const createNewImageObjects = async (
 ) => {
   try {
     const document = {
+      title: `${object.eventId}_${object.userId}`,
       _type: "eventImage",
       user: {
         _ref: object.userId,
@@ -93,6 +96,8 @@ export const createNewImageObjects = async (
 export async function createNewApprovement(event: CreateNewApprovementDTO) {
   try {
     const approvement = {
+      //eventId_eventRegisterId_imagesId
+      title: `${event.eventId}_${event.eventRegisterId}_${event.imagesId}`,
       _type: "approvment",
       event: {
         _type: "reference",
@@ -120,6 +125,8 @@ export const createNewEventAddress = async (
 ) => {
   try {
     const address = {
+      //eventId_userId
+      title: `${event.eventId}_${event.userId}`,
       _type: "eventAddress",
       user: {
         _type: "reference",
@@ -200,12 +207,28 @@ export const getApprovement = async (userId: string) => {
   }
 };
 
-export const approve = async (docId: string, approve: boolean) => {
+export const getPublicApprovementStatus = async (docId: string) => {
+  try {
+    const query = groq`*[_type == "approvment" && _id == "${docId}"][0]`;
+    const data = await client.fetch<any>(query);
+    return data;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+
+export const approve = async (
+  docId: string,
+  approve: boolean,
+  comment?: string,
+) => {
   try {
     const result = await client
       .patch(docId)
       .set({
         approvementResult: approve,
+        comment: comment ?? "ผ่านการอนุมัติเรียบร้อยแล้ว",
       })
       .commit();
 
