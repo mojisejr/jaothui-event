@@ -48,9 +48,9 @@ export const registerEventRouter = createTRPCRouter({
         frontImage: z.string(),
         sideImage: z.string(),
         backImage: z.string(),
-        d1Image: z.string(),
-        d2Image: z.string(),
-        d3Image: z.string(),
+        // d1Image: z.string(),
+        // d2Image: z.string(),
+        // d3Image: z.string(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -87,9 +87,9 @@ export const registerEventRouter = createTRPCRouter({
           frontImageId: input.frontImage,
           sideImageId: input.sideImage,
           backImageId: input.backImage,
-          d1ImageId: input.d1Image,
-          d2ImageId: input.d2Image,
-          d3ImageId: input.d3Image,
+          // d1ImageId: input.d1Image,
+          // d2ImageId: input.d2Image,
+          // d3ImageId: input.d3Image,
         });
 
         if (!eventImageResult) {

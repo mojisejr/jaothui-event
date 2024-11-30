@@ -35,17 +35,18 @@ type RoyalFormTypes = {
   frontImage: FileList;
   sideImage: FileList;
   backImage: FileList;
-  d1Image: FileList;
-  d2Image: FileList;
-  d3Image: FileList;
-  accept1: string;
-  accept2: string;
-  accept3: string;
-  accept4: string;
-  accept5: string;
-  accept6: string;
-  accept7: string;
-  accept8: string;
+  d1Accept: "y" | "n";
+  d2Accept: "y" | "n";
+  d3Accept: "y" | "n";
+  accept1: "y" | "n";
+  accept2: "y" | "n";
+  accept3: "y" | "n";
+  accept4: "y" | "n";
+  accept5: "y" | "n";
+  accept6: "y" | "n";
+  accept7: "y" | "n";
+  accept8: "y" | "n";
+  accept9: "y" | "n";
 };
 
 const RoyalForm = ({
@@ -62,7 +63,6 @@ const RoyalForm = ({
   const [province, setProvince] = useState<string>();
   const [amphoe, setAmphoe] = useState<string>();
 
-  // const thaiDate = parseThaiDate(new Date(startAt).getTime());
   const { replace } = useRouter();
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
   const [inputMicrochip, setInputMicrochip] = useState<string>();
@@ -92,14 +92,6 @@ const RoyalForm = ({
     setValue,
   } = useForm<RoyalFormTypes>();
 
-  const onSubmitTest = handleSubmit(async () => {
-    setSubmiting(true);
-    setTimeout(() => {
-      alert("done!");
-      setSubmiting(false);
-    }, 2000);
-  });
-
   const onSubmit = handleSubmit(async (data) => {
     setSubmiting(true);
     if (
@@ -117,15 +109,20 @@ const RoyalForm = ({
       return;
     }
 
+    if (data.d1Accept == "n" || data.d2Accept == "n" || data.d3Accept == "n") {
+      alert("ต้องยินยอมข้อตกลงทุกข้อก่อนยืนยันการลงทะเบียน");
+      setSubmiting(false);
+      return;
+    }
+
+    console.log(data);
+
     /**Upload Image and get URLs */
     const imagesList = [
       data.buffaloImage[0],
       data.frontImage[0],
       data.sideImage[0],
       data.backImage[0],
-      data.d1Image[0],
-      data.d2Image[0],
-      data.d3Image[0],
     ];
 
     imagesList.forEach((img) => {
@@ -141,9 +138,6 @@ const RoyalForm = ({
       imagesList[1]!,
       imagesList[2]!,
       imagesList[3]!,
-      imagesList[4]!,
-      imagesList[5]!,
-      imagesList[6]!,
     );
 
     const uploadResults = await imagesUpload(userId, eventId, parsedImageData);
@@ -177,9 +171,9 @@ const RoyalForm = ({
       frontImage: uploadResults[1]?._id!,
       sideImage: uploadResults[2]?._id!,
       backImage: uploadResults[3]?._id!,
-      d1Image: uploadResults[4]?._id!,
-      d2Image: uploadResults[5]?._id!,
-      d3Image: uploadResults[6]?._id!,
+      // d1Image: uploadResults[4]?._id!,
+      // d2Image: uploadResults[5]?._id!,
+      // d3Image: uploadResults[6]?._id!,
       userId,
       eventId,
     });
@@ -576,6 +570,32 @@ const RoyalForm = ({
 
             {/**d1Image */}
             <div className="form-control">
+              <label className="label label-text">
+                ท่านจะต้องนำเอกสารการตรวจโรคแท้งติดต่อมายื่นที่สนามประกวด ณ
+                วันประกวด
+              </label>
+              <div className="grid grid-cols-2 place-items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    className="radio"
+                    value="y"
+                    {...register("d1Accept", { required: true })}
+                  />
+                  <span className="text-white">ยินยอม</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    className="radio"
+                    value="n"
+                    {...register("d1Accept", { required: true })}
+                  />
+                  <span className="text-white">ไม่ยินยอม</span>
+                </div>
+              </div>
+            </div>
+            {/* <div className="form-control">
               <div className="label label-text">เอกสารตรวจโรคแท้งติดต่อ</div>
               <input
                 type="file"
@@ -583,10 +603,35 @@ const RoyalForm = ({
                 className="file-input file-input-bordered file-input-sm text-black"
                 required
               />
-            </div>
+            </div> */}
 
             {/**d2Image */}
             <div className="form-control">
+              <label className="label label-text">
+                ท่านจะต้องนำเอกสารการตรวจโครโมโซมมายื่นที่สนามประกวด ณ วันประกวด
+              </label>
+              <div className="grid grid-cols-2 place-items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    className="radio"
+                    value="y"
+                    {...register("d2Accept", { required: true })}
+                  />
+                  <span className="text-white">ยินยอม</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    className="radio"
+                    value="n"
+                    {...register("d2Accept", { required: true })}
+                  />
+                  <span className="text-white">ไม่ยินยอม</span>
+                </div>
+              </div>
+            </div>
+            {/* <div className="form-control">
               <div className="label label-text">ใบรับรองการตรวจโครโมโซม</div>
               <input
                 type="file"
@@ -594,10 +639,36 @@ const RoyalForm = ({
                 className="file-input file-input-bordered file-input-sm text-black"
                 required
               />
-            </div>
+            </div> */}
 
             {/**d3Image */}
             <div className="form-control">
+              <label className="label label-text">
+                ท่านจะต้องนำเอกสารการตรวจโรคแท้งติดต่อมายื่นที่สนามประกวด ณ
+                วันประกวด
+              </label>
+              <div className="grid grid-cols-2 place-items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    className="radio"
+                    value="y"
+                    {...register("d3Accept", { required: true })}
+                  />
+                  <span className="text-white">ยินยอม</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    className="radio"
+                    value="n"
+                    {...register("d3Accept", { required: true })}
+                  />
+                  <span className="text-white">ไม่ยินยอม</span>
+                </div>
+              </div>
+            </div>
+            {/* <div className="form-control">
               <div className="label label-text">
                 ใบรับรองการฉีดวัคซีน FMD และคอบวม
               </div>
@@ -607,7 +678,7 @@ const RoyalForm = ({
                 className="file-input file-input-bordered file-input-sm text-black"
                 required
               />
-            </div>
+            </div> */}
           </div>
 
           <p className="font-bold text-red-600">
@@ -826,6 +897,32 @@ const RoyalForm = ({
                       className="radio"
                       value="n"
                       {...register("accept8", { required: true })}
+                    />
+                    <span className="text-white">ไม่ยินยอม</span>
+                  </div>
+                </div>
+              </div>
+              <div className="form-control">
+                <label className="label label-text">
+                  9. ผู้สมัครรับรองความถูกต้องของข้อมูลนี้
+                  และให้มีผลสมบูรณ์ตามกฎหมายทุกประการ
+                </label>
+                <div className="grid grid-cols-2 place-items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      className="radio"
+                      value="y"
+                      {...register("accept9", { required: true })}
+                    />
+                    <span className="text-white">ยินยอม</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      className="radio"
+                      value="n"
+                      {...register("accept9", { required: true })}
                     />
                     <span className="text-white">ไม่ยินยอม</span>
                   </div>

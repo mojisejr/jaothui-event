@@ -3,9 +3,6 @@ export const parseRoyalImageData = (
   frontImage: File,
   sideImage: File,
   backImage: File,
-  d1Image: File,
-  d2Image: File,
-  d3Image: File,
 ) => {
   return [
     {
@@ -23,18 +20,6 @@ export const parseRoyalImageData = (
     {
       title: "backImage",
       image: backImage,
-    },
-    {
-      title: "d1Image",
-      image: d1Image,
-    },
-    {
-      title: "d2Image",
-      image: d2Image,
-    },
-    {
-      title: "d3Image",
-      image: d3Image,
     },
   ];
 };

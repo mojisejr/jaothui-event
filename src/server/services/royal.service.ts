@@ -6,8 +6,6 @@ import { groq } from "next-sanity";
 import { EventImages } from "~/interfaces/EventImage";
 import { EventApprovement } from "~/interfaces/EventApprovement";
 import { EventAddress } from "~/interfaces/EventAddress";
-import { royalApprovementMessageParser } from "../messaging/message-parser";
-import { notify } from "../messaging/notification";
 
 export const royalEventId = "dc6428a0-814c-430c-878a-42e8365adbb0";
 
@@ -59,30 +57,30 @@ export const createNewImageObjects = async (
             asset: { _type: "reference", _ref: object.sideImageId },
           },
         },
-        {
-          _key: object.d1ImageId,
-          imageTitle: "เอกสารตรวจโรคแท้งติดต่อ",
-          imageAsset: {
-            _type: "image",
-            asset: { _type: "reference", _ref: object.d1ImageId },
-          },
-        },
-        {
-          _key: object.d2ImageId,
-          imageTitle: "ใบรับรองการตรวจโครโมโซม",
-          imageAsset: {
-            _type: "image",
-            asset: { _type: "reference", _ref: object.d2ImageId },
-          },
-        },
-        {
-          _key: object.d3ImageId,
-          imageTitle: "ใบรับรองการฉีดวัคซีน FMD และคอบวม",
-          imageAsset: {
-            _type: "image",
-            asset: { _type: "reference", _ref: object.d3ImageId },
-          },
-        },
+        // {
+        //   _key: object.d1ImageId,
+        //   imageTitle: "เอกสารตรวจโรคแท้งติดต่อ",
+        //   imageAsset: {
+        //     _type: "image",
+        //     asset: { _type: "reference", _ref: object.d1ImageId },
+        //   },
+        // },
+        // {
+        //   _key: object.d2ImageId,
+        //   imageTitle: "ใบรับรองการตรวจโครโมโซม",
+        //   imageAsset: {
+        //     _type: "image",
+        //     asset: { _type: "reference", _ref: object.d2ImageId },
+        //   },
+        // },
+        // {
+        //   _key: object.d3ImageId,
+        //   imageTitle: "ใบรับรองการฉีดวัคซีน FMD และคอบวม",
+        //   imageAsset: {
+        //     _type: "image",
+        //     asset: { _type: "reference", _ref: object.d3ImageId },
+        //   },
+        // },
       ],
     };
     const created = await client.create(document);
