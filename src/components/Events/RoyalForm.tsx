@@ -644,8 +644,8 @@ const RoyalForm = ({
             {/**d3Image */}
             <div className="form-control">
               <label className="label label-text">
-                ท่านจะต้องนำเอกสารการตรวจโรคแท้งติดต่อมายื่นที่สนามประกวด ณ
-                วันประกวด
+                ท่านจะต้องนำเอกสารการรับวัคซีน FMD
+                ปากเท้าเปื่อยและคอบวมมายื่นที่สนามประกวด ณ วันประกวด
               </label>
               <div className="grid grid-cols-2 place-items-center gap-2">
                 <div className="flex items-center gap-2">
