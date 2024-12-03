@@ -8,6 +8,8 @@ import { voteResultType } from "./schemas/voteResult";
 import { eventImageType } from "./schemas/eventImage";
 import { eventApprovementType } from "./schemas/eventApprovement";
 import { eventAddressType } from "./schemas/eventAddress";
+import { nationalType } from "./schemas/eventNationalType";
+import { provinceType } from "./schemas/eventProvinceType";
 
 export const schema: { types: SchemaTypeDefinition[] } = {
   types: [
@@ -17,6 +19,8 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     eventImageType,
     eventApprovementType,
     eventAddressType,
+    nationalType,
+    provinceType,
     voteType,
     voteEventType,
     voteResultType,

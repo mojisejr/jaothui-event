@@ -1,4 +1,4 @@
-import { defineField, defineType } from "sanity";
+import { defineDocumentFieldAction, defineField, defineType } from "sanity";
 
 export const eventType = defineType({
   title: "Event",
