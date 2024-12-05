@@ -99,3 +99,18 @@ export async function isRegistered(microchip: string, eventId: number) {
     return false;
   }
 }
+
+export const getEventTypes = async (eventId: string) => {
+  const provinceQuery = groq`*[_type=="provinceEventType"]{data}[0]`;
+  const nationalQuery = groq`*[_type=="nationalEventType"]{data}[0]`;
+
+  const provinceTypes = await client.fetch<{ data: any[] }>(provinceQuery);
+  const nationalTypes = await client.fetch<{ data: any[] }>(nationalQuery);
+
+  const types = {
+    provinceTypes: provinceTypes ? provinceTypes.data : [],
+    nationalTypes: nationalTypes ? nationalTypes.data : [],
+  };
+
+  return types;
+};

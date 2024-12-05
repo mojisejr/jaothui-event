@@ -53,7 +53,7 @@ const FormV3 = ({
   const [selectedLevel, setSelectedLevel] = useState<string>();
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
   const [inputMicrochip, setInputMicrochip] = useState<string>();
-  const { inHouse, national } = getCompetitionData(eventId);
+  // const { inHouse, national } = getCompetitionData(eventId);
 
   const {
     data: metadata,
@@ -69,6 +69,9 @@ const FormV3 = ({
     isError: registerError,
     error: registerErrorObj,
   } = api.registerEvent.register.useMutation();
+
+  const { data: types, isLoading: typeLoading } =
+    api.event.getTypes.useQuery(eventId);
 
   const {
     register,
@@ -337,8 +340,16 @@ const FormV3 = ({
               <option value={undefined} disabled selected>
                 เลือก
               </option>
-              {isInHouse ? <option value="จังหวัด">ระดับจังหวัด</option> : null}
-              {isNational ? <option value="ประเทศ">ระดับประเทศ</option> : null}
+              {types ? (
+                <>
+                  {types.provinceTypes.length > 0 ? (
+                    <option value="จังหวัด">ระดับจังหวัด</option>
+                  ) : null}
+                  {types.nationalTypes.length > 0 ? (
+                    <option value="ประเทศ">ระดับประเทศ</option>
+                  ) : null}
+                </>
+              ) : null}
             </select>
           </div>
           <div className="form-control">
@@ -356,7 +367,7 @@ const FormV3 = ({
               </option>
               {selectedLevel == "จังหวัด" ? (
                 <>
-                  {inHouse.map((ih) => (
+                  {types?.provinceTypes.map((ih) => (
                     <option key={ih} value={ih}>
                       {ih}
                     </option>
@@ -364,7 +375,7 @@ const FormV3 = ({
                 </>
               ) : (
                 <>
-                  {national?.map((n) => (
+                  {types?.nationalTypes?.map((n) => (
                     <option key={n} value={n}>
                       {n}
                     </option>
