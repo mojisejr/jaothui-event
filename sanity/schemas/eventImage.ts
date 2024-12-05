@@ -25,6 +25,13 @@ export const eventImageType = defineType({
     }),
 
     defineField({
+      title: "Of Register Event",
+      name: "eventRegister",
+      type: "reference",
+      to: [{ type: "eventRegister" }],
+    }),
+
+    defineField({
       title: "Images",
       name: "imageArray",
       type: "array",

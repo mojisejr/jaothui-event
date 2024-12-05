@@ -20,6 +20,10 @@ export const createNewImageObjects = async (
         _ref: object.userId,
         _type: "reference",
       },
+      eventRegister: {
+        _ref: object.eventRegisterId,
+        _type: "reference",
+      },
       event: {
         _ref: object.eventId,
         _type: "reference",
@@ -130,6 +134,10 @@ export const createNewEventAddress = async (
         _type: "reference",
         _ref: event.userId,
       },
+      eventRegister: {
+        _type: "reference",
+        _ref: event.eventRegisterId,
+      },
       event: {
         _type: "reference",
         _ref: event.eventId,
@@ -174,9 +182,9 @@ export const getAllRegistered = async () => {
   }
 };
 
-export const getImages = async (userId: string) => {
+export const getImages = async (registerEventId: string) => {
   try {
-    const query = groq`*[_type == "eventImage" && event._ref == "${royalEventId}" && user._ref == "${userId}"]{
+    const query = groq`*[_type == "eventImage" && event._ref == "${royalEventId}" && eventRegister._ref == "${registerEventId}"]{
     _id,
     "imageArray": imageArray[]{
       "title": imageTitle,
@@ -237,9 +245,9 @@ export const approve = async (
   }
 };
 
-export const getAddress = async (userId: string) => {
+export const getAddress = async (registerEventId: string) => {
   try {
-    const query = groq`*[_type == "eventAddress" && event._ref == "${royalEventId}" && user._ref == "${userId}"]{
+    const query = groq`*[_type == "eventAddress" && event._ref == "${royalEventId}" && eventRegister._ref == "${registerEventId}"]{
       address,
       district,
       amphoe,

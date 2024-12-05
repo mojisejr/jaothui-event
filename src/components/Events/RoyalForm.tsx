@@ -115,8 +115,6 @@ const RoyalForm = ({
       return;
     }
 
-    console.log(data);
-
     /**Upload Image and get URLs */
     const imagesList = [
       data.buffaloImage[0],
