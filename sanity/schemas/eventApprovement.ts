@@ -19,7 +19,7 @@ export const eventApprovementType = defineType({
     }),
 
     defineField({
-      title: "From Member",
+      title: "Of Event Register",
       name: "eventRegister",
       type: "reference",
       to: [{ type: "eventRegister" }],

@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 
 export async function getAllRegisteredBy(userId: string) {
   try {
+    // const query = groq`*[_type=="eventRegister" && user._ref == "U02832c9c6dbba5b2f3f83f3560e5c8af"]
     const query = groq`*[_type=="eventRegister" && user._ref == "${userId}"]
   {
          _id,
@@ -29,11 +30,13 @@ export async function getAllRegisteredBy(userId: string) {
 
     const found = await client.fetch<EventRegister[]>(query);
 
+    console.log(found);
+
     const filter = found.filter((e) =>
       dayjs(new Date()).isBefore(dayjs(e.event.endAt)),
     );
 
-    console.log(filter);
+    // console.log(filter);
 
     return filter;
   } catch (error) {

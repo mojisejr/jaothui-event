@@ -13,6 +13,7 @@ export default function RegisterDetailPage() {
   const { admin } = useAdmin();
 
   const { info } = query;
+  console.log(info);
 
   useEffect(() => {
     if (!admin) {
@@ -39,8 +40,8 @@ export default function RegisterDetailPage() {
     <div className="h-screen w-full overflow-y-scroll text-white">
       <div className="flex flex-col gap-2 p-2">
         <RegisterGeneralDetail userId={registerId} />
-        <RegisterAddressDetail userId={profile?.userId} targetId={targetId} />
-        <RegisterImagesDetail userId={profile?.userId} targetId={targetId} />
+        <RegisterAddressDetail userId={profile?.userId} targetId={registerId} />
+        <RegisterImagesDetail userId={profile?.userId} targetId={registerId} />
         <RegisterApprovementDetail
           userId={profile?.userId}
           targetId={targetId}

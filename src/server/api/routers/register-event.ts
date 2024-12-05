@@ -83,6 +83,7 @@ export const registerEventRouter = createTRPCRouter({
         const eventImageResult = await createNewImageObjects({
           userId: input.userId,
           eventId: input.eventId,
+          eventRegisterId: eventRegisterResult._id,
           buffaloImageId: input.buffaloImage,
           frontImageId: input.frontImage,
           sideImageId: input.sideImage,
@@ -112,6 +113,7 @@ export const registerEventRouter = createTRPCRouter({
         const addressResult = await createNewEventAddress({
           userId: input.userId,
           eventId: input.eventId,
+          eventRegisterId: eventRegisterResult._id,
           address: input.address,
           district: input.district,
           amphoe: input.amphoe,
