@@ -12,6 +12,7 @@ export default function EventMemberList() {
   const { query, replace } = useRouter();
   const filterInput = useRef<HTMLInputElement>(null);
   const [currentData, setCurrentData] = useState<EventRegister[]>([]);
+  const sortingRef = useRef<HTMLSelectElement>(null);
 
   const { eventId } = query;
 
@@ -47,6 +48,39 @@ export default function EventMemberList() {
     }
   };
 
+  const handleSorting = () => {
+    const sortingParam = sortingRef.current?.value;
+    switch (sortingParam) {
+      case "all": {
+        setCurrentData(eventRegister!);
+        break;
+      }
+      case "pending": {
+        const filtered = eventRegister?.filter(
+          (d) => d.approvementResult == null,
+        );
+        setCurrentData(filtered!);
+        break;
+      }
+      case "accepted": {
+        const filtered = eventRegister?.filter(
+          (d) => d.approvementResult == true,
+        );
+        setCurrentData(filtered!);
+        break;
+      }
+      case "rejected": {
+        const filtered = eventRegister?.filter(
+          (d) => d.approvementResult == false,
+        );
+        setCurrentData(filtered!);
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
   useEffect(() => {
     if (eventId != null && profile?.userId! != null) {
       loadEventRegister();
@@ -56,6 +90,7 @@ export default function EventMemberList() {
   useEffect(() => {
     if (eventRegister && currentData.length <= 0) {
       setCurrentData(eventRegister);
+      handleSorting();
     }
   }, [eventRegister]);
 
@@ -78,17 +113,31 @@ export default function EventMemberList() {
       <div className="p-2 text-white">
         จำนวนผู้สมัคร {eventRegister?.length}
       </div>
-      <div className="space-x-2 px-2">
-        <input
-          onChange={() => handleReset()}
-          ref={filterInput}
-          type="text"
-          className="input input-sm"
-          placeholder="ชื่อควาย"
-        ></input>
-        <button onClick={handleFilter} className="btn btn-primary btn-sm">
-          ค้นหา
-        </button>
+      <div className="flex w-full items-center justify-between px-2">
+        <div className="flex gap-2">
+          <input
+            onChange={() => handleReset()}
+            ref={filterInput}
+            type="text"
+            className="input input-sm"
+            placeholder="ชื่อควาย"
+          ></input>
+          <button onClick={handleFilter} className="btn btn-primary btn-sm">
+            ค้นหา
+          </button>
+        </div>
+        <select
+          ref={sortingRef}
+          onChange={handleSorting}
+          className="select select-sm"
+        >
+          <option value="all">ทั้งหมด</option>
+          <option selected value="pending">
+            รออนุมัติ
+          </option>
+          <option value="accepted">อนุมัติ</option>
+          <option value="rejected">ไม่อนุมัติ</option>
+        </select>
       </div>
       <div className="mb-10 h-screen overflow-y-scroll">
         <table className="table table-sm text-white">
