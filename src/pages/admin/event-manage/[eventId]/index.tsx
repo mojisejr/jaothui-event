@@ -113,7 +113,7 @@ export default function EventMemberList() {
       <div className="p-2 text-white">
         จำนวนผู้สมัคร {eventRegister?.length}
       </div>
-      <div className="flex w-full items-center justify-between px-2">
+      <div className="flex w-full flex-col items-start justify-between gap-2 px-2 sm:flex-row sm:items-center">
         <div className="flex gap-2">
           <input
             onChange={() => handleReset()}
