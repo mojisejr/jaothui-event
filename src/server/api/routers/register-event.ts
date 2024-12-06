@@ -70,7 +70,7 @@ export const registerEventRouter = createTRPCRouter({
           ownerName: input.ownerName,
           ownerTel: input.ownerTel,
           //new: 15-oct-2024
-          fatherName: input.farmName,
+          fatherName: input.fatherName,
           motherName: input.motherName,
           farmName: input.farmName,
           province: input.province,
