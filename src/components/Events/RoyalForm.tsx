@@ -11,6 +11,7 @@ import {
   getDistrictsFromAmphoe,
 } from "~/utils/addressHelper";
 import { parseRoyalImageData } from "~/utils/parseRoyalImageData";
+import Image from "next/image";
 
 type RoyalFormTypes = {
   firstName: string;
@@ -524,11 +525,24 @@ const RoyalForm = ({
           <div className="form-group">
             {/**buffaloImage */}
             <div className="form-control">
-              <div className="label label-text">ภาพประจำตัวสัตว์</div>
+              <div className="label label-text">ภาพบัตรประจำตัวสัตว์</div>
+              <div className="flex w-full flex-col items-center justify-center gap-1">
+                <figure className="max-w-64">
+                  <Image
+                    src="/images/template.png"
+                    width={1000}
+                    height={700}
+                    alt="template"
+                  />
+                </figure>
+                <caption className="text-slate-500">
+                  ตัวอย่างภาพบัตรประจำตัวสัตว์
+                </caption>
+              </div>
               <input
                 type="file"
                 {...register("buffaloImage", { required: true })}
-                className="file-input file-input-bordered file-input-sm text-black"
+                className="file-input file-input-bordered file-input-sm mt-1 text-black"
                 required
               />
             </div>
