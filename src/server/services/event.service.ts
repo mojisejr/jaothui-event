@@ -9,6 +9,7 @@ export async function getEventById(eventId: string) {
     "imageUrl": image.asset -> url,
     "name": title,
     "eventAt": startAt,
+    endAt,
     metadata
     }[0]`;
 
@@ -33,6 +34,7 @@ export async function getAllActiveEvents() {
     "imageUrl": image.asset -> url,
     "name": title,
     "eventAt": startAt,
+    endAt,
     metadata
     }`;
 
@@ -58,6 +60,7 @@ export async function getAllEvents() {
       "imageUrl": image.asset -> url,
       "name": title,
       "eventAt": startAt,
+      endAt,
       isActive,
       metadata
       }`;

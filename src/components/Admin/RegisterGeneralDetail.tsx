@@ -36,6 +36,10 @@ export default function RegisterGeneralDetail({
             <td>{data?.name}</td>
           </tr>
           <tr>
+            <th>ไมโครชิฟ</th>
+            <td>{data?.microchip}</td>
+          </tr>
+          <tr>
             <th>ชื่อเจ้าของ</th>
             <td>{data?.ownerName}</td>
           </tr>
