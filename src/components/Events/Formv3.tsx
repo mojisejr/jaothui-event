@@ -125,7 +125,7 @@ const FormV3 = ({
       ({ competitionLevel, buffaloBirthDate, microchip }) => {
         // const diff = dayjs(startAt).diff(buffaloBirthDate, "month");
         const start = dayjs(buffaloBirthDate);
-        const end = dayjs(startAt);
+        const end = dayjs(startAt).subtract(1, "day");
         let diff = end.diff(start, "month");
         const remainderDays = end.diff(start.add(diff, "month"), "day");
 

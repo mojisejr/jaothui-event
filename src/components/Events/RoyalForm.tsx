@@ -187,7 +187,7 @@ const RoyalForm = ({
     const subscription = watch(
       ({ buffaloBirthDate, microchip, buffaloColor }) => {
         const start = dayjs(buffaloBirthDate);
-        const end = dayjs(startAt);
+        const end = dayjs(startAt).subtract(1, "day");
         let diff = end.diff(start, "month");
         const remainderDays = end.diff(start.add(diff, "month"), "day");
 

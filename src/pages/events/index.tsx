@@ -32,7 +32,7 @@ export default function EventPage() {
                   key={e.eventId}
                   imageUrl={e.imageUrl!}
                   title={e.name}
-                  date={new Date(e.eventAt)}
+                  date={new Date(e.endAt)}
                   eventId={e.eventId}
                   metadata={e.metadata}
                 />
