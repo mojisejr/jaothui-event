@@ -27,16 +27,19 @@ export default function EventPage() {
           ) : (
             <>
               <h1>รายการประกวด</h1>
-              {events?.map((e) => (
-                <EventCard
-                  key={e.eventId}
-                  imageUrl={e.imageUrl!}
-                  title={e.name}
-                  date={new Date(e.endAt)}
-                  eventId={e.eventId}
-                  metadata={e.metadata}
-                />
-              ))}
+              {/* <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"> */}
+              <div className="grid grid-cols-2 gap-4">
+                {events?.map((e) => (
+                  <EventCard
+                    key={e.eventId}
+                    imageUrl={e.imageUrl!}
+                    title={e.name}
+                    date={new Date(e.endAt)}
+                    eventId={e.eventId}
+                    metadata={e.metadata}
+                  />
+                ))}
+              </div>
 
               {/* <EventCard
                 imageUrl={
