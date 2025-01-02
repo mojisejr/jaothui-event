@@ -3,11 +3,6 @@ import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import { api } from "~/utils/api";
-import {
-  // inHouse,
-  // national,
-  getCompetitionData,
-} from "~/constants/competition-class";
 import { parseThaiDate } from "~/utils/parseThaiDate";
 
 type EventRegisterType = {
@@ -55,7 +50,6 @@ const FormV3 = ({
   const [selectedLevel, setSelectedLevel] = useState<string>();
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
   const [inputMicrochip, setInputMicrochip] = useState<string>();
-  // const { inHouse, national } = getCompetitionData(eventId);
 
   const {
     data: metadata,
