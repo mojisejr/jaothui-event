@@ -4,6 +4,7 @@ export interface Event {
   name: string;
   eventAt: string;
   endAt: string;
+  deadline: string;
   isActive?: boolean;
   metadata: string[] | null;
 }

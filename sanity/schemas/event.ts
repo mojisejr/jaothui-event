@@ -36,6 +36,15 @@ export const eventType = defineType({
     }),
 
     defineField({
+      title: "Buffalo Age Deadline",
+      name: "buffaloAgeDeadline",
+      type: "date",
+      options: {
+        dateFormat: "DD-MM-YYYY",
+      },
+    }),
+
+    defineField({
       title: "Location",
       name: "location",
       type: "string",

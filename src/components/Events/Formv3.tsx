@@ -38,6 +38,7 @@ const FormV3 = ({
   eventId,
   name,
   startAt,
+  deadline,
   isNational,
   isInHouse,
 }: {
@@ -45,10 +46,11 @@ const FormV3 = ({
   eventId: string;
   name: string;
   startAt: string;
+  deadline: string;
   isNational: boolean;
   isInHouse: boolean;
 }) => {
-  const thaiDate = parseThaiDate(new Date(startAt).getTime());
+  const thaiDate = parseThaiDate(new Date(deadline).getTime());
   const { replace } = useRouter();
   const [selectedLevel, setSelectedLevel] = useState<string>();
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
@@ -125,7 +127,8 @@ const FormV3 = ({
       ({ competitionLevel, buffaloBirthDate, microchip }) => {
         // const diff = dayjs(startAt).diff(buffaloBirthDate, "month");
         const start = dayjs(buffaloBirthDate);
-        const end = dayjs(startAt).subtract(1, "day");
+        // const end = dayjs(deadline).subtract(1, "day");
+        const end = dayjs(deadline);
         let diff = end.diff(start, "month");
         const remainderDays = end.diff(start.add(diff, "month"), "day");
 

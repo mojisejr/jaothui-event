@@ -6,6 +6,7 @@ interface EventCardProps {
   title: string;
   eventId: string;
   imageUrl: string;
+  deadline: Date;
   metadata: string[] | null;
 }
 
@@ -29,6 +30,7 @@ export default function EventCard({
   title,
   eventId,
   imageUrl,
+  deadline,
   metadata,
 }: EventCardProps) {
   const { loggedIn, login } = useLine();
@@ -41,7 +43,7 @@ export default function EventCard({
         <>
           {loggedIn ? (
             <Link
-              href={`/events/${eventId}?name=${title}&date=${dayjs(date).format("MM/DD/YYYY")}&national=${national}&inhouse=${inhouse}`}
+              href={`/events/${eventId}?name=${title}&deadline=${dayjs(deadline).format("MM/DD/YYYY")}&date=${dayjs(date).format("MM/DD/YYYY")}&national=${national}&inhouse=${inhouse}`}
             >
               <img src={imageUrl} />
             </Link>
