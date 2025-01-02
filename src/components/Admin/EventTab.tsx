@@ -16,6 +16,7 @@ export default function EventTab() {
             imageUrl={data?.imageUrl!}
             title={data?.name!}
             date={new Date(data?.eventAt!)}
+            deadline={new Date(data?.deadline!)}
             eventId={"royal"}
             metadata={[]}
           />
