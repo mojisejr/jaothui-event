@@ -15,6 +15,7 @@ export default function RegisterForm() {
           userId={profile ? profile.userId : ""}
           eventId={query.eventId! as string}
           startAt={query.date as string}
+          deadline={query.deadline as string}
           name={query.name as string}
           isNational={(query.national as string) == "true"}
           isInHouse={(query.inhouse as string) == "true"}

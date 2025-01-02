@@ -10,6 +10,7 @@ export async function getEventById(eventId: string) {
     "name": title,
     "eventAt": startAt,
     endAt,
+    "deadline": buffaloAgeDeadline,
     metadata
     }[0]`;
 
@@ -34,6 +35,7 @@ export async function getAllActiveEvents() {
     "imageUrl": image.asset -> url,
     "name": title,
     "eventAt": startAt,
+    "deadline": buffaloAgeDeadline,
     endAt,
     metadata
     }`;

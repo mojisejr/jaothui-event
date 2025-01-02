@@ -35,6 +35,7 @@ export default function EventPage() {
                     imageUrl={e.imageUrl!}
                     title={e.name}
                     date={new Date(e.endAt)}
+                    deadline={new Date(e.deadline)}
                     eventId={e.eventId}
                     metadata={e.metadata}
                   />
