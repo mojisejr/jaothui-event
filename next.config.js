@@ -17,6 +17,7 @@ const config = {
         hostname: "**",
       },
     ],
+    unoptimized: true, // set to false to enable image optimization
   },
   reactStrictMode: true,
 
