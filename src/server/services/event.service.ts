@@ -1,6 +1,7 @@
 import { client } from "../../../sanity/lib/client";
 import { groq } from "next-sanity";
 import { Event } from "~/interfaces/Event";
+import { getPossibleEvents } from "~/utils/getPossibleEvents";
 
 export async function getEventById(eventId: string) {
   try {
@@ -15,6 +16,7 @@ export async function getEventById(eventId: string) {
     }[0]`;
 
     const event = await client.fetch<Event>(query);
+
     // const events = await db.event.findMany({
     //   where: {
     //     isActive: true,
@@ -58,13 +60,13 @@ export async function getAllActiveEvents() {
 export async function getAllEvents() {
   try {
     const query = groq`*[_type == "event"] {
-      "eventId": _id,
-      "imageUrl": image.asset -> url,
-      "name": title,
-      "eventAt": startAt,
-      endAt,
-      isActive,
-      metadata
+     "eventId": _id,
+    "imageUrl": image.asset -> url,
+    "name": title,
+    "eventAt": startAt,
+    "deadline": buffaloAgeDeadline,
+    endAt,
+    metadata
       }`;
 
     const events = await client.fetch<Event[]>(query);
@@ -105,16 +107,25 @@ export async function isRegistered(microchip: string, eventId: number) {
   }
 }
 
-export const getEventTypes = async (eventId: string) => {
-  const provinceQuery = groq`*[_type=="provinceEventType"]{data}[0]`;
-  const nationalQuery = groq`*[_type=="nationalEventType"]{data}[0]`;
+export const getEventTypes = async (eventId: string, age: number) => {
+  const provinceQuery = groq`*[_type=="provinceEventType" && event._ref=="${eventId}"]{data}[0]`;
+  const nationalQuery = groq`*[_type=="nationalEventType" && event._ref=="${eventId}"]{data}[0]`;
 
   const provinceTypes = await client.fetch<{ data: any[] }>(provinceQuery);
   const nationalTypes = await client.fetch<{ data: any[] }>(nationalQuery);
 
+  const provinceFiltered = getPossibleEvents(
+    age,
+    provinceTypes == null ? [] : provinceTypes.data,
+  );
+  const nationalFiltered = getPossibleEvents(
+    age,
+    nationalTypes == null ? [] : nationalTypes.data,
+  );
+
   const types = {
-    provinceTypes: provinceTypes ? provinceTypes.data : [],
-    nationalTypes: nationalTypes ? nationalTypes.data : [],
+    provinceTypes: provinceTypes ? provinceFiltered : [],
+    nationalTypes: nationalTypes ? nationalFiltered : [],
   };
 
   return types;

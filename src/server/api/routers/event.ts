@@ -17,7 +17,9 @@ export const eventRouter = createTRPCRouter({
   getById: publicProcedure.input(z.string()).query(async ({ input }) => {
     return await getEventById(input);
   }),
-  getTypes: publicProcedure.input(z.string()).query(async ({ input }) => {
-    return await getEventTypes(input);
-  }),
+  getTypes: publicProcedure
+    .input(z.object({ eventId: z.string(), age: z.number() }))
+    .query(async ({ input }) => {
+      return await getEventTypes(input.eventId, input.age);
+    }),
 });

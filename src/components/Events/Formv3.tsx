@@ -66,8 +66,10 @@ const FormV3 = ({
     error: registerErrorObj,
   } = api.registerEvent.register.useMutation();
 
-  const { data: types, isLoading: typeLoading } =
-    api.event.getTypes.useQuery(eventId);
+  const { data: types, isLoading: typeLoading } = api.event.getTypes.useQuery({
+    eventId: eventId,
+    age: calculatedAge,
+  });
 
   const {
     register,
@@ -129,6 +131,7 @@ const FormV3 = ({
         if (remainderDays > 0) {
           diff += 1;
         }
+
         setCalculatedAge(diff);
         setInputMicrochip(microchip);
         // console.log(competitionLevel);
