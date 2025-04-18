@@ -12,6 +12,7 @@ export const voteResultType = defineType({
       to: [{ type: "voteEvent" }],
     }),
 
+    //If event is
     defineField({
       title: "Candidate",
       name: "candidate",
@@ -24,6 +25,13 @@ export const voteResultType = defineType({
       name: "voters",
       type: "array",
       of: [{ type: "reference", to: [{ type: "user" }] }],
+    }),
+
+    defineField({
+      title: "Voters From Bitkub",
+      name: "wallets",
+      type: "array",
+      of: [{ type: "string" }],
     }),
   ],
 });
