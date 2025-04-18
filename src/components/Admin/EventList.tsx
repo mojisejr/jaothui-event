@@ -5,6 +5,8 @@ import { api } from "~/utils/api";
 export default function EventList() {
   const { data, isLoading } = api.event.getAll.useQuery();
 
+  console.log(data);
+
   if (isLoading) {
     return (
       <div className="h-full w-full">

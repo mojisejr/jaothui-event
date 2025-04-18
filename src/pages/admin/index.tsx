@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { DashboardMenu } from "~/components/Admin/DashboardMenu";
 import EventManagement from "~/components/Admin/EventManagement";
+import VotesTab from "~/components/Admin/VotesTab";
 import { useAdmin } from "~/context/adminContext";
 
 export default function AdminDashboard() {

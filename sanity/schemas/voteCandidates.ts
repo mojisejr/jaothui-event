@@ -6,6 +6,12 @@ export const voteType = defineType({
   type: "document",
   fields: [
     defineField({
+      title: "event",
+      name: "event",
+      type: "reference",
+      to: [{ type: "voteEvent" }],
+    }),
+    defineField({
       title: "Name",
       name: "name",
       type: "string",
@@ -20,7 +26,7 @@ export const voteType = defineType({
     defineField({
       title: "Image",
       name: "image",
-      type: "image",
+      type: "string",
     }),
   ],
 });
