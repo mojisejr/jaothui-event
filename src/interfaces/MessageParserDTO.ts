@@ -5,4 +5,7 @@ export interface MessageParserDTO {
   eventName: string;
   eventAt: Date;
   docId: string;
+  sex: string;
+  color: string;
+  type: string;
 }

@@ -16,7 +16,7 @@ import {
   createNewImageObjects,
 } from "~/server/services/royal.service";
 import { client } from "../../../../sanity/lib/client";
-import { royalMessageParser } from "~/server/messaging/message-parser";
+import { royalMessageParser, messageParser } from "~/server/messaging/message-parser";
 import { notify } from "~/server/messaging/notification";
 
 export const registerEventRouter = createTRPCRouter({
@@ -133,6 +133,9 @@ export const registerEventRouter = createTRPCRouter({
           buffaloName: input.name,
           microchip: input.microchip,
           docId: approvementResult._id,
+          sex: input.sex,
+          color: input.color,
+          type: input.type,
         });
 
         await notify(input.userId, message);
@@ -191,7 +194,31 @@ export const registerEventRouter = createTRPCRouter({
           province: input.province,
         };
 
-        return await createNewRegister(dto);
+        const result = await createNewRegister(dto);
+        
+        if (!result) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "ไม่สามารถสมัครได้",
+          });
+        }
+
+        // Send LINE notification
+        const message = messageParser({
+          ownerName: input.ownerName,
+          buffaloName: input.name,
+          microchip: input.microchip,
+          docId: result._id,
+          sex: input.sex,
+          color: input.color,
+          type: input.type,
+          eventName: "งานประกวดควายปลักไทย",
+          eventAt: new Date(),
+        });
+
+        await notify(input.userId, message);
+
+        return result;
       } catch (error) {
         console.log(error);
         throw new TRPCError({
