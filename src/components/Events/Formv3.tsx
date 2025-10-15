@@ -50,6 +50,12 @@ const FormV3 = ({
   const [selectedLevel, setSelectedLevel] = useState<string>();
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
   const [inputMicrochip, setInputMicrochip] = useState<string>();
+  const [autoAssignedClass, setAutoAssignedClass] = useState<{
+    competitionLevel: string | null;
+    competitionType: string | null;
+    message: string;
+  } | null>(null);
+  const [isAutoAssigned, setIsAutoAssigned] = useState<boolean>(false);
 
   const {
     data: metadata,
@@ -66,10 +72,11 @@ const FormV3 = ({
     error: registerErrorObj,
   } = api.registerEvent.register.useMutation();
 
-  const { data: types, isLoading: typeLoading } = api.event.getTypes.useQuery({
-    eventId: eventId,
-    age: calculatedAge,
-  });
+  const { data: typesWithAutoAssignment, isLoading: typeLoading } =
+    api.event.getTypesWithAutoAssignment.useQuery({
+      eventId: eventId,
+      age: calculatedAge,
+    });
 
   const {
     register,
@@ -172,6 +179,27 @@ const FormV3 = ({
       return;
     }
   }, [registered, registerError]);
+
+  // Auto-assignment effect
+  useEffect(() => {
+    if (typesWithAutoAssignment?.autoAssignment) {
+      const { success, competitionLevel, competitionType, message } =
+        typesWithAutoAssignment.autoAssignment;
+
+      if (success && competitionLevel && competitionType) {
+        // Auto-assign values
+        setValue("competitionLevel", competitionLevel);
+        setValue("competitionType", competitionType);
+        setAutoAssignedClass({ competitionLevel, competitionType, message });
+        setIsAutoAssigned(true);
+        setSelectedLevel(competitionLevel);
+      } else {
+        // Clear auto-assignment if not successful
+        setAutoAssignedClass({ competitionLevel: null, competitionType: null, message });
+        setIsAutoAssigned(false);
+      }
+    }
+  }, [typesWithAutoAssignment, setValue]);
 
   return (
     <div className="flex justify-center">
@@ -329,61 +357,64 @@ const FormV3 = ({
               />
             </div>
           </div>
-          <div className="form-control">
-            <label className="label label-text font-semibold">ระดับ</label>
-            <select
-              className="select select-bordered select-sm text-black"
-              disabled={searching || registering}
-              required
-              {...register("competitionLevel", { required: true })}
-            >
-              <option value={undefined} disabled selected>
-                เลือก
-              </option>
-              {types ? (
-                <>
-                  {types.provinceTypes.length > 0 ? (
-                    <option value="จังหวัด">ระดับจังหวัด</option>
-                  ) : null}
-                  {types.nationalTypes.length > 0 ? (
-                    <option value="ประเทศ">ระดับประเทศ</option>
-                  ) : null}
-                </>
-              ) : null}
-            </select>
-          </div>
-          <div className="form-control">
-            <label className="label label-text font-semibold">
-              รุ่นที่จะประกวด
-            </label>
-            <select
-              required
-              {...register("competitionType", { required: true })}
-              disabled={selectedLevel == undefined || searching || registering}
-              className="select select-bordered select-sm text-black"
-            >
-              <option value={undefined} disabled selected>
-                เลือก
-              </option>
-              {selectedLevel == "จังหวัด" ? (
-                <>
-                  {types?.provinceTypes.map((ih) => (
-                    <option key={ih} value={ih}>
-                      {ih}
-                    </option>
-                  ))}
-                </>
-              ) : (
-                <>
-                  {types?.nationalTypes?.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
-          </div>
+          {/* Auto-assignment display */}
+          {typeLoading ? (
+            <div className="rounded-md bg-blue-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700">กำลังคำนวณรุ่นที่เหมาะสม...</p>
+                </div>
+              </div>
+            </div>
+          ) : isAutoAssigned && autoAssignedClass?.competitionLevel ? (
+            <div className="rounded-md bg-green-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-semibold text-green-800">
+                    จัดรุ่นสำเร็จ!
+                  </h3>
+                  <div className="mt-2 text-sm text-green-700">
+                    <p className="font-medium">
+                      {autoAssignedClass.message}
+                    </p>
+                    <div className="mt-2 space-y-1">
+                      <p>
+                        <span className="font-semibold">ระดับ:</span> ระดับ
+                        {autoAssignedClass.competitionLevel}
+                      </p>
+                      <p>
+                        <span className="font-semibold">รุ่น:</span>{" "}
+                        {autoAssignedClass.competitionType}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : autoAssignedClass?.message && !isAutoAssigned ? (
+            <div className="rounded-md bg-yellow-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-semibold text-yellow-800">
+                    ไม่สามารถจัดรุ่นอัตโนมัติได้
+                  </h3>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <p>{autoAssignedClass.message}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Hidden inputs to hold auto-assigned values */}
+          <input
+            type="hidden"
+            {...register("competitionLevel", { required: true })}
+          />
+          <input
+            type="hidden"
+            {...register("competitionType", { required: true })}
+          />
           <div className="form-group">
             <label className="label label-text">เงื่อนไชข้อตกลง</label>
             <div className="grid grid-cols-1 gap-2">
