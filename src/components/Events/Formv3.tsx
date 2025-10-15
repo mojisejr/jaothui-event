@@ -196,27 +196,6 @@ const FormV3 = ({
     }
   }, [typesWithAutoAssignment, setValue]);
 
-  // Auto-assignment effect
-  useEffect(() => {
-    if (typesWithAutoAssignment?.autoAssignment) {
-      const { success, competitionLevel, competitionType, message } =
-        typesWithAutoAssignment.autoAssignment;
-
-      if (success && competitionLevel && competitionType) {
-        // Auto-assign values
-        setValue("competitionLevel", competitionLevel);
-        setValue("competitionType", competitionType);
-        setAutoAssignedClass({ competitionLevel, competitionType, message });
-        setIsAutoAssigned(true);
-        setSelectedLevel(competitionLevel);
-      } else {
-        // Clear auto-assignment if not successful
-        setAutoAssignedClass({ competitionLevel: null, competitionType: null, message });
-        setIsAutoAssigned(false);
-      }
-    }
-  }, [typesWithAutoAssignment, setValue]);
-
   return (
     <div className="flex justify-center">
       <div className="max-w-md text-secondary">
