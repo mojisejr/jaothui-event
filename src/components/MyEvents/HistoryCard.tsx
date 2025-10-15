@@ -1,5 +1,5 @@
 import React from "react";
-import { EventRegister } from "~/interfaces/EventRegister";
+import type { EventRegister } from "~/interfaces/EventRegister";
 import { formatBEDate } from "~/utils/be-calendar";
 
 interface HistoryCardProps {
@@ -19,7 +19,6 @@ interface HistoryCardProps {
 export function HistoryCard({ event }: HistoryCardProps) {
   // Determine if event is active or past
   const isActive = event.event.isActive;
-  const statusColor = isActive ? "event-active" : "event-past";
   const statusLabel = isActive ? "กำลังดำเนินการ" : "สิ้นสุดแล้ว";
 
   return (
