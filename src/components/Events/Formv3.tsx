@@ -47,7 +47,6 @@ const FormV3 = ({
 }) => {
   const thaiDate = parseThaiDate(new Date(deadline).getTime());
   const { replace } = useRouter();
-  const [selectedLevel, setSelectedLevel] = useState<string>();
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
   const [inputMicrochip, setInputMicrochip] = useState<string>();
   const [autoAssignedClass, setAutoAssignedClass] = useState<{
@@ -83,7 +82,6 @@ const FormV3 = ({
     handleSubmit,
     watch,
     reset,
-    formState: { errors },
     setValue,
   } = useForm<EventRegisterType>();
 
@@ -127,7 +125,7 @@ const FormV3 = ({
 
   useEffect(() => {
     const subscription = watch(
-      ({ competitionLevel, buffaloBirthDate, microchip }) => {
+      ({ buffaloBirthDate, microchip }) => {
         // const diff = dayjs(startAt).diff(buffaloBirthDate, "month");
         const start = dayjs(buffaloBirthDate);
         // const end = dayjs(deadline).subtract(1, "day");
@@ -141,13 +139,10 @@ const FormV3 = ({
 
         setCalculatedAge(diff);
         setInputMicrochip(microchip);
-        // console.log(competitionLevel);
-        if (competitionLevel == "การประกวดระดับ") return;
-        setSelectedLevel(competitionLevel);
       },
     );
     return () => subscription.unsubscribe();
-  }, [watch]);
+  }, [watch, deadline]);
 
   useEffect(() => {
     if (metadata != undefined) {
@@ -178,7 +173,7 @@ const FormV3 = ({
       reset();
       return;
     }
-  }, [registered, registerError]);
+  }, [registered, registerError, registerErrorObj, replace, reset]);
 
   // Auto-assignment effect
   useEffect(() => {
@@ -192,7 +187,6 @@ const FormV3 = ({
         setValue("competitionType", competitionType);
         setAutoAssignedClass({ competitionLevel, competitionType, message });
         setIsAutoAssigned(true);
-        setSelectedLevel(competitionLevel);
       } else {
         // Clear auto-assignment if not successful
         setAutoAssignedClass({ competitionLevel: null, competitionType: null, message });

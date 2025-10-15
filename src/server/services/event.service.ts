@@ -1,6 +1,6 @@
 import { client } from "../../../sanity/lib/client";
 import { groq } from "next-sanity";
-import { Event } from "~/interfaces/Event";
+import type { Event } from "~/interfaces/Event";
 import { getPossibleEvents, parseAgeRanges, findExactAgeMatch } from "~/utils/getPossibleEvents";
 
 export async function getEventById(eventId: string) {
