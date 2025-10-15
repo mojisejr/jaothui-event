@@ -1,7 +1,7 @@
 import { client } from "../../../sanity/lib/client";
 import { groq } from "next-sanity";
 import { Event } from "~/interfaces/Event";
-import { getPossibleEvents } from "~/utils/getPossibleEvents";
+import { getPossibleEvents, parseAgeRanges, findExactAgeMatch } from "~/utils/getPossibleEvents";
 
 export async function getEventById(eventId: string) {
   try {
@@ -130,4 +130,79 @@ export const getEventTypes = async (eventId: string, age: number) => {
   };
 
   return types;
+};
+
+export const getEventTypesWithAutoAssignment = async (eventId: string, age: number) => {
+  const provinceQuery = groq`*[_type=="provinceEventType" && event._ref=="${eventId}"]{data}[0]`;
+  const nationalQuery = groq`*[_type=="nationalEventType" && event._ref=="${eventId}"]{data}[0]`;
+
+  const provinceTypes = await client.fetch<{ data: any[] }>(provinceQuery);
+  const nationalTypes = await client.fetch<{ data: any[] }>(nationalQuery);
+
+  const provinceData = provinceTypes == null ? [] : provinceTypes.data;
+  const nationalData = nationalTypes == null ? [] : nationalTypes.data;
+
+  // Parse age ranges
+  const provinceRanges = parseAgeRanges(provinceData);
+  const nationalRanges = parseAgeRanges(nationalData);
+
+  // Find exact matches
+  const provinceMatch = findExactAgeMatch(age, provinceRanges);
+  const nationalMatch = findExactAgeMatch(age, nationalRanges);
+
+  // Determine auto-assignment
+  let autoAssignment: {
+    success: boolean;
+    competitionLevel: string | null;
+    competitionType: string | null;
+    message: string;
+  } = {
+    success: false,
+    competitionLevel: null,
+    competitionType: null,
+    message: "",
+  };
+
+  if (provinceMatch && nationalMatch) {
+    // Both levels have matches, default to province level
+    autoAssignment = {
+      success: true,
+      competitionLevel: "จังหวัด",
+      competitionType: provinceMatch.original,
+      message: `อายุ ${age} เดือน - จัดระดับจังหวัด รุ่น ${provinceMatch.original}`,
+    };
+  } else if (provinceMatch) {
+    // Only province level has a match
+    autoAssignment = {
+      success: true,
+      competitionLevel: "จังหวัด",
+      competitionType: provinceMatch.original,
+      message: `อายุ ${age} เดือน - จัดระดับจังหวัด รุ่น ${provinceMatch.original}`,
+    };
+  } else if (nationalMatch) {
+    // Only national level has a match
+    autoAssignment = {
+      success: true,
+      competitionLevel: "ประเทศ",
+      competitionType: nationalMatch.original,
+      message: `อายุ ${age} เดือน - จัดระดับประเทศ รุ่น ${nationalMatch.original}`,
+    };
+  } else {
+    // No matches found
+    autoAssignment = {
+      success: false,
+      competitionLevel: null,
+      competitionType: null,
+      message: `ไม่พบรุ่นที่เหมาะสมสำหรับอายุ ${age} เดือน กรุณาตรวจสอบอายุหรือติดต่อเจ้าหน้าที่`,
+    };
+  }
+
+  const provinceFiltered = getPossibleEvents(age, provinceData);
+  const nationalFiltered = getPossibleEvents(age, nationalData);
+
+  return {
+    provinceTypes: provinceTypes ? provinceFiltered : [],
+    nationalTypes: nationalTypes ? nationalFiltered : [],
+    autoAssignment,
+  };
 };
