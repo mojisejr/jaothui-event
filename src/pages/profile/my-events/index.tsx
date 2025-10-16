@@ -1,10 +1,9 @@
-import MyEventCard from "~/components/MyEvents/Card";
 import Loading1 from "~/components/Shared/Loading1";
 import { useLine } from "~/context/lineContext";
 import { api } from "~/utils/api";
 import { FaAddressCard } from "react-icons/fa";
 import Link from "next/link";
-import HistoryTable from "~/components/MyEvents/HistoryTable";
+import HistoryCard from "~/components/MyEvents/HistoryCard";
 
 export default function MyEventPage() {
   const { profile } = useLine();
@@ -14,44 +13,55 @@ export default function MyEventPage() {
     });
 
   return (
-    <div className="flex h-screen w-full flex-col items-center gap-2 overflow-y-scroll">
-      <h3 className="text-center text-xl font-bold text-secondary">
+    <div className="container mx-auto px-4 py-6 min-h-screen">
+      {/* Page Title */}
+      <h1 className="text-2xl sm:text-3xl font-bold text-secondary mb-6 text-center">
         ประวัติการลงประกวดควาย
-      </h3>
+      </h1>
+
       {isLoading ? (
-        <div className="flex h-[50vh] justify-center">
+        <div className="flex justify-center items-center min-h-[50vh]">
           <Loading1 />
         </div>
       ) : (
-        <div className="flex h-[95vh] w-full flex-col gap-2 overflow-y-scroll p-4">
+        <>
           {events && events.length <= 0 ? (
-            <div className="flex h-full w-full flex-col items-center justify-center text-secondary">
-              <FaAddressCard size={65} className="text-primary" />
-              <p className="text-2xl">ไม่มีข้อมูล</p>
+            /* Mobile-optimized empty state */
+            <div className="flex flex-col items-center justify-center text-secondary min-h-[60vh] gap-6 px-4">
+              <FaAddressCard 
+                size={80} 
+                className="text-primary" 
+                aria-hidden="true"
+              />
+              <p className="text-xl sm:text-2xl font-semibold text-center">
+                ไม่มีข้อมูล
+              </p>
+              <p className="text-sm sm:text-base text-center text-buffalo-cream max-w-md">
+                คุณยังไม่มีประวัติการลงประกวด เริ่มต้นเลยตอนนี้!
+              </p>
               <Link
-                className="btn btn-primary mt-6 rounded-full"
+                className="btn btn-primary rounded-full px-8 py-3 text-base sm:text-lg min-h-[44px] touch-manipulation"
                 href="/events"
+                aria-label="Go to events registration page"
               >
                 ไปสมัคร
               </Link>
             </div>
           ) : (
-            <>
-              <HistoryTable userId={profile?.userId!} />
-              {/* {events?.map((e) => (
-                <MyEventCard
-                  key={e._id}
-                  title={e.event.title}
-                  date={new Date(e.event.startAt)}
-                  eventId={e._id}
-                  microchip={e.microchip}
-                  ownerName={e.ownerName}
-                  buffaloName={e.name}
-                />
-              ))} */}
-            </>
+            /* Mobile-first responsive grid */
+            <div 
+              className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              role="list"
+              aria-label="Buffalo registration history"
+            >
+              {events?.map((event) => (
+                <div key={event._id} role="listitem">
+                  <HistoryCard event={event} />
+                </div>
+              ))}
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

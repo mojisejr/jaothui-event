@@ -9,6 +9,14 @@ export default {
         sans: ["var(--font-sans)", ...fontFamily.sans],
         prompt: ["Prompt", ...fontFamily.sans],
       },
+      colors: {
+        "buffalo-gold": "#D89A17",
+        "buffalo-cream": "#F4E4C1",
+        "buffalo-brown": "#8B4513",
+        "microchip-green": "#22c55e",
+        "event-active": "#3b82f6",
+        "event-past": "#6b7280",
+      },
     },
   },
   daisyui: {
