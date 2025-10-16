@@ -4,7 +4,6 @@ import {
   getEventById,
   getEventTypes,
   getEventTypesWithAutoAssignment,
-  getRegistrationOpenEvents,
 } from "~/server/services/event.service";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { z } from "zod";
