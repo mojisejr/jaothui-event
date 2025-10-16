@@ -1,11 +1,12 @@
-import Link from "next/link";
 import { FaAddressCard } from "react-icons/fa6";
 import EventCard from "~/components/Events/Card";
 import Loading1 from "~/components/Shared/Loading1";
 import { api } from "~/utils/api";
+import type { Event } from "~/interfaces/Event";
 
 export default function EventPage() {
-  const { data: events, isLoading } = api.event.getAllActive.useQuery();
+  const { data: events, isLoading } = api.event.getRegistrationOpen.useQuery();
+  // Previously used: api.event.getAllActive.useQuery();
   // const { data: events, isLoading } = api.event.getAll.useQuery();
 
   return (
@@ -29,13 +30,14 @@ export default function EventPage() {
               <h1>รายการประกวด</h1>
               {/* <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"> */}
               <div className="grid grid-cols-2 gap-4">
-                {events?.map((e) => (
+                {events?.map((e: Event) => (
                   <EventCard
                     key={e.eventId}
                     imageUrl={e.imageUrl!}
                     title={e.name}
                     date={new Date(e.endAt)}
                     deadline={new Date(e.deadline)}
+                    registrationDeadline={e.registrationDeadline ? new Date(e.registrationDeadline) : undefined}
                     eventId={e.eventId}
                     metadata={e.metadata}
                   />
@@ -47,7 +49,7 @@ export default function EventPage() {
                   "https://cdn.sanity.io/images/q38mtihr/production/94642e3b93f88b40acc69d27245e89a91afcea6e-1080x1350.jpg"
                 }
                 title={
-                  "ประกวดกระบือปลักไทยชิงถ้วยพระราชทาน งานวันอนุรักษ์และพัฒนากระบือปลักไทย ประจำปี๒๕๖๘"
+                  "ประกวดกระบือปลักไทยชิงถ้วยพระราชทาน งานวันอนุรักษ์และพัฒนากระบือไทย 2568 ระหว่างวันที่ 11-13 ตุลาคม 2568 โรงเรียนจตุรมิตร จังหวัดฉะเชิงเทรา"
                 }
                 date={new Date()}
                 eventId={"royal"}
