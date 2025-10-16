@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import { api } from "~/utils/api";
 import { parseThaiDate } from "~/utils/parseThaiDate";
+import ThaiDatePicker from "~/components/ThaiDatePicker";
 
 type EventRegisterType = {
   firstName: string;
@@ -286,13 +287,19 @@ const FormV3 = ({
               <div className="form-control">
                 <label className="label label-text">วันเดือนปีเกิดกระบือ</label>
                 <input
-                  type="date"
-                  className="input input-sm input-bordered text-black"
-                  disabled={searching || registering}
+                  type="hidden"
                   {...register("buffaloBirthDate", {
                     required: true,
                     valueAsDate: false,
                   })}
+                />
+                <ThaiDatePicker
+                  value={watch("buffaloBirthDate")}
+                  onChange={(isoDate) => setValue("buffaloBirthDate", isoDate)}
+                  disabled={searching || registering}
+                  required={true}
+                  minYear={1900}
+                  maxYear={new Date().getFullYear()}
                 />
               </div>
               <div className="form-control">
