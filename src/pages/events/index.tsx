@@ -1,11 +1,11 @@
-import Link from "next/link";
 import { FaAddressCard } from "react-icons/fa6";
 import EventCard from "~/components/Events/Card";
 import Loading1 from "~/components/Shared/Loading1";
 import { api } from "~/utils/api";
 
 export default function EventPage() {
-  const { data: events, isLoading } = api.event.getAllActive.useQuery();
+  const { data: events, isLoading } = api.event.getRegistrationOpen.useQuery();
+  // Previously used: api.event.getAllActive.useQuery();
   // const { data: events, isLoading } = api.event.getAll.useQuery();
 
   return (
@@ -36,6 +36,7 @@ export default function EventPage() {
                     title={e.name}
                     date={new Date(e.endAt)}
                     deadline={new Date(e.deadline)}
+                    registrationDeadline={e.registrationDeadline ? new Date(e.registrationDeadline) : undefined}
                     eventId={e.eventId}
                     metadata={e.metadata}
                   />

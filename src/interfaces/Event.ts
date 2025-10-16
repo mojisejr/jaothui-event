@@ -6,5 +6,8 @@ export interface Event {
   endAt: string;
   deadline: string;
   isActive?: boolean;
+  registrationActive?: boolean;
+  registrationStartAt?: string;
+  registrationDeadline?: string;
   metadata: string[] | null;
 }

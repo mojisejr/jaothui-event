@@ -15,11 +15,33 @@ export default function EventList() {
     );
   }
 
+  const getRegistrationStatus = (event: any) => {
+    if (event.registrationActive === false) {
+      return "ปิดรับสมัคร";
+    }
+    
+    const now = new Date();
+    if (event.registrationStartAt && new Date(event.registrationStartAt) > now) {
+      return "ยังไม่เปิดรับสมัคร";
+    }
+    
+    if (event.registrationDeadline && new Date(event.registrationDeadline) < now) {
+      return "ปิดรับสมัคร";
+    }
+    
+    if (!event.registrationDeadline && event.deadline && new Date(event.deadline) < now) {
+      return "ปิดรับสมัคร";
+    }
+    
+    return "เปิดรับสมัคร";
+  };
+
   return (
     <table className="table text-white">
       <thead>
         <tr>
-          <th>สถานะ</th>
+          <th>สถานะงาน</th>
+          <th>สถานะรับสมัคร</th>
           <th>ชื่องาน</th>
           <th></th>
         </tr>
@@ -27,7 +49,16 @@ export default function EventList() {
       <tbody>
         {data?.map((event) => (
           <tr key={event.name}>
-            <td>{event.isActive ? "เปิด" : "ปิด"}</td>
+            <td>
+              <span className={`badge ${event.isActive ? 'badge-success' : 'badge-error'}`}>
+                {event.isActive ? "เปิด" : "ปิด"}
+              </span>
+            </td>
+            <td>
+              <span className={`badge ${getRegistrationStatus(event) === "เปิดรับสมัคร" ? 'badge-info' : 'badge-warning'}`}>
+                {getRegistrationStatus(event)}
+              </span>
+            </td>
             <td>{event.name}</td>
             <td>
               <Link
