@@ -3,6 +3,7 @@ import {
   getAllEvents,
   getEventById,
   getEventTypes,
+  getEventTypesWithAutoAssignment,
 } from "~/server/services/event.service";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { z } from "zod";
@@ -21,5 +22,10 @@ export const eventRouter = createTRPCRouter({
     .input(z.object({ eventId: z.string(), age: z.number() }))
     .query(async ({ input }) => {
       return await getEventTypes(input.eventId, input.age);
+    }),
+  getTypesWithAutoAssignment: publicProcedure
+    .input(z.object({ eventId: z.string(), age: z.number() }))
+    .query(async ({ input }) => {
+      return await getEventTypesWithAutoAssignment(input.eventId, input.age);
     }),
 });
