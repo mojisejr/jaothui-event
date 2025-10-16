@@ -4,6 +4,7 @@ import {
   getEventById,
   getEventTypes,
   getEventTypesWithAutoAssignment,
+  getRegistrationOpenEvents,
 } from "~/server/services/event.service";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { z } from "zod";
@@ -14,6 +15,9 @@ export const eventRouter = createTRPCRouter({
   }),
   getAll: publicProcedure.query(async () => {
     return await getAllEvents();
+  }),
+  getRegistrationOpen: publicProcedure.query(async () => {
+    return await getRegistrationOpenEvents();
   }),
   getById: publicProcedure.input(z.string()).query(async ({ input }) => {
     return await getEventById(input);

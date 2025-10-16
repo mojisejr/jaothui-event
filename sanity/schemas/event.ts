@@ -76,6 +76,34 @@ export const eventType = defineType({
     }),
 
     defineField({
+      title: "Registration Active",
+      name: "registrationActive",
+      type: "boolean",
+      description: "Controls whether registration is currently open for this event",
+      initialValue: true,
+    }),
+
+    defineField({
+      title: "Registration Start At",
+      name: "registrationStartAt",
+      type: "date",
+      description: "When registration opens for this event",
+      options: {
+        dateFormat: "DD-MM-YYYY",
+      },
+    }),
+
+    defineField({
+      title: "Registration Deadline",
+      name: "registrationDeadline",
+      type: "date",
+      description: "When registration closes for this event (separate from event deadline)",
+      options: {
+        dateFormat: "DD-MM-YYYY",
+      },
+    }),
+
+    defineField({
       title: "Event Image",
       name: "image",
       type: "image",

@@ -12,7 +12,11 @@ export async function getEventById(eventId: string) {
     "eventAt": startAt,
     endAt,
     "deadline": buffaloAgeDeadline,
-    metadata
+    metadata,
+    isActive,
+    registrationActive,
+    registrationStartAt,
+    registrationDeadline
     }[0]`;
 
     const event = await client.fetch<Event>(query);
@@ -39,7 +43,11 @@ export async function getAllActiveEvents() {
     "eventAt": startAt,
     "deadline": buffaloAgeDeadline,
     endAt,
-    metadata
+    metadata,
+    isActive,
+    registrationActive,
+    registrationStartAt,
+    registrationDeadline
     }`;
 
     const events = await client.fetch<Event[]>(query);
@@ -57,6 +65,66 @@ export async function getAllActiveEvents() {
   }
 }
 
+export async function getRegistrationOpenEvents() {
+  try {
+    const query = groq`*[_type == "event" && isActive == true] {
+    "eventId": _id,
+    "imageUrl": image.asset -> url,
+    "name": title,
+    "eventAt": startAt,
+    "deadline": buffaloAgeDeadline,
+    endAt,
+    metadata,
+    isActive,
+    registrationActive,
+    registrationStartAt,
+    registrationDeadline
+    }`;
+
+    const events = await client.fetch<Event[]>(query);
+    
+    // Filter events based on registration status and date windows
+    const now = new Date();
+    const registrationOpenEvents = events.filter((event) => {
+      // If registrationActive is explicitly false, exclude the event
+      if (event.registrationActive === false) {
+        return false;
+      }
+
+      // Check registration start date
+      if (event.registrationStartAt) {
+        const startDate = new Date(event.registrationStartAt);
+        if (now < startDate) {
+          return false; // Registration hasn't opened yet
+        }
+      }
+
+      // Check registration deadline
+      if (event.registrationDeadline) {
+        const deadlineDate = new Date(event.registrationDeadline);
+        if (now > deadlineDate) {
+          return false; // Registration has closed
+        }
+      }
+
+      // If no explicit registration control fields, fall back to event deadline
+      if (!event.registrationDeadline && event.deadline) {
+        const eventDeadline = new Date(event.deadline);
+        if (now > eventDeadline) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    return registrationOpenEvents;
+  } catch (error) {
+    console.log(error);
+    return [];
+  }
+}
+
 export async function getAllEvents() {
   try {
     const query = groq`*[_type == "event"] {
@@ -67,7 +135,10 @@ export async function getAllEvents() {
     "deadline": buffaloAgeDeadline,
     isActive,
     endAt,
-    metadata
+    metadata,
+    registrationActive,
+    registrationStartAt,
+    registrationDeadline
       }`;
 
     const events = await client.fetch<Event[]>(query);
