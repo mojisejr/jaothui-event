@@ -169,7 +169,7 @@ const FormV3 = ({
       },
     );
     return () => subscription.unsubscribe();
-  }, [watch, deadline]);
+  }, [deadline]);
 
   useEffect(() => {
     if (metadata != undefined) {
