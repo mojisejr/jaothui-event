@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { DashboardMenu } from "~/components/Admin/DashboardMenu";
 import EventManagement from "~/components/Admin/EventManagement";
 import VotesTab from "~/components/Admin/VotesTab";
+import AdminRegistrationForm from "~/components/Admin/AdminRegistrationForm";
 import { useAdmin } from "~/context/adminContext";
 
 export default function AdminDashboard() {
@@ -25,6 +26,7 @@ export default function AdminDashboard() {
           </div>
           <div className="h-full w-full">
             {tab == "event" ? <EventManagement /> : null}
+            {tab == "registration" ? <AdminRegistrationForm /> : null}
           </div>
         </div>
       ) : (

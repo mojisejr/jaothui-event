@@ -10,6 +10,7 @@ import { api } from "~/utils/api";
 
 type contextType = {
   admin: boolean;
+  adminUser?: any;
 };
 
 const defaultContext: contextType = { admin: false };
@@ -36,7 +37,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const value = { admin };
+  const value = { admin, adminUser: user };
   return (
     <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
   );

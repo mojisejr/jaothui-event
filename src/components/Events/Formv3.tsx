@@ -37,6 +37,9 @@ const FormV3 = ({
   deadline,
   isNational,
   isInHouse,
+  isAdminMode = false,
+  onAdminSubmit,
+  isRegistering,
 }: {
   userId: string;
   eventId: string;
@@ -45,6 +48,9 @@ const FormV3 = ({
   deadline: string;
   isNational: boolean;
   isInHouse: boolean;
+  isAdminMode?: boolean;
+  onAdminSubmit?: (data: any) => void;
+  isRegistering?: boolean;
 }) => {
   const thaiDate = parseThaiDate(new Date(deadline).getTime());
   const { replace } = useRouter();
@@ -72,6 +78,20 @@ const FormV3 = ({
     error: registerErrorObj,
   } = api.registerEvent.register.useMutation();
 
+  // Admin registration mutation
+  const {
+    mutate: registerAdminEvent,
+    isLoading: adminRegistering,
+    isSuccess: adminRegistered,
+    isError: adminRegisterError,
+    error: adminRegisterErrorObj,
+  } = api.admin.registerAdminEvent.useMutation();
+
+  // Determine current loading state
+  const isLoading = isAdminMode ? 
+    (adminRegistering || isRegistering) : 
+    registering;
+
   const { data: typesWithAutoAssignment, isLoading: typeLoading } =
     api.event.getTypesWithAutoAssignment.useQuery({
       eventId: eventId,
@@ -97,7 +117,7 @@ const FormV3 = ({
       return;
     }
 
-    registerEvent({
+    const registrationData = {
       name: data.buffaloName,
       type: data.competitionType,
       level: data.competitionLevel,
@@ -114,9 +134,15 @@ const FormV3 = ({
       province: data.province,
       userId,
       eventId,
-    });
+    };
 
-    // console.log(data);
+    if (isAdminMode && onAdminSubmit) {
+      // Use admin registration endpoint
+      onAdminSubmit(registrationData);
+    } else {
+      // Use regular registration endpoint
+      registerEvent(registrationData);
+    }
   });
 
   const handleSearchMetadata = () => {
@@ -206,7 +232,7 @@ const FormV3 = ({
               type="text"
               className="input input-sm input-bordered text-black"
               placeholder="ชื่อ"
-              disabled={searching || registering}
+              disabled={searching || isLoading}
               {...register("firstName", { required: true })}
             />
           </div>
@@ -215,7 +241,7 @@ const FormV3 = ({
               type="text"
               className="input input-sm input-bordered text-black"
               placeholder="นามสกุล"
-              disabled={searching || registering}
+              disabled={searching || isLoading}
               {...register("lastName", { required: true })}
             />
           </div>
@@ -224,7 +250,7 @@ const FormV3 = ({
               type="text"
               className="input input-sm input-bordered text-black"
               placeholder="เบอร์โทรติดต่อ"
-              disabled={searching || registering}
+              disabled={searching || isLoading}
               {...register("tel", { required: true })}
             />
           </div>
@@ -234,7 +260,7 @@ const FormV3 = ({
               className="input input-sm input-bordered text-black"
               placeholder="ชื่อฟาร์ม"
               required
-              disabled={searching || registering}
+              disabled={searching || isLoading}
               {...register("farmName", { required: true })}
             />
           </div>
@@ -245,7 +271,7 @@ const FormV3 = ({
               className="input input-sm input-bordered text-black"
               placeholder="ฟาร์มอยู่จังหวัด"
               required
-              disabled={searching || registering}
+              disabled={searching || isLoading}
               {...register("province", { required: true })}
             />
           </div>
@@ -259,7 +285,7 @@ const FormV3 = ({
                     type="text"
                     className="input input-sm input-bordered text-black"
                     placeholder="เลขไมโครชิพ"
-                    disabled={searching || registering}
+                    disabled={searching || isLoading}
                     {...register("microchip")}
                   />
                   <label className="label label-text-alt text-xs text-primary">
@@ -267,7 +293,7 @@ const FormV3 = ({
                   </label>
                 </div>
                 <button
-                  disabled={searching || registering}
+                  disabled={searching || isLoading}
                   onClick={() => handleSearchMetadata()}
                   className="btn btn-primary btn-sm"
                 >
@@ -279,7 +305,7 @@ const FormV3 = ({
                   type="text"
                   className="input input-sm input-bordered text-black"
                   placeholder="ชื่อกระบือ"
-                  disabled={searching || registering}
+                  disabled={searching || isLoading}
                   {...register("buffaloName", { required: true })}
                 />
               </div>
@@ -296,7 +322,7 @@ const FormV3 = ({
                 <ThaiDatePicker
                   value={watch("buffaloBirthDate")}
                   onChange={(isoDate) => setValue("buffaloBirthDate", isoDate)}
-                  disabled={searching || registering}
+                  disabled={searching || isLoading}
                   required={true}
                   minYear={1900}
                   maxYear={new Date().getFullYear()}
@@ -305,7 +331,7 @@ const FormV3 = ({
               <div className="form-control">
                 <select
                   className="select select-sm text-black disabled:text-slate-300"
-                  disabled={searching || registering}
+                  disabled={searching || isLoading}
                   required
                   {...register("buffaloColor", { required: true })}
                 >
@@ -316,7 +342,7 @@ const FormV3 = ({
               <div className="form-control">
                 <select
                   className="select select-sm text-black disabled:text-slate-300"
-                  disabled={searching || registering}
+                  disabled={searching || isLoading}
                   required
                   {...register("buffaloSex", { required: true })}
                 >
@@ -332,7 +358,7 @@ const FormV3 = ({
               type="text"
               placeholder="อายุกระบือ (เดือน)"
               className="input input-sm input-bordered text-black"
-              disabled={searching || registering}
+              disabled={searching || isLoading}
               {...register("buffaloAge", { required: true })}
               value={calculatedAge}
               readOnly
@@ -343,7 +369,7 @@ const FormV3 = ({
                 className="input input-sm input-bordered text-black"
                 placeholder="ชื่อพ่อ"
                 required
-                disabled={searching || registering}
+                disabled={searching || isLoading}
                 {...register("fatherName", { required: true })}
               />
             </div>
@@ -353,7 +379,7 @@ const FormV3 = ({
                 className="input input-sm input-bordered text-black"
                 placeholder="ชื่อแม่"
                 required
-                disabled={searching || registering}
+                disabled={searching || isLoading}
                 {...register("motherName", { required: true })}
               />
             </div>
@@ -527,11 +553,11 @@ const FormV3 = ({
             </div>
           </div>
           <button
-            disabled={registering}
+            disabled={isLoading}
             type="submit"
             className="btn btn-primary btn-sm my-2"
           >
-            {registering ? "กำลังยืนยัน" : "ยืนยันการลงทะเบียน"}
+            {isLoading ? (isAdminMode ? "กำลังลงทะเบียน (Admin)" : "กำลังยืนยัน") : "ยืนยันการลงทะเบียน"}
           </button>
         </form>
       </div>
