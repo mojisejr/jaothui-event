@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
@@ -149,6 +149,10 @@ const FormV3 = ({
     if (inputMicrochip == undefined) return;
     search({ microchip: inputMicrochip });
   };
+
+  const handleBirthDateChange = useCallback((isoDate: string) => {
+    setValue("buffaloBirthDate", isoDate);
+  }, [setValue]);
 
   useEffect(() => {
     const subscription = watch(
@@ -321,7 +325,7 @@ const FormV3 = ({
                 />
                 <ThaiDatePicker
                   value={watch("buffaloBirthDate")}
-                  onChange={(isoDate) => setValue("buffaloBirthDate", isoDate)}
+                  onChange={handleBirthDateChange}
                   disabled={searching || isLoading}
                   required={true}
                   minYear={1900}
