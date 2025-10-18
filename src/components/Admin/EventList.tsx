@@ -1,19 +1,11 @@
-import Link from "next/link";
 import React from "react";
 import { api } from "~/utils/api";
+import AdminEventCard from "./AdminEventCard";
 
 export default function EventList() {
-  const { data, isLoading } = api.event.getAll.useQuery();
+  const { data, isLoading, error } = api.event.getAll.useQuery();
 
   console.log(data);
-
-  if (isLoading) {
-    return (
-      <div className="h-full w-full">
-        <div className="loading loading-spinner text-white"></div>
-      </div>
-    );
-  }
 
   const getRegistrationStatus = (event: any) => {
     if (event.registrationActive === false) {
@@ -36,41 +28,58 @@ export default function EventList() {
     return "เปิดรับสมัคร";
   };
 
-  return (
-    <table className="table text-white">
-      <thead>
-        <tr>
-          <th>สถานะงาน</th>
-          <th>สถานะรับสมัคร</th>
-          <th>ชื่องาน</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {data?.map((event) => (
-          <tr key={event.name}>
-            <td>
-              <span className={`badge ${event.isActive ? 'badge-success' : 'badge-error'}`}>
-                {event.isActive ? "เปิด" : "ปิด"}
-              </span>
-            </td>
-            <td>
-              <span className={`badge ${getRegistrationStatus(event) === "เปิดรับสมัคร" ? 'badge-info' : 'badge-warning'}`}>
-                {getRegistrationStatus(event)}
-              </span>
-            </td>
-            <td>{event.name}</td>
-            <td>
-              <Link
-                href={`/admin/event-manage/${event.eventId}`}
-                className="btn"
-              >
-                ดูรายละเอียด
-              </Link>
-            </td>
-          </tr>
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[...Array(6)].map((_, i) => (
+          <div
+            key={i}
+            className="card bg-base-200 shadow-lg animate-pulse"
+            role="status"
+            aria-label="Loading event"
+          >
+            <div className="card-body p-4 md:p-6">
+              <div className="h-6 bg-base-300 rounded w-3/4"></div>
+              <div className="h-4 bg-base-300 rounded w-1/2 mt-2"></div>
+              <div className="flex gap-2 mt-2">
+                <div className="h-6 bg-base-300 rounded w-16"></div>
+                <div className="h-6 bg-base-300 rounded w-24"></div>
+              </div>
+              <div className="flex justify-end mt-2">
+                <div className="h-8 bg-base-300 rounded w-24"></div>
+              </div>
+            </div>
+          </div>
         ))}
-      </tbody>
-    </table>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="alert alert-error">
+        <span>เกิดข้อผิดพลาดในการโหลดข้อมูลงาน</span>
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="alert alert-info">
+        <span>ไม่พบข้อมูลงานในระบบ</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {data.map((event) => (
+        <AdminEventCard
+          key={event.eventId}
+          event={event}
+          getRegistrationStatus={getRegistrationStatus}
+        />
+      ))}
+    </div>
   );
 }
