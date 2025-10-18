@@ -62,7 +62,7 @@ const ThaiDatePicker: React.FC<ThaiDatePickerProps> = ({
         onChange(isoDate);
       }
     }
-  }, [day, monthIndex, beYear, onChange]);
+  }, [day, monthIndex, beYear]);
 
   const handleDayChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newDay = e.target.value;
