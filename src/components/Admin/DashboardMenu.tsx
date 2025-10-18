@@ -15,6 +15,14 @@ export function DashboardMenu() {
       >
         จัดการงานประกวด
       </Link>
+      <Link
+        href="/admin?tab=registration"
+        className={clsx("btn-bordered btn text-white", {
+          "bg-primary text-primary-content": tab == "registration",
+        })}
+      >
+        ลงทะเบียนที่งาน
+      </Link>
     </div>
   );
 }
