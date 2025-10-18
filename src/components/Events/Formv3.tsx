@@ -117,31 +117,48 @@ const FormV3 = ({
       return;
     }
 
-    const registrationData = {
-      name: data.buffaloName,
-      type: data.competitionType,
-      level: data.competitionLevel,
-      ownerName: `${data.firstName} ${data.lastName}`,
-      sex: data.buffaloSex,
-      buffaloAge: calculatedAge,
-      color: data.buffaloColor,
-      birthdate: data.buffaloBirthDate,
-      microchip: data.microchip,
-      ownerTel: data.tel,
-      fatherName: data.fatherName,
-      motherName: data.motherName,
-      farmName: data.farmName,
-      province: data.province,
-      userId,
-      eventId,
-    };
-
     if (isAdminMode && onAdminSubmit) {
-      // Use admin registration endpoint
-      onAdminSubmit(registrationData);
+      // Use admin registration endpoint with 'birthday' field
+      const adminRegistrationData = {
+        name: data.buffaloName,
+        type: data.competitionType,
+        level: data.competitionLevel,
+        ownerName: `${data.firstName} ${data.lastName}`,
+        sex: data.buffaloSex,
+        buffaloAge: calculatedAge,
+        color: data.buffaloColor,
+        birthday: data.buffaloBirthDate,
+        microchip: data.microchip,
+        ownerTel: data.tel,
+        fatherName: data.fatherName,
+        motherName: data.motherName,
+        farmName: data.farmName,
+        province: data.province,
+        userId,
+        eventId,
+      };
+      onAdminSubmit(adminRegistrationData);
     } else {
-      // Use regular registration endpoint
-      registerEvent(registrationData);
+      // Use regular registration endpoint with 'birthdate' field
+      const regularRegistrationData = {
+        name: data.buffaloName,
+        type: data.competitionType,
+        level: data.competitionLevel,
+        ownerName: `${data.firstName} ${data.lastName}`,
+        sex: data.buffaloSex,
+        buffaloAge: calculatedAge,
+        color: data.buffaloColor,
+        birthdate: data.buffaloBirthDate,
+        microchip: data.microchip,
+        ownerTel: data.tel,
+        fatherName: data.fatherName,
+        motherName: data.motherName,
+        farmName: data.farmName,
+        province: data.province,
+        userId,
+        eventId,
+      };
+      registerEvent(regularRegistrationData);
     }
   });
 
