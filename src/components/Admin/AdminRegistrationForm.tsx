@@ -109,7 +109,7 @@ const AdminRegistrationForm = () => {
           <h1 className="text-3xl font-bold text-primary">
             ลงทะเบียนควายที่งาน
           </h1>
-          <p className="text-base-content/70 mt-2">
+          <p className="text-neutral-content mt-2">
             ระบบลงทะเบียนควายสำหรับ Admin ณ งานสถานที่ (อนุมัติอัตโนมัติ)
           </p>
         </div>
@@ -255,7 +255,7 @@ const AdminRegistrationForm = () => {
               </h2>
               
               <div className="bg-base-200 p-4 rounded-lg">
-                <p className="text-sm text-base-content/70 mb-4">
+                <p className="text-sm text-neutral-content mb-4">
                   <strong>โหมด Admin:</strong> การลงทะเบียนจะถูกอนุมัติโดยอัตโนมัติ
                   {overrideDuplicate && (
                     <span className="text-warning ml-2">
@@ -277,7 +277,7 @@ const AdminRegistrationForm = () => {
                   isRegistering={registering}
                 />
                 
-                <div className="mt-4 text-xs text-base-content/50">
+                <div className="mt-4 text-xs text-gray-400">
                   <p>หมายเหตุ: แบบฟอร์มนี้จะใช้ข้อมูลเดียวกับการลงทะเบียนออนไลน์ แต่จะถูกอนุมัติโดยอัตโนมัติ</p>
                 </div>
               </div>

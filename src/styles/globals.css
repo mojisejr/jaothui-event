@@ -5,5 +5,18 @@
 @tailwind utilities;
 
 @layer base {
-    body { @apply bg-black font-prompt } 
+    body { 
+        @apply bg-base-100 font-prompt;
+        color-scheme: dark;
+    }
+    
+    /* Better focus indicators for accessibility */
+    *:focus {
+        @apply outline-2 outline-offset-2 outline-primary;
+    }
+    
+    /* Smooth transitions */
+    * {
+        @apply transition-colors duration-200;
+    }
 }
