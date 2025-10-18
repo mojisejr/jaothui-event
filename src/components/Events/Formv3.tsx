@@ -251,8 +251,11 @@ const FormV3 = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-black"
+              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="ชื่อ"
+              aria-label="ชื่อ"
+              aria-required="true"
+              autoComplete="given-name"
               disabled={searching || isLoading}
               {...register("firstName", { required: true })}
             />
@@ -260,17 +263,23 @@ const FormV3 = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-black"
+              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="นามสกุล"
+              aria-label="นามสกุล"
+              aria-required="true"
+              autoComplete="family-name"
               disabled={searching || isLoading}
               {...register("lastName", { required: true })}
             />
           </div>
           <div className="form-control">
             <input
-              type="text"
-              className="input input-sm input-bordered text-black"
+              type="tel"
+              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="เบอร์โทรติดต่อ"
+              aria-label="เบอร์โทรติดต่อ"
+              aria-required="true"
+              autoComplete="tel"
               disabled={searching || isLoading}
               {...register("tel", { required: true })}
             />
@@ -278,8 +287,10 @@ const FormV3 = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-black"
+              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="ชื่อฟาร์ม"
+              aria-label="ชื่อฟาร์ม"
+              aria-required="true"
               required
               disabled={searching || isLoading}
               {...register("farmName", { required: true })}
@@ -289,8 +300,10 @@ const FormV3 = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-black"
+              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="ฟาร์มอยู่จังหวัด"
+              aria-label="ฟาร์มอยู่จังหวัด"
+              aria-required="true"
               required
               disabled={searching || isLoading}
               {...register("province", { required: true })}
@@ -304,12 +317,14 @@ const FormV3 = ({
                 <div className="form-control">
                   <input
                     type="text"
-                    className="input input-sm input-bordered text-black"
+                    className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                     placeholder="เลขไมโครชิพ"
+                    aria-label="เลขไมโครชิพ"
+                    aria-describedby="microchip-help"
                     disabled={searching || isLoading}
                     {...register("microchip")}
                   />
-                  <label className="label label-text-alt text-xs text-primary">
+                  <label id="microchip-help" className="label label-text-alt text-xs text-primary">
                     หากไม่มี microchip ให้ใส่ชื่อควายของคุณลงในช่อง microchip
                   </label>
                 </div>
@@ -317,6 +332,7 @@ const FormV3 = ({
                   disabled={searching || isLoading}
                   onClick={() => handleSearchMetadata()}
                   className="btn btn-primary btn-sm"
+                  aria-label="ค้นหาข้อมูลจากไมโครชิพ"
                 >
                   {searching ? "กำลังค้น" : "ค้นหา"}
                 </button>
@@ -324,8 +340,10 @@ const FormV3 = ({
               <div className="form-control">
                 <input
                   type="text"
-                  className="input input-sm input-bordered text-black"
+                  className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                   placeholder="ชื่อกระบือ"
+                  aria-label="ชื่อกระบือ"
+                  aria-required="true"
                   disabled={searching || isLoading}
                   {...register("buffaloName", { required: true })}
                 />
@@ -351,7 +369,9 @@ const FormV3 = ({
               </div>
               <div className="form-control">
                 <select
-                  className="select select-sm text-black disabled:text-slate-300"
+                  className="select select-sm text-gray-900 disabled:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  aria-label="สีกระบือ"
+                  aria-required="true"
                   disabled={searching || isLoading}
                   required
                   {...register("buffaloColor", { required: true })}
@@ -362,7 +382,9 @@ const FormV3 = ({
               </div>
               <div className="form-control">
                 <select
-                  className="select select-sm text-black disabled:text-slate-300"
+                  className="select select-sm text-gray-900 disabled:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  aria-label="เพศกระบือ"
+                  aria-required="true"
                   disabled={searching || isLoading}
                   required
                   {...register("buffaloSex", { required: true })}
@@ -378,7 +400,9 @@ const FormV3 = ({
             <input
               type="text"
               placeholder="อายุกระบือ (เดือน)"
-              className="input input-sm input-bordered text-black"
+              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              aria-label="อายุกระบือ (เดือน)"
+              aria-readonly="true"
               disabled={searching || isLoading}
               {...register("buffaloAge", { required: true })}
               value={calculatedAge}
@@ -387,8 +411,10 @@ const FormV3 = ({
             <div className="form-control">
               <input
                 type="text"
-                className="input input-sm input-bordered text-black"
+                className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                 placeholder="ชื่อพ่อ"
+                aria-label="ชื่อพ่อกระบือ"
+                aria-required="true"
                 required
                 disabled={searching || isLoading}
                 {...register("fatherName", { required: true })}
@@ -397,8 +423,10 @@ const FormV3 = ({
             <div className="form-control">
               <input
                 type="text"
-                className="input input-sm input-bordered text-black"
+                className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                 placeholder="ชื่อแม่"
+                aria-label="ชื่อแม่กระบือ"
+                aria-required="true"
                 required
                 disabled={searching || isLoading}
                 {...register("motherName", { required: true })}
@@ -466,117 +494,134 @@ const FormV3 = ({
           <div className="form-group">
             <label className="label label-text">เงื่อนไชข้อตกลง</label>
             <div className="grid grid-cols-1 gap-2">
-              <div className="form-control">
-                <label className="label label-text">
+              <fieldset className="form-control">
+                <legend className="label label-text">
                   1. หากกระบือของท่านยังไม่มีการฝังไมโครชิป
                   จะต้องดำเนินการฝังหน้างาน ตัวละ 500 บาท
-                </label>
+                </legend>
                 <div className="grid grid-cols-2 place-items-center gap-2">
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       className="radio"
                       value="y"
+                      id="accept1-yes"
+                      aria-label="ยินยอมข้อ 1"
                       {...register("accept1", { required: true })}
                     />
-                    <span className="text-white">ยินยอม</span>
+                    <label htmlFor="accept1-yes" className="text-white">ยินยอม</label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       className="radio"
                       value="n"
+                      id="accept1-no"
+                      aria-label="ไม่ยินยอมข้อ 1"
                       {...register("accept1", { required: true })}
                     />
-                    <span className="text-white">ไม่ยินยอม</span>
+                    <label htmlFor="accept1-no" className="text-white">ไม่ยินยอม</label>
                   </div>
                 </div>
-              </div>
-              <div className="form-control">
-                <label className="label label-text">
+              </fieldset>
+              <fieldset className="form-control">
+                <legend className="label label-text">
                   2. กรณีแจ้งวันเดือนปีเกิดไม่ตรงตามความจริง
                   ทางกองประกวดขอสงวนสิทธิ์ในการริบรางวัลคืน
                   และประกาศผ่านสื่อของกองประกวด
-                </label>
+                </legend>
                 <div className="grid grid-cols-2 place-items-center gap-2">
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       className="radio"
                       value="y"
+                      id="accept2-yes"
+                      aria-label="ยินยอมข้อ 2"
                       {...register("accept2", { required: true })}
                     />
-                    <span className="text-white">ยินยอม</span>
+                    <label htmlFor="accept2-yes" className="text-white">ยินยอม</label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       className="radio"
                       value="n"
+                      id="accept2-no"
+                      aria-label="ไม่ยินยอมข้อ 2"
                       {...register("accept2", { required: true })}
                     />
-                    <span className="text-white">ไม่ยินยอม</span>
+                    <label htmlFor="accept2-no" className="text-white">ไม่ยินยอม</label>
                   </div>
                 </div>
-              </div>
-              <div className="form-control">
-                <label className="label label-text">
+              </fieldset>
+              <fieldset className="form-control">
+                <legend className="label label-text">
                   3. การเลือกรุ่นประกวด ให้นับอายุถึง{" "}
                   {`วันที่ ${thaiDate.date} ${thaiDate.thaiMonth}  พ.ศ. ​${thaiDate.thaiYear}`}
-                </label>
+                </legend>
                 <div className="grid grid-cols-2 place-items-center gap-2">
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       className="radio"
                       value="y"
+                      id="accept3-yes"
+                      aria-label="ยินยอมข้อ 3"
                       {...register("accept3", { required: true })}
                     />
-                    <span className="text-white">ยินยอม</span>
+                    <label htmlFor="accept3-yes" className="text-white">ยินยอม</label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       className="radio"
                       value="n"
+                      id="accept3-no"
+                      aria-label="ไม่ยินยอมข้อ 3"
                       {...register("accept3", { required: true })}
                     />
-                    <span className="text-white">ไม่ยินยอม</span>
+                    <label htmlFor="accept3-no" className="text-white">ไม่ยินยอม</label>
                   </div>
                 </div>
-              </div>
-              <div className="form-control">
-                <label className="label label-text">
+              </fieldset>
+              <fieldset className="form-control">
+                <legend className="label label-text">
                   4. กรณีเลือกรุ่นประกวดไม่ตรงทางกองประกวด
                   ขอสงวนสิทธิ์ในการรับรุ่น ณ จุดลงทะเบียน
-                </label>
+                </legend>
                 <div className="grid grid-cols-2 place-items-center gap-2">
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       className="radio"
                       value="y"
+                      id="accept4-yes"
+                      aria-label="ยินยอมข้อ 4"
                       {...register("accept4", { required: true })}
                     />
-                    <span className="text-white">ยินยอม</span>
+                    <label htmlFor="accept4-yes" className="text-white">ยินยอม</label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       className="radio"
                       value="n"
+                      id="accept4-no"
+                      aria-label="ไม่ยินยอมข้อ 4"
                       {...register("accept4", { required: true })}
                     />
-                    <span className="text-white">ไม่ยินยอม</span>
+                    <label htmlFor="accept4-no" className="text-white">ไม่ยินยอม</label>
                   </div>
                 </div>
-              </div>
+              </fieldset>
             </div>
           </div>
           <button
             disabled={isLoading}
             type="submit"
             className="btn btn-primary btn-sm my-2"
+            aria-label="ยืนยันการลงทะเบียนเข้าร่วมงาน"
           >
             {isLoading ? (isAdminMode ? "กำลังลงทะเบียน (Admin)" : "กำลังยืนยัน") : "ยืนยันการลงทะเบียน"}
           </button>

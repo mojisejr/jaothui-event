@@ -88,8 +88,8 @@ export default function RegisterApprovementDetail({
   if (!data || !userData) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-md border p-2">
-      <h2>ผลการอนุมัติ</h2>
+    <div className="flex flex-col items-center justify-center gap-2 rounded-md border p-2 max-w-full">
+      <h2 className="text-lg font-semibold">ผลการอนุมัติ</h2>
       <>
         {data.approvementResult == null ? (
           <div className="rounded-md bg-white p-2 font-bold text-blue-500">
@@ -109,29 +109,38 @@ export default function RegisterApprovementDetail({
           </div>
         )}
         {data.approvementResult == null ? (
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 w-full">
             {!approving ? (
               <div className="flex flex-col gap-2">
                 <div className="form-control">
                   <input
                     ref={commentRef}
                     type="text"
-                    className="input text-black"
+                    className="input text-gray-900 placeholder:text-gray-600 w-full min-h-[44px]"
                     placeholder="ถ้าไม่อนุมัติกรุณาใส่เหตุผล"
+                    aria-label="เหตุผลที่ไม่อนุมัติ"
                   />
                 </div>
-                <button onClick={handleApprovement} className="btn btn-primary">
+                <button 
+                  onClick={handleApprovement} 
+                  className="btn btn-primary min-h-[44px]"
+                  aria-label="อนุมัติคำขอ"
+                >
                   อนุมัติ
                 </button>
-                <button onClick={handleRejection} className="btn btn-error">
+                <button 
+                  onClick={handleRejection} 
+                  className="btn btn-error min-h-[44px]"
+                  aria-label="ไม่อนุมัติคำขอ"
+                >
                   ไม่อนุมัติ
                 </button>
               </div>
             ) : (
-              <>
+              <div className="flex flex-col items-center gap-2">
                 <div className="loading loading-spinner"></div>
                 <div className="text-white">กำลังยืนยัน...</div>
-              </>
+              </div>
             )}
           </div>
         ) : null}
