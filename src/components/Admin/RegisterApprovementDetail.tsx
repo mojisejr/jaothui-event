@@ -116,7 +116,7 @@ export default function RegisterApprovementDetail({
                   <input
                     ref={commentRef}
                     type="text"
-                    className="input text-gray-900 placeholder:text-gray-600 w-full min-h-[44px]"
+                    className="input text-base-content placeholder:text-base-300 w-full min-h-[44px]"
                     placeholder="ถ้าไม่อนุมัติกรุณาใส่เหตุผล"
                     aria-label="เหตุผลที่ไม่อนุมัติ"
                   />

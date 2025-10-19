@@ -99,7 +99,7 @@ const ThaiDatePicker: React.FC<ThaiDatePickerProps> = ({
         required={required}
         aria-label="วันที่"
         aria-required={required}
-        className="select select-sm select-bordered text-gray-900 disabled:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+        className="select select-sm select-bordered text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
       >
         <option value="">วัน</option>
         {days.map((d) => (
@@ -117,7 +117,7 @@ const ThaiDatePicker: React.FC<ThaiDatePickerProps> = ({
         required={required}
         aria-label="เดือน"
         aria-required={required}
-        className="select select-sm select-bordered text-gray-900 disabled:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+        className="select select-sm select-bordered text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
       >
         <option value="">เดือน</option>
         {THAI_MONTHS_FULL.map((month, index) => (
@@ -135,7 +135,7 @@ const ThaiDatePicker: React.FC<ThaiDatePickerProps> = ({
         required={required}
         aria-label="ปี พ.ศ."
         aria-required={required}
-        className="select select-sm select-bordered text-gray-900 disabled:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+        className="select select-sm select-bordered text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
       >
         <option value="">พ.ศ.</option>
         {beYears.map((year) => (
