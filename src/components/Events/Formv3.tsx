@@ -369,7 +369,7 @@ const FormV3 = ({
               </div>
               <div className="form-control">
                 <select
-                  className="select select-sm text-gray-900 disabled:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                   aria-label="สีกระบือ"
                   aria-required="true"
                   disabled={searching || isLoading}
@@ -382,7 +382,7 @@ const FormV3 = ({
               </div>
               <div className="form-control">
                 <select
-                  className="select select-sm text-gray-900 disabled:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                   aria-label="เพศกระบือ"
                   aria-required="true"
                   disabled={searching || isLoading}
