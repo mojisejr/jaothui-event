@@ -86,14 +86,20 @@ const ThaiDatePicker: React.FC<ThaiDatePickerProps> = ({
   const beYears = getBeYearRange(minYear, maxYear);
 
   return (
-    <div className={`grid grid-cols-3 gap-2 ${className}`}>
+    <div 
+      className={`grid grid-cols-3 gap-2 ${className}`}
+      role="group"
+      aria-label="วันเดือนปีเกิด"
+    >
       {/* Day selector */}
       <select
         value={day}
         onChange={handleDayChange}
         disabled={disabled}
         required={required}
-        className="select select-sm select-bordered text-black disabled:text-slate-300"
+        aria-label="วันที่"
+        aria-required={required}
+        className="select select-sm select-bordered text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
       >
         <option value="">วัน</option>
         {days.map((d) => (
@@ -109,7 +115,9 @@ const ThaiDatePicker: React.FC<ThaiDatePickerProps> = ({
         onChange={handleMonthChange}
         disabled={disabled}
         required={required}
-        className="select select-sm select-bordered text-black disabled:text-slate-300"
+        aria-label="เดือน"
+        aria-required={required}
+        className="select select-sm select-bordered text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
       >
         <option value="">เดือน</option>
         {THAI_MONTHS_FULL.map((month, index) => (
@@ -125,7 +133,9 @@ const ThaiDatePicker: React.FC<ThaiDatePickerProps> = ({
         onChange={handleYearChange}
         disabled={disabled}
         required={required}
-        className="select select-sm select-bordered text-black disabled:text-slate-300"
+        aria-label="ปี พ.ศ."
+        aria-required={required}
+        className="select select-sm select-bordered text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
       >
         <option value="">พ.ศ.</option>
         {beYears.map((year) => (
