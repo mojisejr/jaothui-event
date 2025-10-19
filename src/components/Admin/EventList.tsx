@@ -71,6 +71,27 @@ export default function EventList() {
     );
   }
 
+  const getRegistrationStatus = (event: any) => {
+    if (event.registrationActive === false) {
+      return "ปิดรับสมัคร";
+    }
+    
+    const now = new Date();
+    if (event.registrationStartAt && new Date(event.registrationStartAt) > now) {
+      return "ยังไม่เปิดรับสมัคร";
+    }
+    
+    if (event.registrationDeadline && new Date(event.registrationDeadline) < now) {
+      return "ปิดรับสมัคร";
+    }
+    
+    if (!event.registrationDeadline && event.deadline && new Date(event.deadline) < now) {
+      return "ปิดรับสมัคร";
+    }
+    
+    return "เปิดรับสมัคร";
+  };
+
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       {data.map((event) => (
