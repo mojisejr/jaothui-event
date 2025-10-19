@@ -251,7 +251,7 @@ const FormV3 = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="ชื่อ"
               aria-label="ชื่อ"
               aria-required="true"
@@ -263,7 +263,7 @@ const FormV3 = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="นามสกุล"
               aria-label="นามสกุล"
               aria-required="true"
@@ -275,7 +275,7 @@ const FormV3 = ({
           <div className="form-control">
             <input
               type="tel"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="เบอร์โทรติดต่อ"
               aria-label="เบอร์โทรติดต่อ"
               aria-required="true"
@@ -287,7 +287,7 @@ const FormV3 = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="ชื่อฟาร์ม"
               aria-label="ชื่อฟาร์ม"
               aria-required="true"
@@ -300,7 +300,7 @@ const FormV3 = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="ฟาร์มอยู่จังหวัด"
               aria-label="ฟาร์มอยู่จังหวัด"
               aria-required="true"
@@ -317,7 +317,7 @@ const FormV3 = ({
                 <div className="form-control">
                   <input
                     type="text"
-                    className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                    className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                     placeholder="เลขไมโครชิพ"
                     aria-label="เลขไมโครชิพ"
                     aria-describedby="microchip-help"
@@ -340,7 +340,7 @@ const FormV3 = ({
               <div className="form-control">
                 <input
                   type="text"
-                  className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                   placeholder="ชื่อกระบือ"
                   aria-label="ชื่อกระบือ"
                   aria-required="true"
@@ -369,7 +369,7 @@ const FormV3 = ({
               </div>
               <div className="form-control">
                 <select
-                  className="select select-sm text-gray-900 disabled:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                   aria-label="สีกระบือ"
                   aria-required="true"
                   disabled={searching || isLoading}
@@ -382,7 +382,7 @@ const FormV3 = ({
               </div>
               <div className="form-control">
                 <select
-                  className="select select-sm text-gray-900 disabled:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                   aria-label="เพศกระบือ"
                   aria-required="true"
                   disabled={searching || isLoading}
@@ -400,7 +400,7 @@ const FormV3 = ({
             <input
               type="text"
               placeholder="อายุกระบือ (เดือน)"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               aria-label="อายุกระบือ (เดือน)"
               aria-readonly="true"
               disabled={searching || isLoading}
@@ -411,7 +411,7 @@ const FormV3 = ({
             <div className="form-control">
               <input
                 type="text"
-                className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                 placeholder="ชื่อพ่อ"
                 aria-label="ชื่อพ่อกระบือ"
                 aria-required="true"
@@ -423,7 +423,7 @@ const FormV3 = ({
             <div className="form-control">
               <input
                 type="text"
-                className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                 placeholder="ชื่อแม่"
                 aria-label="ชื่อแม่กระบือ"
                 aria-required="true"

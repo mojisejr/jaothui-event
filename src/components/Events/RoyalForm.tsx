@@ -250,7 +250,7 @@ const RoyalForm = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="ชื่อ"
               aria-label="ชื่อ"
               aria-required="true"
@@ -264,7 +264,7 @@ const RoyalForm = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="นามสกุล"
               aria-label="นามสกุล"
               aria-required="true"
@@ -278,7 +278,7 @@ const RoyalForm = ({
           <div className="form-control">
             <input
               type="tel"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="เบอร์โทรติดต่อ"
               aria-label="เบอร์โทรติดต่อ"
               aria-required="true"
@@ -292,7 +292,7 @@ const RoyalForm = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="ชื่อฟาร์ม"
               aria-label="ชื่อฟาร์ม"
               aria-required="true"
@@ -313,7 +313,7 @@ const RoyalForm = ({
                 <input
                   type="text"
                   {...register("address", { required: true })}
-                  className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600"
+                  className="input input-sm input-bordered text-base-content placeholder:text-base-300"
                   placeholder="บ้านเลขที่"
                   aria-label="บ้านเลขที่"
                   aria-required="true"
@@ -326,7 +326,7 @@ const RoyalForm = ({
                 <select
                   defaultValue="0"
                   {...register("province", { required: true })}
-                  className="select select-bordered select-sm text-gray-900"
+                  className="select select-bordered select-sm text-base-content"
                   aria-label="จังหวัด"
                   aria-required="true"
                   onChange={(e) => setProvince(e.target.value)}
@@ -347,7 +347,7 @@ const RoyalForm = ({
                 <select
                   defaultValue="0"
                   {...register("amphoe", { required: true })}
-                  className="select select-bordered select-sm text-gray-900"
+                  className="select select-bordered select-sm text-base-content"
                   aria-label="อำเภอ"
                   aria-required="true"
                   onChange={(e) => setAmphoe(e.target.value)}
@@ -368,7 +368,7 @@ const RoyalForm = ({
                 <select
                   defaultValue="0"
                   {...register("district", { required: true })}
-                  className="select select-bordered select-sm text-gray-900"
+                  className="select select-bordered select-sm text-base-content"
                   aria-label="ตำบล"
                   aria-required="true"
                   required
@@ -390,7 +390,7 @@ const RoyalForm = ({
                 <input
                   type="number"
                   {...register("zipcode", { required: true })}
-                  className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600"
+                  className="input input-sm input-bordered text-base-content placeholder:text-base-300"
                   placeholder="รหัสไปรษณี"
                   aria-label="รหัสไปรษณี"
                   aria-required="true"
@@ -410,7 +410,7 @@ const RoyalForm = ({
                 <div className="form-control">
                   <input
                     type="text"
-                    className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                    className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                     placeholder="เลขไมโครชิพ"
                     aria-label="เลขไมโครชิพ"
                     aria-describedby="microchip-help-royal"
@@ -435,7 +435,7 @@ const RoyalForm = ({
               <div className="form-control">
                 <input
                   type="text"
-                  className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                   placeholder="ชื่อกระบือ"
                   aria-label="ชื่อกระบือ"
                   aria-required="true"
@@ -449,7 +449,7 @@ const RoyalForm = ({
                 <label className="label label-text">วันเดือนปีเกิดกระบือ</label>
                 <input
                   type="date"
-                  className="input input-sm input-bordered text-gray-900 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="input input-sm input-bordered text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                   aria-label="วันเดือนปีเกิดกระบือ"
                   aria-required="true"
                   disabled={searching || registering}
@@ -463,7 +463,7 @@ const RoyalForm = ({
               {/**buffaloColor */}
               <div className="form-control">
                 <select
-                  className="select select-sm text-gray-900 disabled:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                   aria-label="สีกระบือ"
                   aria-required="true"
                   disabled={searching || registering}
@@ -478,7 +478,7 @@ const RoyalForm = ({
               {/**buffaloSex */}
               <div className="form-control">
                 <select
-                  className="select select-sm text-gray-900 disabled:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
                   aria-label="เพศกระบือ"
                   aria-required="true"
                   disabled={searching || registering}
@@ -498,7 +498,7 @@ const RoyalForm = ({
             <input
               type="text"
               placeholder="อายุกระบือ (เดือน)"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               aria-label="อายุกระบือ (เดือน)"
               aria-readonly="true"
               disabled={searching || registering}
@@ -513,7 +513,7 @@ const RoyalForm = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="ชื่อพ่อ"
               aria-label="ชื่อพ่อกระบือ"
               aria-required="true"
@@ -527,7 +527,7 @@ const RoyalForm = ({
           <div className="form-control">
             <input
               type="text"
-              className="input input-sm input-bordered text-gray-900 placeholder:text-gray-600 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               placeholder="ชื่อแม่"
               aria-label="ชื่อแม่กระบือ"
               aria-required="true"
@@ -546,7 +546,7 @@ const RoyalForm = ({
               required
               {...register("competitionType", { required: true })}
               disabled={searching || registering}
-              className="select select-bordered select-sm text-black"
+              className="select select-bordered select-sm text-base-content"
             >
               <option value={undefined} disabled selected>
                 เลือก
@@ -582,7 +582,7 @@ const RoyalForm = ({
               <input
                 type="file"
                 {...register("buffaloImage", { required: true })}
-                className="file-input file-input-bordered file-input-sm mt-1 text-black"
+                className="file-input file-input-bordered file-input-sm mt-1 text-base-content placeholder:text-base-300"
                 required
               />
             </div>
@@ -593,7 +593,7 @@ const RoyalForm = ({
               <input
                 type="file"
                 {...register("frontImage", { required: true })}
-                className="file-input file-input-bordered file-input-sm text-black"
+                className="file-input file-input-bordered file-input-sm text-base-content placeholder:text-base-300"
                 required
               />
             </div>
@@ -604,7 +604,7 @@ const RoyalForm = ({
               <input
                 type="file"
                 {...register("sideImage", { required: true })}
-                className="file-input file-input-bordered file-input-sm text-black"
+                className="file-input file-input-bordered file-input-sm text-base-content placeholder:text-base-300"
                 required
               />
             </div>
@@ -615,7 +615,7 @@ const RoyalForm = ({
               <input
                 type="file"
                 {...register("backImage", { required: true })}
-                className="file-input file-input-bordered file-input-sm text-black"
+                className="file-input file-input-bordered file-input-sm text-base-content placeholder:text-base-300"
                 required
               />
             </div>
