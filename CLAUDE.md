@@ -318,6 +318,17 @@ You are instructed to focus **ONLY** on the task described in the assigned task.
 - **ALWAYS** create feature branches from staging
 - **ALWAYS** deploy to staging before production
 
+### CRITICAL WORKFLOW SAFETY
+
+**🚨 NEVER MERGE MAIN → STAGING**: See `docs/git-workflow.md`
+**🔍 STAGING SYNC VALIDATION**: See `docs/conflict-prevention.md`
+**🚨 EMERGENCY RECOVERY**: See `docs/conflict-prevention.md#recovery`
+
+**Key Rules**:
+- staging → main (ONLY direction)
+- feature → staging (integration)
+- NEVER main → staging (forbidden)
+
 ---
 
 ## 🌿 Enhanced Workflow Implementation
