@@ -1,6 +1,7 @@
 import React from "react";
 import type { EventRegister } from "~/interfaces/EventRegister";
 import { formatBEDate } from "~/utils/be-calendar";
+import dayjs from "dayjs";
 
 interface HistoryCardProps {
   event: EventRegister;
@@ -17,8 +18,9 @@ interface HistoryCardProps {
  * - Microchip highlighting with green background
  */
 export function HistoryCard({ event }: HistoryCardProps) {
-  // Determine if event is active or past
-  const isActive = event.event.isActive;
+  // Determine if event is active or past based on current date
+  const today = dayjs(new Date());
+  const isActive = today.isSameOrBefore(event.event.endAt);
   const statusLabel = isActive ? "กำลังดำเนินการ" : "สิ้นสุดแล้ว";
 
   return (
