@@ -30,11 +30,12 @@ export default function MyEventPage() {
   const filteredEvents = useMemo(() => {
     if (!events) return [];
 
-    const today = dayjs(new Date());
+    const today = dayjs();
     
     return events.filter((event) => {
       // Status filter
-      const isActive = today.isSameOrBefore(event.event.endAt);
+      const eventEndDate = dayjs(event.event.endAt);
+      const isActive = today.isBefore(eventEndDate) || today.isSame(eventEndDate, 'day');
       if (statusFilter === "active" && !isActive) return false;
       if (statusFilter === "past" && isActive) return false;
 
@@ -96,7 +97,7 @@ export default function MyEventPage() {
                 onEventNameFilterChange={setEventNameFilter}
                 uniqueEvents={uniqueEvents}
                 resultCount={filteredEvents.length}
-                totalCount={events?.length || 0}
+                totalCount={events?.length ?? 0}
                 onClearFilters={handleClearFilters}
               />
 
