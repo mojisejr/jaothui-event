@@ -1771,16 +1771,6 @@
   resolved "https://registry.npmjs.org/@emotion/weak-memoize/-/weak-memoize-0.4.0.tgz"
   integrity sha512-snKqtPW01tN0ui7yu9rGv69aJXr/a/Ywvl11sUjNtEcRc+ng/mQriFL0wLXMef74iHa/EkftbDzU9F8iFbH+zg==
 
-"@esbuild/darwin-arm64@0.18.20":
-  version "0.18.20"
-  resolved "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.18.20.tgz"
-  integrity sha512-bxRHW5kHU38zS2lPTPOyuyTm+S+eobPUnTNkdJEfAddYgEcll4xkT8DB9d2008DtTbl7uJag2HuE5NZAZgnNEA==
-
-"@esbuild/darwin-arm64@0.21.5":
-  version "0.21.5"
-  resolved "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.21.5.tgz"
-  integrity sha512-DwqXqZyuk5AiWWf3UfLiRDJ5EDd49zg6O9wclZ7kUMv2WRFr4HKjXp/5t8JZ11QbQfUS6/cRCKGwYhtNAY88kQ==
-
 "@eslint-community/eslint-utils@^4.2.0", "@eslint-community/eslint-utils@^4.4.0":
   version "4.4.1"
   resolved "https://registry.npmjs.org/@eslint-community/eslint-utils/-/eslint-utils-4.4.1.tgz"
@@ -2541,10 +2531,15 @@
   dependencies:
     glob "10.3.10"
 
-"@next/swc-darwin-arm64@14.2.17":
+"@next/swc-linux-x64-gnu@14.2.17":
   version "14.2.17"
-  resolved "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-14.2.17.tgz"
-  integrity sha512-WiOf5nElPknrhRMTipXYTJcUz7+8IAjOYw3vXzj3BYRcVY0hRHKWgTgQ5439EvzQyHEko77XK+yN9x9OJ0oOog==
+  resolved "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-14.2.17.tgz"
+  integrity sha512-aaQlpxUVb9RZ41adlTYVQ3xvYEfBPUC8+6rDgmQ/0l7SvK8S1YNJzPmDPX6a4t0jLtIoNk7j+nroS/pB4nx7vQ==
+
+"@next/swc-linux-x64-musl@14.2.17":
+  version "14.2.17"
+  resolved "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-14.2.17.tgz"
+  integrity sha512-HSyEiFaEY3ay5iATDqEup5WAfrhMATNJm8dYx3ZxL+e9eKv10XKZCwtZByDoLST7CyBmyDz+OFJL1wigyXeaoA==
 
 "@noble/curves@^1.4.0", "@noble/curves@^1.6.0", "@noble/curves@~1.6.0", "@noble/curves@1.6.0":
   version "1.6.0"
@@ -6924,8 +6919,6 @@ fs-constants@^1.0.0:
 
 fs-minipass@^2.0.0:
   version "2.1.0"
-  resolved "https://registry.npmjs.org/fs-minipass/-/fs-minipass-2.1.0.tgz"
-  integrity sha512-V/JgOLFCS+R6Vcq0slCuaeWEdNC3ouDlJMNIsacH2VtALiu9mV4LPrHc5cDl8k5aw6J8jwgWWpiTo5RYhmIzvg==
   dependencies:
     minipass "^3.0.0"
 
@@ -6940,11 +6933,6 @@ fs.realpath@^1.0.0:
   version "1.0.0"
   resolved "https://registry.npmjs.org/fs.realpath/-/fs.realpath-1.0.0.tgz"
   integrity sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==
-
-fsevents@~2.3.2, fsevents@2.3.3:
-  version "2.3.3"
-  resolved "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz"
-  integrity sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==
 
 ftp@~0.3.10:
   version "0.3.10"
@@ -8357,8 +8345,6 @@ make-dir@^3.0.0:
 
 make-fetch-happen@^13.0.0:
   version "13.0.1"
-  resolved "https://registry.npmjs.org/make-fetch-happen/-/make-fetch-happen-13.0.1.tgz"
-  integrity sha512-cKTUFc/rbKUd/9meOvgrpJ2WrNzymt6jfRDdwg5UCnVzv9dTpEj9JS5m3wtziXVCjluIXyL8pcaukYqezIzZQA==
   dependencies:
     "@npmcli/agent" "^2.0.0"
     cacache "^18.0.0"
@@ -8375,8 +8361,6 @@ make-fetch-happen@^13.0.0:
 
 make-fetch-happen@^13.0.1:
   version "13.0.1"
-  resolved "https://registry.npmjs.org/make-fetch-happen/-/make-fetch-happen-13.0.1.tgz"
-  integrity sha512-cKTUFc/rbKUd/9meOvgrpJ2WrNzymt6jfRDdwg5UCnVzv9dTpEj9JS5m3wtziXVCjluIXyL8pcaukYqezIzZQA==
   dependencies:
     "@npmcli/agent" "^2.0.0"
     cacache "^18.0.0"
@@ -8631,8 +8615,6 @@ minipass-sized@^1.0.3:
 
 minipass@^3.0.0:
   version "3.3.6"
-  resolved "https://registry.npmjs.org/minipass/-/minipass-3.3.6.tgz"
-  integrity sha512-DxiNidxSEK+tHG6zOIklvNOwm3hvCrbUrdtzY74U6HKTJxvIDfOUL5W5P2Ghd3DTkhhKPYGqeNUIh5qcM4YBfw==
   dependencies:
     yallist "^4.0.0"
 
@@ -8643,8 +8625,6 @@ minipass@^3.0.0:
 
 minipass@^5.0.0:
   version "5.0.0"
-  resolved "https://registry.npmjs.org/minipass/-/minipass-5.0.0.tgz"
-  integrity sha512-3FnjYuehv9k6ovOEbyOswadCDPX1piCfhV8ncmYtHOjuPwylVWsghTLo7rabjC3Rx5xD4HDx8Wm1xnMF7S5qFQ==
 
 minizlib@^2.1.1, minizlib@^2.1.2:
   version "2.1.2"
@@ -8838,8 +8818,6 @@ node-releases@^2.0.18:
 
 nopt@^7.0.0:
   version "7.2.1"
-  resolved "https://registry.npmjs.org/nopt/-/nopt-7.2.1.tgz"
-  integrity sha512-taM24ViiimT/XntxbPyJQzCG+p4EKOpgD3mxFwW38mGjVUrfERQOeY4EDHjdnptttfHuHQXFx+lTP08Q+mLa/w==
   dependencies:
     abbrev "^2.0.0"
 
@@ -9289,8 +9267,6 @@ p-map@^7.0.0, p-map@^7.0.1:
 
 p-map@^7.0.2:
   version "7.0.2"
-  resolved "https://registry.npmjs.org/p-map/-/p-map-7.0.2.tgz"
-  integrity sha512-z4cYYMMdKHzw4O5UkWJImbZynVIo0lSGTXc7bzB1e/rrDqkgGUNysK/o4bTr+0+xKvvLoTyGqYC4Fgljy9qe1Q==
 
 p-queue@^2.3.0:
   version "2.4.2"
@@ -11354,8 +11330,6 @@ tar@^7.0.1:
 
 tar@^7.4.3:
   version "7.4.3"
-  resolved "https://registry.npmjs.org/tar/-/tar-7.4.3.tgz"
-  integrity sha512-5S7Va8hKfV7W5U6g3aYxXmlPoZVAwUMy9AOKyF2fVuZa2UD3qZjg578OrLRt8PcNN1PleVaL/5/yYATNL0ICUw==
   dependencies:
     "@isaacs/fs-minipass" "^4.0.0"
     chownr "^3.0.0"
@@ -12076,8 +12050,6 @@ which@^2.0.1:
 
 which@^4.0.0:
   version "4.0.0"
-  resolved "https://registry.npmjs.org/which/-/which-4.0.0.tgz"
-  integrity sha512-GlaYyEb07DPxYCKhKzplCWBJtvxZcZMrL+4UkrTSJHHPyZU4mYYTv3qaOe77H7EODLSSopAUFAc6W8U4yqvscg==
   dependencies:
     isexe "^3.1.1"
 
