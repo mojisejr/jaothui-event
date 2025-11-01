@@ -39,8 +39,8 @@ export default function EventCard({
   const national = metadata != null ? metadata?.includes("national") : true;
   const inhouse = metadata != null ? metadata?.includes("inhouse") : true;
   
-  // Use registrationDeadline if available, otherwise fall back to event deadline
-  const effectiveDeadline = registrationDeadline ?? deadline;
+  // Use deadline (buffaloAgeDeadline) as first priority, fall back to registrationDeadline
+  const effectiveDeadline = deadline ?? registrationDeadline;
 
   return (
     <div className="event-card-container flex w-full max-w-[300px] flex-col items-center gap-2">

@@ -303,7 +303,7 @@ const RoyalForm = ({
           </div>
 
           {/**address */}
-          <div className="form-group text-black">
+          <div className="form-group text-base-content">
             <label className="label label-text font-semibold text-white">
               ที่อยู่
             </label>
