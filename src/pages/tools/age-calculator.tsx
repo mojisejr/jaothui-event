@@ -41,7 +41,7 @@ const AgeCalculator = () => {
             <label className="label label-text">วันเกิด</label>
             <input
               type="date"
-              className="input input-bordered input-primary text-black"
+              className="input input-bordered input-primary text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               required
               {...register("start", { required: true })}
             ></input>
@@ -50,7 +50,7 @@ const AgeCalculator = () => {
             <label className="label label-text">วันแข่งขัน</label>
             <input
               type="date"
-              className="input input-bordered input-primary text-black"
+              className="input input-bordered input-primary text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary"
               required
               {...register("end", { required: true })}
             ></input>
