@@ -2,7 +2,7 @@
 
 **Project Name**: Jaothui ID-Trace System
 
-**Repository**: https://github.com/mojisejr/jaothui-id-e
+**Repository**: https://github.com/mojisejr/jaothui-event
 **Author**: mojisejr
 
 **Description**: A mobile-first web application designed for Thai buffalo farmers to manage livestock through digital identification, activity tracking, and farm operations management with secure role-based access control.
@@ -14,7 +14,7 @@
 ### 🚨 FORBIDDEN ACTIONS (NEVER ALLOWED)
 
 - ❌ **NEVER merge PRs yourself** - Provide PR link and wait for user instructions
-- ❌ **NEVER work on main/staging branches** - Always use feature branches
+- ❌ **NEVER directly commit or push to `main` or `staging`.** Always create a feature branch from the latest `staging` and work there.
 - ❌ **NEVER delete critical files** (.env, .git/, node_modules/, package.json, lib/database/)
 - ❌ **NEVER commit sensitive data** (API keys, passwords, secrets) - Use environment variables
 - ❌ **NEVER skip 100% validation** (build, lint, test) - Must pass completely
@@ -23,7 +23,7 @@
 
 ### 📋 MANDATORY WORKFLOW RULES
 
-- ✅ **ALWAYS** sync main branch before any implementation: `git checkout main && git pull origin main`
+- ✅ **ALWAYS** sync `staging` branch before any implementation: `git checkout staging && git pull origin staging`
 - ✅ **ALWAYS** verify task issue exists: `#[issue-number]` before `=impl`
 - ✅ **ALWAYS** use feature branch naming: `feature/task-[issue-number]-[description]`
 - ✅ **ALWAYS** ensure 100% build success before commit: `npm run build`
@@ -387,7 +387,7 @@ All slash commands follow this structure:
 ### Project Structure
 
 ```
-jaothui-id-e/
+jaothui-event/
 ├── README.md                   # Project overview and quick start
 ├── docs/                       # Documentation and templates
 ├── src/                        # Next.js source code
