@@ -123,16 +123,6 @@ All workflow commands are now available as proper Claude Code slash commands (ma
 - **Validation**: Automatic checking of prerequisites and dependencies
 - **Help System**: All commands support help via detailed documentation
 
-### Command Structure
-
-All slash commands follow this structure:
-- **Usage**: Clear syntax and parameter description
-- **Examples**: Practical usage scenarios
-- **Implementation**: Step-by-step execution details
-- **Integration**: How commands work together
-- **Error Handling**: Common issues and solutions
-- **Files**: Related files and dependencies
-
 ### Template-Driven Workflow Process
 
 1. **Phase 1**: `/fcs [topic]` → Create initial context **GitHub Issue** (NEVER .md file)
@@ -369,8 +359,8 @@ All slash commands follow this structure:
 
 ---
 
-## 🏗️ Technical Architecture
 
+## 🏗️ Technical Architecture
 
 ### Core Stack
 
