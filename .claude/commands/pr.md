@@ -39,11 +39,11 @@ Pull Request Creation - Create Pull Request from feature branch to staging.
 ### Pre-PR Validations (100% Required)
 
 ```bash
-cargo build --release           # Build validation
-cargo clippy --all-targets --all-features  # Lint validation
-cargo fmt -- --check           # Format validation
-cargo check                    # Type check validation
-cargo test                     # Test validation (if applicable)
+npm run build           # Build validation
+npm run lint            # Lint validation
+npx prettier --check .  # Format validation
+npx tsc --noEmit        # Type check validation
+npm test                # Test validation (if applicable)
 ```
 
 ### PR Creation
@@ -89,10 +89,10 @@ This PR implements: **{task description}**
 
 ## Validation
 
-- ✅ Build validation: 100% PASS (`cargo build --release`)
-- ✅ Clippy validation: 100% PASS (`cargo clippy`)
-- ✅ Format validation: 100% PASS (`cargo fmt`)
-- ✅ Type check validation: 100% PASS (`cargo check`)
+- ✅ Build validation: 100% PASS (`npm run build`)
+- ✅ Lint validation: 100% PASS (`npm run lint`)
+- ✅ Format validation: 100% PASS (`npx prettier --check .`)
+- ✅ Type check validation: 100% PASS (`npx tsc --noEmit`)
 
 ## Test Plan
 

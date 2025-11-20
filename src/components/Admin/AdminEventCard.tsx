@@ -14,11 +14,13 @@ interface AdminEventCardProps {
     endAt?: string;
   };
   getRegistrationStatus: (event: any) => string;
+  isOpen?: boolean;
 }
 
 const AdminEventCard: React.FC<AdminEventCardProps> = ({
   event,
   getRegistrationStatus,
+  isOpen = true,
 }) => {
   const getBadgeVariant = (status: string) => {
     switch (status) {
@@ -58,8 +60,11 @@ const AdminEventCard: React.FC<AdminEventCardProps> = ({
 
   return (
     <div
-      className="card card-compact bg-base-200 shadow-lg transition-shadow hover:shadow-xl"
+      className={`card card-compact bg-base-200 shadow-lg transition-all duration-150 hover:shadow-xl ${
+        isOpen ? "" : "opacity-60 grayscale filter"
+      }`}
       role="article"
+      aria-hidden={false}
     >
       <div className="card-body p-4 md:p-6">
         <h2 className="card-title text-lg md:text-xl">{event.name}</h2>
@@ -85,7 +90,9 @@ const AdminEventCard: React.FC<AdminEventCardProps> = ({
         <div className="card-actions justify-end">
           <Link
             href={`/admin/event-manage/${event.eventId}`}
-            className="btn btn-primary btn-sm transition-transform hover:scale-105"
+            className={`btn btn-primary btn-sm transition-transform hover:scale-105 ${
+              isOpen ? "" : "opacity-80"
+            }`}
           >
             ดูรายละเอียด
           </Link>

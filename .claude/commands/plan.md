@@ -126,7 +126,7 @@ When creating a task issue:
 Uses `docs/TASK-ISSUE-TEMP.md` template which includes:
 - Task description and requirements
 - Execution mode assignment
-- 100% validation requirements (build, clippy, fmt)
+- 100% validation requirements (build, lint, format)
 - Implementation workflow steps
 - Quality standards checklist
 

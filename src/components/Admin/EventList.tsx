@@ -7,6 +7,27 @@ export default function EventList() {
 
   console.log(data);
 
+  // Make a local sorted copy so UI shows newest events first.
+  // Sort by: eventAt (start date) -> registrationStartAt -> registrationDeadline
+  const getEventTimestamp = (event: any) => {
+    const tryDates = [event.eventAt, event.registrationStartAt, event.registrationDeadline, event.deadline];
+    for (const d of tryDates) {
+      if (d) {
+        const t = Date.parse(d);
+        if (!Number.isNaN(t)) return t;
+      }
+    }
+    return 0;
+  };
+
+  const sortedEvents = data && Array.isArray(data) ? [...data].sort((a: any, b: any) => {
+    return getEventTimestamp(b) - getEventTimestamp(a);
+  }) : data;
+
+  // Use `isActive` to determine visual emphasis. If an event is not active
+  // it should appear faded even if registration fields indicate 'open'.
+  // This keeps the admin view consistent with actual active state.
+
   const getRegistrationStatus = (event: any) => {
     if (event.registrationActive === false) {
       return "ปิดรับสมัคร";
@@ -73,13 +94,18 @@ export default function EventList() {
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {data.map((event) => (
-        <AdminEventCard
-          key={event.eventId}
-          event={event}
-          getRegistrationStatus={getRegistrationStatus}
-        />
-      ))}
+      {(sortedEvents as any[]).map((event) => {
+        // emphasize only when event.isActive is true
+        const open = !!event.isActive;
+        return (
+          <AdminEventCard
+            key={event.eventId}
+            event={event}
+            isOpen={open}
+            getRegistrationStatus={getRegistrationStatus}
+          />
+        );
+      })}
     </div>
   );
 }
