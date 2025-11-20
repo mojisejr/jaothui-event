@@ -22,7 +22,7 @@ export function HistoryCard({ event }: HistoryCardProps) {
   const today = dayjs();
   const eventEndDate = dayjs(event.event.endAt);
   const isActive = today.isBefore(eventEndDate) || today.isSame(eventEndDate, 'day');
-  const statusLabel = isActive ? "กำลังดำเนินการ" : "สิ้นสุดแล้ว";
+  const statusLabel = isActive ? "การสมัครสำเร็จ" : "จบงานแล้ว";
 
   return (
     <article
