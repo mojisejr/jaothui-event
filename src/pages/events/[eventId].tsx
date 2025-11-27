@@ -13,7 +13,8 @@ export default function RegisterForm() {
         <RoyalForm
           userId={profile ? profile.userId : ""}
           eventId={query.eventId! as string}
-          startAt={query.date as string}
+          _startAt={query.date as string}
+          deadline={query.deadline as string}
           name={query.name as string}
         />
       ) : (
