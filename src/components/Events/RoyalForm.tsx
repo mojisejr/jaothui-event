@@ -3,7 +3,6 @@ import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import { api } from "~/utils/api";
-import { royal } from "~/constants/competition-class";
 import { imagesUpload } from "~/server/services/image-upload.service";
 import {
   getProvinces,
@@ -633,30 +632,6 @@ const RoyalForm = ({
             {...register("competitionType", { required: true })}
           />
 
-          {/* Fallback manual selection (only show if auto-assignment fails) */}
-          {!isAutoAssigned && !typeLoading && (
-            <div className="form-control">
-              <label className="label label-text font-semibold">
-                รุ่นที่จะประกวด
-              </label>
-              <select
-                required
-                {...register("competitionType", { required: true })}
-                disabled={searching || registering}
-                className="select select-bordered select-sm text-base-content"
-              >
-                <option value={undefined} disabled selected>
-                  เลือก
-                </option>
-                {royal.map((m, index) => (
-                  <option key={index} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
           {/**
            * Image Uploading Group
            */}
@@ -1081,7 +1056,7 @@ const RoyalForm = ({
             </div>
           </div>
           <button
-            disabled={formSubmiting}
+            disabled={formSubmiting || !isAutoAssigned || typeLoading}
             type="submit"
             className="btn btn-primary btn-sm my-2"
           >
@@ -1090,6 +1065,10 @@ const RoyalForm = ({
                 <div className="loading loading-spinner"></div>
                 กำลังยืนยัน...
               </div>
+            ) : typeLoading ? (
+              "กำลังจัดรุ่น..."
+            ) : !isAutoAssigned ? (
+              "ไม่สามารถลงทะเบียนได้ (รุ่นไม่ถูกต้อง)"
             ) : (
               "ยืนยันการลงทะเบียน"
             )}
