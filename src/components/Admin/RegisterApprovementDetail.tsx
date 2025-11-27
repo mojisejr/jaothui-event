@@ -6,12 +6,14 @@ interface RegisterApprovementDetailProps {
   userId: string;
   eventRegisterId: string;
   targetId: string;
+  eventId: string;
 }
 
 export default function RegisterApprovementDetail({
   userId,
   eventRegisterId,
   targetId,
+  eventId,
 }: RegisterApprovementDetailProps) {
   const { replace } = useRouter();
   const commentRef = useRef<HTMLInputElement>(null);
@@ -19,6 +21,7 @@ export default function RegisterApprovementDetail({
   const { data, isLoading } = api.royal.getApprovement.useQuery({
     userId: userId,
     targetId: eventRegisterId,
+    eventId: eventId,
   });
 
   const { data: userData, isLoading: userLoading } =

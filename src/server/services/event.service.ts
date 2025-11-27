@@ -43,6 +43,7 @@ export async function getAllActiveEvents() {
     "name": title,
     "eventAt": startAt,
     "deadline": buffaloAgeDeadline,
+    "eventType": eventType,
     endAt,
     metadata,
     isActive,
