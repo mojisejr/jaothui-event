@@ -104,6 +104,20 @@ export const eventType = defineType({
     }),
 
     defineField({
+      title: "Event Type",
+      name: "eventType",
+      type: "string",
+      options: {
+        list: [
+          { title: "Normal Event", value: "normal" },
+          { title: "Royal Event", value: "royal" },
+        ],
+      },
+      initialValue: "normal",
+      description: "Select event type for routing to appropriate form",
+    }),
+
+    defineField({
       title: "Event Image",
       name: "image",
       type: "image",

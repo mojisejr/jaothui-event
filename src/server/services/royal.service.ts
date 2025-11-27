@@ -7,7 +7,8 @@ import { EventImages } from "~/interfaces/EventImage";
 import { EventApprovement } from "~/interfaces/EventApprovement";
 import { EventAddress } from "~/interfaces/EventAddress";
 
-export const royalEventId = "dc6428a0-814c-430c-878a-42e8365adbb0";
+// Note: Legacy hardcoded royalEventId has been removed.
+// All functions now accept eventId as a parameter for dynamic event support.
 
 export const createNewImageObjects = async (
   object: CreateNewImageObjectDTO,
@@ -156,9 +157,9 @@ export const createNewEventAddress = async (
   }
 };
 
-export const getAllRegistered = async () => {
+export const getAllRegistered = async (eventId: string) => {
   try {
-    const query = groq`*[_type == "eventRegister" && event._ref == "${royalEventId}"]{
+    const query = groq`*[_type == "eventRegister" && event._ref == "${eventId}"]{
       sex,
       microchip,
       ownerName,
@@ -182,9 +183,9 @@ export const getAllRegistered = async () => {
   }
 };
 
-export const getImages = async (registerEventId: string) => {
+export const getImages = async (eventId: string, registerEventId: string) => {
   try {
-    const query = groq`*[_type == "eventImage" && event._ref == "${royalEventId}" && eventRegister._ref == "${registerEventId}"]{
+    const query = groq`*[_type == "eventImage" && event._ref == "${eventId}" && eventRegister._ref == "${registerEventId}"]{
     _id,
     "imageArray": imageArray[]{
       "title": imageTitle,
@@ -199,9 +200,9 @@ export const getImages = async (registerEventId: string) => {
   }
 };
 
-export const getApprovement = async (userId: string) => {
+export const getApprovement = async (eventId: string, userId: string) => {
   try {
-    const query = groq`*[_type == "approvment" && eventRegister._ref == "${userId}" && event._ref == "${royalEventId}"]{
+    const query = groq`*[_type == "approvment" && eventRegister._ref == "${userId}" && event._ref == "${eventId}"]{
       _id,
       approvementResult
     }[0]`;
@@ -245,9 +246,9 @@ export const approve = async (
   }
 };
 
-export const getAddress = async (registerEventId: string) => {
+export const getAddress = async (eventId: string, registerEventId: string) => {
   try {
-    const query = groq`*[_type == "eventAddress" && event._ref == "${royalEventId}" && eventRegister._ref == "${registerEventId}"]{
+    const query = groq`*[_type == "eventAddress" && event._ref == "${eventId}" && eventRegister._ref == "${registerEventId}"]{
       address,
       district,
       amphoe,

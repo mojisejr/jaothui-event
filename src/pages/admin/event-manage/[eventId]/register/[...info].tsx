@@ -27,6 +27,7 @@ export default function RegisterDetailPage() {
 
   const registerId = info![0] ?? null;
   const targetId = info![1] ?? null;
+  const eventId = query.eventId as string;
 
   if (!targetId || !registerId) {
     return <div>ไม่พบข้อมูล</div>;
@@ -40,12 +41,13 @@ export default function RegisterDetailPage() {
     <div className="h-screen w-full overflow-y-scroll text-white">
       <div className="flex flex-col gap-2 p-2">
         <RegisterGeneralDetail userId={registerId} />
-        <RegisterAddressDetail userId={profile?.userId} targetId={registerId} />
-        <RegisterImagesDetail userId={profile?.userId} targetId={registerId} />
+        <RegisterAddressDetail userId={profile?.userId} targetId={registerId} eventId={eventId} />
+        <RegisterImagesDetail userId={profile?.userId} targetId={registerId} eventId={eventId} />
         <RegisterApprovementDetail
           userId={profile?.userId}
           targetId={targetId}
           eventRegisterId={registerId}
+          eventId={eventId}
         />
       </div>
     </div>

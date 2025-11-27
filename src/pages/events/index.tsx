@@ -40,6 +40,7 @@ export default function EventPage() {
                     registrationDeadline={e.registrationDeadline ? new Date(e.registrationDeadline) : undefined}
                     eventId={e.eventId}
                     metadata={e.metadata}
+                    eventType={e.eventType ?? "normal"}
                   />
                 ))}
               </div>
