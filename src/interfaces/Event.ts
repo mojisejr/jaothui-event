@@ -10,4 +10,5 @@ export interface Event {
   registrationStartAt?: string;
   registrationDeadline?: string;
   metadata: string[] | null;
+  eventType?: "normal" | "royal";
 }
