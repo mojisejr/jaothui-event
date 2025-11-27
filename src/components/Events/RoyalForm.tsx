@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import { api } from "~/utils/api";
-import { royal } from "~/constants/competition-class";
 import { imagesUpload } from "~/server/services/image-upload.service";
 import {
   getProvinces,
@@ -28,6 +27,7 @@ type RoyalFormTypes = {
   buffaloColor: "black" | "albino";
   buffaloSex: "male" | "female";
   buffaloAge: number;
+  competitionLevel: string;
   competitionType: string;
   farmName: string;
   fatherName: string;
@@ -54,12 +54,14 @@ const RoyalForm = ({
   userId,
   eventId,
   name,
-  startAt,
+  _startAt,
+  deadline,
 }: {
   userId: string;
   eventId: string;
   name: string;
-  startAt: string;
+  _startAt: string;
+  deadline: string;
 }) => {
   const [province, setProvince] = useState<string>();
   const [amphoe, setAmphoe] = useState<string>();
@@ -68,6 +70,12 @@ const RoyalForm = ({
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
   const [inputMicrochip, setInputMicrochip] = useState<string>();
   const [formSubmiting, setSubmiting] = useState<boolean>(false);
+  const [autoAssignedClass, setAutoAssignedClass] = useState<{
+    competitionLevel: string | null;
+    competitionType: string | null;
+    message: string;
+  } | null>(null);
+  const [isAutoAssigned, setIsAutoAssigned] = useState<boolean>(false);
 
   const {
     data: metadata,
@@ -83,6 +91,12 @@ const RoyalForm = ({
     isError: registerError,
     error: registerErrorObj,
   } = api.registerEvent.registerRoyalEvent.useMutation();
+
+  const { data: typesWithAutoAssignment, isLoading: typeLoading } =
+    api.event.getTypesWithAutoAssignment.useQuery({
+      eventId: eventId,
+      age: calculatedAge,
+    });
 
   const {
     register,
@@ -151,6 +165,7 @@ const RoyalForm = ({
     registerEvent({
       name: data.buffaloName,
       type: data.competitionType,
+      level: data.competitionLevel,
       ownerName: `${data.firstName} ${data.lastName}`,
       sex: data.buffaloSex,
       buffaloAge: calculatedAge,
@@ -178,16 +193,16 @@ const RoyalForm = ({
     });
   });
 
-  const handleSearchMetadata = () => {
+  const handleSearchMetadata = useCallback(() => {
     if (inputMicrochip == undefined) return;
     search({ microchip: inputMicrochip });
-  };
+  }, [inputMicrochip, search]);
 
   useEffect(() => {
     const subscription = watch(
       ({ buffaloBirthDate, microchip, buffaloColor }) => {
         const start = dayjs(buffaloBirthDate);
-        const end = dayjs(startAt).subtract(1, "day");
+        const end = dayjs(deadline);
         let diff = end.diff(start, "month");
         const remainderDays = end.diff(start.add(diff, "month"), "day");
 
@@ -206,7 +221,7 @@ const RoyalForm = ({
       },
     );
     return () => subscription.unsubscribe();
-  }, [watch]);
+  }, [watch, deadline]);
 
   useEffect(() => {
     if (metadata != undefined) {
@@ -234,12 +249,32 @@ const RoyalForm = ({
       void replace("/success");
     }
     if (registerError) {
-      alert(registerErrorObj.message);
+      alert(registerErrorObj?.message);
       setSubmiting(false);
       reset();
       return;
     }
-  }, [registered, registerError]);
+  }, [registered, registerError, registerErrorObj, reset, replace]);
+
+  // Auto-assignment effect
+  useEffect(() => {
+    if (typesWithAutoAssignment?.autoAssignment) {
+      const { success, competitionLevel, competitionType, message } =
+        typesWithAutoAssignment.autoAssignment;
+
+      if (success && competitionLevel && competitionType) {
+        // Auto-assign values
+        setValue("competitionLevel", competitionLevel);
+        setValue("competitionType", competitionType);
+        setAutoAssignedClass({ competitionLevel, competitionType, message });
+        setIsAutoAssigned(true);
+      } else {
+        // Clear auto-assignment if not successful
+        setAutoAssignedClass({ competitionLevel: null, competitionType: null, message });
+        setIsAutoAssigned(false);
+      }
+    }
+  }, [typesWithAutoAssignment, setValue]);
 
   return (
     <div className="flex w-full justify-center">
@@ -538,26 +573,64 @@ const RoyalForm = ({
           </div>
 
           {/**competitionType */}
-          <div className="form-control">
-            <label className="label label-text font-semibold">
-              รุ่นที่จะประกวด
-            </label>
-            <select
-              required
-              {...register("competitionType", { required: true })}
-              disabled={searching || registering}
-              className="select select-bordered select-sm text-base-content"
-            >
-              <option value={undefined} disabled selected>
-                เลือก
-              </option>
-              {royal.map((m, index) => (
-                <option key={index} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Auto-assignment display */}
+          {typeLoading ? (
+            <div className="rounded-md bg-blue-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700">กำลังคำนวณรุ่นที่เหมาะสม...</p>
+                </div>
+              </div>
+            </div>
+          ) : isAutoAssigned && autoAssignedClass?.competitionLevel ? (
+            <div className="rounded-md bg-green-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-semibold text-green-800">
+                    จัดรุ่นสำเร็จ!
+                  </h3>
+                  <div className="mt-2 text-sm text-green-700">
+                    <p className="font-medium">
+                      {autoAssignedClass.message}
+                    </p>
+                    <div className="mt-2 space-y-1">
+                      <p>
+                        <span className="font-semibold">ระดับ:</span> ระดับ
+                        {autoAssignedClass.competitionLevel}
+                      </p>
+                      <p>
+                        <span className="font-semibold">รุ่น:</span>{" "}
+                        {autoAssignedClass.competitionType}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : autoAssignedClass?.message && !isAutoAssigned ? (
+            <div className="rounded-md bg-yellow-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-semibold text-yellow-800">
+                    ไม่สามารถจัดรุ่นอัตโนมัติได้
+                  </h3>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <p>{autoAssignedClass.message}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Hidden inputs to hold auto-assigned values */}
+          <input
+            type="hidden"
+            {...register("competitionLevel", { required: true })}
+          />
+          <input
+            type="hidden"
+            {...register("competitionType", { required: true })}
+          />
 
           {/**
            * Image Uploading Group
@@ -983,7 +1056,7 @@ const RoyalForm = ({
             </div>
           </div>
           <button
-            disabled={formSubmiting}
+            disabled={formSubmiting || !isAutoAssigned || typeLoading}
             type="submit"
             className="btn btn-primary btn-sm my-2"
           >
@@ -992,6 +1065,10 @@ const RoyalForm = ({
                 <div className="loading loading-spinner"></div>
                 กำลังยืนยัน...
               </div>
+            ) : typeLoading ? (
+              "กำลังจัดรุ่น..."
+            ) : !isAutoAssigned ? (
+              "ไม่สามารถลงทะเบียนได้ (รุ่นไม่ถูกต้อง)"
             ) : (
               "ยืนยันการลงทะเบียน"
             )}
