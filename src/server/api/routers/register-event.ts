@@ -15,6 +15,7 @@ import {
   createNewEventAddress,
   createNewImageObjects,
 } from "~/server/services/royal.service";
+import { getEventById } from "~/server/services/event.service";
 import { client } from "../../../../sanity/lib/client";
 import { royalMessageParser } from "~/server/messaging/message-parser";
 import { notify } from "~/server/messaging/notification";
@@ -26,6 +27,7 @@ export const registerEventRouter = createTRPCRouter({
         eventId: z.string(),
         userId: z.string(),
         type: z.string(),
+        level: z.string().optional(),
         name: z.string(),
         sex: z.string(),
         color: z.string(),
@@ -55,12 +57,27 @@ export const registerEventRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       try {
+        // Server-side validation: Ensure this is a royal event
+        const event = await getEventById(input.eventId);
+        if (!event) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "ไม่พบข้อมูลกิจกรรม",
+          });
+        }
+        if (event.eventType !== "royal") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "กิจกรรมนี้ไม่ใช่ประเภท Royal ไม่สามารถลงทะเบียนผ่านฟอร์มนี้ได้",
+          });
+        }
+
         //1.create new eventRegister data
         const eventRegisterResult = await createNewRegister({
           eventId: input.eventId,
           userId: input.userId,
           type: input.type,
-          level: "ประเทศ",
+          level: input.level ?? "ประเทศ",
           name: input.name,
           sex: input.sex,
           buffaloAge: input.buffaloAge,

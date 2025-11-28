@@ -5,15 +5,18 @@ import Image from "next/image";
 interface RegisterImagesDetailProps {
   userId: string;
   targetId: string;
+  eventId: string;
 }
 
 export default function RegisterImagesDetail({
   userId,
   targetId,
+  eventId,
 }: RegisterImagesDetailProps) {
   const { data, isLoading } = api.royal.getImages.useQuery({
     userId: userId,
     targetId: targetId,
+    eventId: eventId,
   });
 
   if (isLoading) {

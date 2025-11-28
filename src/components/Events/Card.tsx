@@ -9,6 +9,7 @@ interface EventCardProps {
   deadline: Date;
   metadata: string[] | null;
   registrationDeadline?: Date;
+  eventType?: "normal" | "royal";
 }
 
 const Month = [
@@ -34,6 +35,7 @@ export default function EventCard({
   deadline,
   metadata,
   registrationDeadline,
+  eventType,
 }: EventCardProps) {
   const { loggedIn, login } = useLine();
   const national = metadata != null ? metadata?.includes("national") : true;
@@ -44,11 +46,16 @@ export default function EventCard({
 
   return (
     <div className="event-card-container flex w-full max-w-[300px] flex-col items-center gap-2">
-      <div className="event-image-container flex flex-col">
+      <div className="event-image-container relative flex flex-col">
+        {eventType === "royal" && (
+          <span className="badge badge-primary absolute left-2 top-2 gap-1 text-xs">
+            👑 Royal
+          </span>
+        )}
         <>
           {loggedIn ? (
             <Link
-              href={`/events/${eventId}?name=${title}&deadline=${dayjs(effectiveDeadline).format("MM/DD/YYYY")}&date=${dayjs(date).format("MM/DD/YYYY")}&national=${national}&inhouse=${inhouse}`}
+              href={`/events/${eventId}?name=${title}&deadline=${dayjs(effectiveDeadline).format("MM/DD/YYYY")}&date=${dayjs(date).format("MM/DD/YYYY")}&national=${national}&inhouse=${inhouse}&eventType=${eventType ?? "normal"}`}
             >
               <img src={imageUrl} />
             </Link>

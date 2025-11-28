@@ -1,27 +1,35 @@
 import EventCard from "../Events/Card";
 import { api } from "~/utils/api";
+import type { Event } from "~/interfaces/Event";
+
 export default function EventTab() {
-  const { data, isLoading } = api.event.getById.useQuery(
-    "dc6428a0-814c-430c-878a-42e8365adbb0",
-  );
+  // Fetch all events and filter for royal events
+  const { data: events, isLoading } = api.event.getAllActive.useQuery();
+  
+  // Filter only royal events
+  const royalEvents = events?.filter((e: Event) => e.eventType === "royal") ?? [];
 
   return (
     <div className="p-2 text-xl text-primary">
-      <div className="flex w-full justify-center">
+      <div className="flex w-full flex-wrap justify-center gap-4">
         {isLoading ? (
           <div className="text-white">Loading..</div>
+        ) : royalEvents.length > 0 ? (
+          royalEvents.map((event: Event) => (
+            <EventCard
+              key={event.eventId}
+              imageUrl={event.imageUrl!}
+              title={event.name!}
+              date={new Date(event.eventAt!)}
+              deadline={new Date(event.deadline!)}
+              eventId={event.eventId}
+              metadata={event.metadata ?? []}
+              eventType={event.eventType}
+            />
+          ))
         ) : (
-          <EventCard
-            key={0}
-            imageUrl={data?.imageUrl!}
-            title={data?.name!}
-            date={new Date(data?.eventAt!)}
-            deadline={new Date(data?.deadline!)}
-            eventId={"royal"}
-            metadata={[]}
-          />
+          <div className="text-white">ไม่พบรายการประกวดพระราชทาน</div>
         )}
-        {/* <button className="btn btn-primary">กำลังพัฒนา</button> */}
       </div>
     </div>
   );

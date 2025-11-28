@@ -13,29 +13,30 @@ import { notify } from "~/server/messaging/notification";
 
 export const royalAdminRoutes = createTRPCRouter({
   getAllRegistered: royalAdmin
-    .input(z.object({ userId: z.string() }))
-    .query(async () => {
-      return await getAllRegistered();
+    .input(z.object({ userId: z.string(), eventId: z.string() }))
+    .query(async ({ input }) => {
+      return await getAllRegistered(input.eventId);
     }),
   getAddress: royalAdmin
-    .input(z.object({ targetId: z.string(), userId: z.string() }))
+    .input(z.object({ targetId: z.string(), userId: z.string(), eventId: z.string() }))
     .query(async ({ input }) => {
-      return await getAddress(input.targetId);
+      return await getAddress(input.eventId, input.targetId);
     }),
   getImages: royalAdmin
     .input(
       z.object({
         targetId: z.string(),
         userId: z.string(),
+        eventId: z.string(),
       }),
     )
     .query(async ({ input }) => {
-      return await getImages(input.targetId);
+      return await getImages(input.eventId, input.targetId);
     }),
   getApprovement: royalAdmin
-    .input(z.object({ targetId: z.string(), userId: z.string() }))
+    .input(z.object({ targetId: z.string(), userId: z.string(), eventId: z.string() }))
     .query(async ({ input }) => {
-      return await getApprovement(input.targetId);
+      return await getApprovement(input.eventId, input.targetId);
     }),
   approve: royalAdmin
     .input(

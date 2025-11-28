@@ -4,15 +4,18 @@ import { api } from "~/utils/api";
 interface RegisterEventAddressDetailProps {
   userId: string;
   targetId: string;
+  eventId: string;
 }
 
 export default function RegisterAddressDetail({
   userId,
   targetId,
+  eventId,
 }: RegisterEventAddressDetailProps) {
   const { data, isLoading } = api.royal.getAddress.useQuery({
     userId: userId,
     targetId: targetId,
+    eventId: eventId,
   });
 
   if (isLoading) {
