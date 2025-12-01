@@ -923,8 +923,8 @@ const RoyalForm = ({
               <div className="form-control">
                 <label className="label label-text">
                   5. กระบือเผือก เข้ายืนยันตัวตนพร้อมกระบือ ที่สนามประกวดวันที่
-                  10 มกราคม 2568 ตั้งแต่ เวลา 05.30 น. - 10.00 น.
-                  และเริ่มการประกวด วันที่ 11 มกราคม 2568 เวลา 8.30 น.
+                  10 มกราคม 2569 ตั้งแต่ เวลา 05.30 น. - 10.00 น.
+                  และเริ่มการประกวด วันที่ 11 มกราคม 2569 เวลา 8.00 น.
                 </label>
                 <div className="grid grid-cols-2 place-items-center gap-2">
                   <div className="flex items-center gap-2">
@@ -950,8 +950,8 @@ const RoyalForm = ({
               <div className="form-control">
                 <label className="label label-text">
                   6. กระบือดำ เข้ายืนยันตัวตนพร้อมกระบือ ที่สนามประกวดวันที่ 11
-                  มกราคม 2568 ตั้งแต่ เวลา 05.30 น. - 10.00 น. และเริ่มการประกวด
-                  วันที่ 12 มกราคม 2568 เวลา 8.30 น.
+                  มกราคม 2569 ตั้งแต่ เวลา 05.30 น. - 10.00 น. และเริ่มการประกวด
+                  วันที่ 12 มกราคม 2569 เวลา 8.00 น.
                 </label>
                 <div className="grid grid-cols-2 place-items-center gap-2">
                   <div className="flex items-center gap-2">
