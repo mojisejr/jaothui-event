@@ -54,13 +54,15 @@
     "@typescript-eslint/parser": "^6.11.0",
     "autoprefixer": "^10.4.14",
     "daisyui": "^4.6.0",
+    "dotenv": "^17.2.3",
     "eslint": "^8.54.0",
     "eslint-config-next": "^14.0.4",
-      "postcss": "^8.4.31",
+    "postcss": "^8.4.31",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.3.5",
+    "ts-node": "^10.9.2",
     "typescript": "^5.1.6"
   },
   "ct3aMetadata": {

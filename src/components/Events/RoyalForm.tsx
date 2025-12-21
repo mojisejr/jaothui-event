@@ -212,7 +212,17 @@ const RoyalForm = ({
         if (buffaloColor == "black") {
           setCalculatedAge(diff);
         } else {
-          setCalculatedAge(diff - 1);
+          // FIX: Previously was (diff - 1) which subtracted a whole month.
+          // Now we only subtract 1 day from the start date before calculating the diff to match the "1 day" rule.
+          const albinoStart = start.subtract(1, "day");
+          let albinoDiff = end.diff(albinoStart, "month");
+          const albinoRemainderDays = end.diff(albinoStart.add(albinoDiff, "month"), "day");
+          
+          if (albinoRemainderDays > 0) {
+            albinoDiff += 1;
+          }
+          
+          setCalculatedAge(albinoDiff);
         }
 
         setInputMicrochip(microchip);
