@@ -33,6 +33,7 @@ type RoyalFormTypes = {
   fatherName: string;
   motherName: string;
   buffaloImage: FileList;
+  buffaloImage2: FileList;
   frontImage: FileList;
   sideImage: FileList;
   backImage: FileList;
@@ -110,6 +111,9 @@ const RoyalForm = ({
   const onSubmit = handleSubmit(async (data) => {
     setSubmiting(true);
     if (
+      data.d1Accept == "n" ||
+      data.d2Accept == "n" ||
+      data.d3Accept == "n" ||
       data.accept1 == "n" ||
       data.accept2 == "n" ||
       data.accept3 == "n" ||
@@ -124,15 +128,10 @@ const RoyalForm = ({
       return;
     }
 
-    if (data.d1Accept == "n" || data.d2Accept == "n" || data.d3Accept == "n") {
-      alert("ต้องยินยอมข้อตกลงทุกข้อก่อนยืนยันการลงทะเบียน");
-      setSubmiting(false);
-      return;
-    }
-
     /**Upload Image and get URLs */
     const imagesList = [
       data.buffaloImage[0],
+      data.buffaloImage2[0],
       data.frontImage[0],
       data.sideImage[0],
       data.backImage[0],
@@ -151,6 +150,7 @@ const RoyalForm = ({
       imagesList[1]!,
       imagesList[2]!,
       imagesList[3]!,
+      imagesList[4]!,
     );
 
     const uploadResults = await imagesUpload(userId, eventId, parsedImageData);
@@ -182,12 +182,10 @@ const RoyalForm = ({
       province: data.province,
       zipcode: data.zipcode,
       buffaloImage: uploadResults[0]?._id!,
-      frontImage: uploadResults[1]?._id!,
-      sideImage: uploadResults[2]?._id!,
-      backImage: uploadResults[3]?._id!,
-      // d1Image: uploadResults[4]?._id!,
-      // d2Image: uploadResults[5]?._id!,
-      // d3Image: uploadResults[6]?._id!,
+      buffaloImage2: uploadResults[1]?._id!,
+      frontImage: uploadResults[2]?._id!,
+      sideImage: uploadResults[3]?._id!,
+      backImage: uploadResults[4]?._id!,
       userId,
       eventId,
     });
@@ -638,7 +636,7 @@ const RoyalForm = ({
           <div className="form-group">
             {/**buffaloImage */}
             <div className="form-control">
-              <div className="label label-text">ภาพบัตรประจำตัวสัตว์</div>
+              <div className="label label-text">ภาพบัตรประจำตัวสัตว์ (ภาพที่ 1)</div>
               <div className="flex w-full flex-col items-center justify-center gap-1">
                 <figure className="max-w-64">
                   <Image
@@ -655,6 +653,17 @@ const RoyalForm = ({
               <input
                 type="file"
                 {...register("buffaloImage", { required: true })}
+                className="file-input file-input-bordered file-input-sm mt-1 text-base-content placeholder:text-base-300"
+                required
+              />
+            </div>
+
+            {/**buffaloImage2 */}
+            <div className="form-control">
+              <div className="label label-text">ภาพบัตรประจำตัวสัตว์ (ภาพที่ 2)</div>
+              <input
+                type="file"
+                {...register("buffaloImage2", { required: true })}
                 className="file-input file-input-bordered file-input-sm mt-1 text-base-content placeholder:text-base-300"
                 required
               />
@@ -693,7 +702,7 @@ const RoyalForm = ({
               />
             </div>
 
-            {/**d1Image */}
+            {/**d1Accept */}
             <div className="form-control">
               <label className="label label-text">
                 ท่านจะต้องนำเอกสารการตรวจโรคแท้งติดต่อมายื่นที่สนามประกวด ณ
@@ -720,17 +729,8 @@ const RoyalForm = ({
                 </div>
               </div>
             </div>
-            {/* <div className="form-control">
-              <div className="label label-text">เอกสารตรวจโรคแท้งติดต่อ</div>
-              <input
-                type="file"
-                {...register("d1Image", { required: true })}
-                className="file-input file-input-bordered file-input-sm text-black"
-                required
-              />
-            </div> */}
 
-            {/**d2Image */}
+            {/**d2Accept */}
             <div className="form-control">
               <label className="label label-text">
                 ท่านจะต้องนำเอกสารการตรวจโครโมโซมมายื่นที่สนามประกวด ณ วันประกวด
@@ -756,17 +756,8 @@ const RoyalForm = ({
                 </div>
               </div>
             </div>
-            {/* <div className="form-control">
-              <div className="label label-text">ใบรับรองการตรวจโครโมโซม</div>
-              <input
-                type="file"
-                {...register("d2Image", { required: true })}
-                className="file-input file-input-bordered file-input-sm text-black"
-                required
-              />
-            </div> */}
 
-            {/**d3Image */}
+            {/**d3Accept */}
             <div className="form-control">
               <label className="label label-text">
                 ท่านจะต้องนำเอกสารการรับวัคซีน FMD
@@ -793,17 +784,6 @@ const RoyalForm = ({
                 </div>
               </div>
             </div>
-            {/* <div className="form-control">
-              <div className="label label-text">
-                ใบรับรองการฉีดวัคซีน FMD และคอบวม
-              </div>
-              <input
-                type="file"
-                {...register("d3Image", { required: true })}
-                className="file-input file-input-bordered file-input-sm text-black"
-                required
-              />
-            </div> */}
           </div>
 
           <p className="font-bold text-red-600">

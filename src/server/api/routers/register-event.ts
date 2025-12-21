@@ -47,12 +47,10 @@ export const registerEventRouter = createTRPCRouter({
         zipcode: z.string(),
         //images urls
         buffaloImage: z.string(),
+        buffaloImage2: z.string(),
         frontImage: z.string(),
         sideImage: z.string(),
         backImage: z.string(),
-        // d1Image: z.string(),
-        // d2Image: z.string(),
-        // d3Image: z.string(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -102,12 +100,10 @@ export const registerEventRouter = createTRPCRouter({
           eventId: input.eventId,
           eventRegisterId: eventRegisterResult._id,
           buffaloImageId: input.buffaloImage,
+          buffaloImage2Id: input.buffaloImage2,
           frontImageId: input.frontImage,
           sideImageId: input.sideImage,
           backImageId: input.backImage,
-          // d1ImageId: input.d1Image,
-          // d2ImageId: input.d2Image,
-          // d3ImageId: input.d3Image,
         });
 
         if (!eventImageResult) {
