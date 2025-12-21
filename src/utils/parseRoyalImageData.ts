@@ -1,5 +1,6 @@
 export const parseRoyalImageData = (
   buffaloImage: File,
+  buffaloImage2: File,
   frontImage: File,
   sideImage: File,
   backImage: File,
@@ -8,6 +9,10 @@ export const parseRoyalImageData = (
     {
       title: "buffaloImage",
       image: buffaloImage,
+    },
+    {
+      title: "buffaloImage2",
+      image: buffaloImage2,
     },
     {
       title: "frontImage",

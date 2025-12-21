@@ -32,10 +32,18 @@ export const createNewImageObjects = async (
       imageArray: [
         {
           _key: object.buffaloImageId,
-          imageTitle: "ภาพประจำตัวสัตว์",
+          imageTitle: "ภาพประจำตัวสัตว์ (ภาพที่ 1)",
           imageAsset: {
             _type: "image",
             asset: { _type: "reference", _ref: object.buffaloImageId },
+          },
+        },
+        {
+          _key: object.buffaloImage2Id,
+          imageTitle: "ภาพประจำตัวสัตว์ (ภาพที่ 2)",
+          imageAsset: {
+            _type: "image",
+            asset: { _type: "reference", _ref: object.buffaloImage2Id },
           },
         },
         {
@@ -62,30 +70,6 @@ export const createNewImageObjects = async (
             asset: { _type: "reference", _ref: object.sideImageId },
           },
         },
-        // {
-        //   _key: object.d1ImageId,
-        //   imageTitle: "เอกสารตรวจโรคแท้งติดต่อ",
-        //   imageAsset: {
-        //     _type: "image",
-        //     asset: { _type: "reference", _ref: object.d1ImageId },
-        //   },
-        // },
-        // {
-        //   _key: object.d2ImageId,
-        //   imageTitle: "ใบรับรองการตรวจโครโมโซม",
-        //   imageAsset: {
-        //     _type: "image",
-        //     asset: { _type: "reference", _ref: object.d2ImageId },
-        //   },
-        // },
-        // {
-        //   _key: object.d3ImageId,
-        //   imageTitle: "ใบรับรองการฉีดวัคซีน FMD และคอบวม",
-        //   imageAsset: {
-        //     _type: "image",
-        //     asset: { _type: "reference", _ref: object.d3ImageId },
-        //   },
-        // },
       ],
     };
     const created = await client.create(document);
