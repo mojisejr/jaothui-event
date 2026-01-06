@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import type { EventRegister } from "~/interfaces/EventRegister";
 import { formatBEDate } from "~/utils/be-calendar";
 import dayjs from "dayjs";
@@ -21,8 +22,32 @@ export function HistoryCard({ event }: HistoryCardProps) {
   // Determine if event is active or past based on current date
   const today = dayjs();
   const eventEndDate = dayjs(event.event.endAt);
-  const isActive = today.isBefore(eventEndDate) || today.isSame(eventEndDate, 'day');
-  const statusLabel = isActive ? "การสมัครสำเร็จ" : "จบงานแล้ว";
+  const isActive = today.isBefore(eventEndDate) || today.isSame(eventEndDate, "day");
+  
+  let statusLabel = "";
+  let statusColor = "";
+
+  if (event.event.eventType === "royal") {
+    if (event.approvementResult === true) {
+      statusLabel = "อนุมัติแล้ว";
+      statusColor = "bg-green-500";
+    } else if (event.approvementResult === false) {
+      statusLabel = "ไม่ผ่านการอนุมัติ";
+      statusColor = "bg-red-500";
+    } else {
+      statusLabel = "รอการอนุมัติ";
+      statusColor = "bg-yellow-500 text-black";
+    }
+  } else {
+    statusLabel = isActive ? "การสมัครสำเร็จ" : "จบงานแล้ว";
+    statusColor = isActive ? "bg-event-active" : "bg-event-past";
+  }
+
+  // [SPECIAL-HACK-JAN2026]
+  const showReRegisterButton =
+    event.event.eventType === "royal" &&
+    event.approvementResult === false &&
+    event.event._id === "44da822e-7ec6-4e82-b530-a2ef06759f24";
 
   return (
     <article
@@ -118,16 +143,29 @@ export function HistoryCard({ event }: HistoryCardProps) {
         </div>
 
         {/* Status Badge */}
-        <div className="card-actions justify-end mt-4">
+        <div className="card-actions mt-4 flex flex-col items-end gap-2">
+          {/* [SPECIAL-HACK-JAN2026] Re-register Button */}
+          {showReRegisterButton && (
+            <Link
+              href={`/public/special-register/${event.event._id}`}
+              className="btn btn-error btn-outline btn-sm w-full sm:w-auto"
+            >
+              สมัครใหม่อีกครั้ง
+            </Link>
+          )}
+
           <div
-            className={`badge badge-lg ${
-              isActive ? "bg-event-active" : "bg-event-past"
-            } text-white border-none px-4 py-3`}
+            className={`badge badge-lg ${statusColor} border-none px-4 py-3 text-white`}
             role="status"
             aria-label={`Event status: ${statusLabel}`}
           >
             {statusLabel}
           </div>
+          {event.comment && event.approvementResult === false && (
+            <p className="w-full text-right text-xs text-red-300">
+              {event.comment}
+            </p>
+          )}
         </div>
       </div>
     </article>

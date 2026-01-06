@@ -18,11 +18,14 @@ export interface EventRegister {
     role: string;
   };
   event: {
+    _id: string;
     title: string;
     description: string;
     startAt: string;
     endAt: string;
     isActive: boolean;
+    eventType?: string;
   };
   approvementResult: boolean | null;
+  comment?: string;
 }

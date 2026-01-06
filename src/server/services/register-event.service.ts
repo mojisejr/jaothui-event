@@ -25,7 +25,9 @@ export async function getAllRegisteredBy(userId: string) {
   farmName,
   "user": user->{_id, role},
   buffaloAge,
-  "event": event->{ title, startAt, endAt, description, isActive },
+  "event": event->{ _id, title, startAt, endAt, description, isActive, eventType },
+  "approvementResult": *[_type=="approvment" && eventRegister._ref == ^._id][0].approvementResult,
+  "comment": *[_type=="approvment" && eventRegister._ref == ^._id][0].comment
     }`;
 
     const found = await client.fetch<EventRegister[]>(query);
