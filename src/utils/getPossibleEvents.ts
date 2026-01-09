@@ -57,3 +57,14 @@ export const getPossibleEvents = (age: number, data: string[]) => {
   });
   return event;
 };
+
+// Filter events that CANNOT be parsed by the standard age regex (Standard Age Format)
+export const getSpecialEvents = (data: string[]) => {
+  if (data.length <= 0 || data == null) return [];
+  
+  return data.filter(entry => {
+    // If it matches the standard format "X เดือน..." it is NOT special
+    const matches = entry.match(/(\d{1,2}) เดือน(?: ถึง (\d{1,2}) เดือน)?/);
+    return !matches;
+  });
+};

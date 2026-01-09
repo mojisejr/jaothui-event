@@ -62,6 +62,7 @@ const FormV3 = ({
     message: string;
   } | null>(null);
   const [isAutoAssigned, setIsAutoAssigned] = useState<boolean>(false);
+  const [isManualMode, setIsManualMode] = useState<boolean>(false);
 
   const {
     data: metadata,
@@ -187,6 +188,9 @@ const FormV3 = ({
 
         setCalculatedAge(diff);
         setInputMicrochip(microchip);
+        
+        // Reset manual mode whenever birthday changes (to try auto-assign first)
+        setIsManualMode(false);
       },
     );
     return () => subscription.unsubscribe();
@@ -225,6 +229,9 @@ const FormV3 = ({
 
   // Auto-assignment effect
   useEffect(() => {
+    // If Manual Mode is on, do NOT override with auto assignment
+    if (isManualMode) return;
+
     if (typesWithAutoAssignment?.autoAssignment) {
       const { success, competitionLevel, competitionType, message } =
         typesWithAutoAssignment.autoAssignment;
@@ -239,9 +246,10 @@ const FormV3 = ({
         // Clear auto-assignment if not successful
         setAutoAssignedClass({ competitionLevel: null, competitionType: null, message });
         setIsAutoAssigned(false);
+        // Do not force manual mode here, let the user see the "not found" message and decide
       }
     }
-  }, [typesWithAutoAssignment, setValue]);
+  }, [typesWithAutoAssignment, setValue, isManualMode]);
 
   return (
     <div className="flex justify-center">
@@ -442,9 +450,71 @@ const FormV3 = ({
                 </div>
               </div>
             </div>
+          ) : isManualMode ? (
+            <div className="rounded-md bg-orange-50 p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-orange-800">
+                  เลือกประเภทการสมัครด้วยตนเอง
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsManualMode(false)}
+                  className="text-xs text-orange-600 underline hover:text-orange-800"
+                >
+                  กลับไปใช้ระบบอัตโนมัติ
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div className="form-control">
+                  <label className="label label-text text-orange-900">
+                    ระดับการประกวด
+                  </label>
+                  <select
+                    className="select select-sm select-bordered w-full text-base-content"
+                    {...register("competitionLevel", { required: true })}
+                  >
+                    <option value="">กรุณาเลือกระดับแข่งขัน</option>
+                    <option value="จังหวัด">ระดับจังหวัด</option>
+                    <option value="ประเทศ">ระดับประเทศ</option>
+                  </select>
+                </div>
+                <div className="form-control">
+                  <label className="label label-text text-orange-900">
+                    รุ่นการประกวด (เฉพาะรุ่นพิเศษ)
+                  </label>
+                  <select
+                    className="select select-sm select-bordered w-full text-base-content"
+                    {...register("competitionType", { required: true })}
+                  >
+                    <option value="">กรุณาเลือกรุ่นแข่งขัน</option>
+                    {watch("competitionLevel") === "จังหวัด" && (
+                      <>
+                        {typesWithAutoAssignment?.specialProvinceTypes?.map((type, idx) => (
+                          <option key={`prov-sp-${idx}`} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                    {watch("competitionLevel") === "ประเทศ" && (
+                      <>
+                        {typesWithAutoAssignment?.specialNationalTypes?.map((type, idx) => (
+                          <option key={`nat-sp-${idx}`} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                   <label className="label label-text-alt text-xs text-orange-700">
+                    * แสดงเฉพาะรุ่นพิเศษที่ไม่สามารถคำนวณจากอายุได้ หากท่านต้องการสมัครรุ่นปกติ กรุณากลับไปใช้ระบบอัตโนมัติ
+                  </label>
+                </div>
+              </div>
+            </div>
           ) : isAutoAssigned && autoAssignedClass?.competitionLevel ? (
             <div className="rounded-md bg-green-50 p-4">
-              <div className="flex">
+              <div className="flex justify-between">
                 <div className="ml-3">
                   <h3 className="text-sm font-semibold text-green-800">
                     จัดรุ่นสำเร็จ!
@@ -465,32 +535,60 @@ const FormV3 = ({
                     </div>
                   </div>
                 </div>
+                {((typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) > 0 || (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) > 0) && (
+                   <div className="flex items-start">
+                     <button
+                       type="button"
+                       onClick={() => setIsManualMode(true)}
+                       className="rounded bg-white px-2 py-1 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                     >
+                       สมัครรุ่นพิเศษ?
+                     </button>
+                   </div>
+                )}
               </div>
             </div>
           ) : autoAssignedClass?.message && !isAutoAssigned ? (
             <div className="rounded-md bg-yellow-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-semibold text-yellow-800">
-                    ไม่สามารถจัดรุ่นอัตโนมัติได้
-                  </h3>
-                  <div className="mt-2 text-sm text-yellow-700">
-                    <p>{autoAssignedClass.message}</p>
+              <div className="flex flex-col gap-2">
+                <div className="flex">
+                  <div className="ml-3">
+                    <h3 className="text-sm font-semibold text-yellow-800">
+                      ไม่สามารถจัดรุ่นอัตโนมัติได้
+                    </h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <p>{autoAssignedClass.message}</p>
+                    </div>
                   </div>
                 </div>
+                {((typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) > 0 || (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) > 0) && (
+                   <div className="mt-2 flex justify-end">
+                     <button
+                       type="button"
+                       onClick={() => setIsManualMode(true)}
+                       className="rounded bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                     >
+                       เลือกรุ่นด้วยตนเอง / สมัครรุ่นพิเศษ
+                     </button>
+                   </div>
+                )}
               </div>
             </div>
           ) : null}
 
-          {/* Hidden inputs to hold auto-assigned values */}
-          <input
-            type="hidden"
-            {...register("competitionLevel", { required: true })}
-          />
-          <input
-            type="hidden"
-            {...register("competitionType", { required: true })}
-          />
+          {/* Hidden inputs to hold auto-assigned values when NOT in manual mode */}
+          {!isManualMode && (
+          <>
+            <input
+              type="hidden"
+              {...register("competitionLevel", { required: true })}
+            />
+            <input
+              type="hidden"
+              {...register("competitionType", { required: true })}
+            />
+          </>
+          )}
           <div className="form-group">
             <label className="label label-text">เงื่อนไชข้อตกลง</label>
             <div className="grid grid-cols-1 gap-2">
