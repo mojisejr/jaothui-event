@@ -10,6 +10,16 @@ export const parseAgeRanges = (data: string[]): AgeRange[] => {
   
   return data
     .map((entry, index) => {
+      // Ignore entries explicitly marked as special with [SP] tag
+      if (entry.startsWith('[SP]')) {
+        return {
+          level: index,
+          min: 99,
+          max: 99,
+          original: entry,
+        };
+      }
+
       const matches = entry.match(/(\d{1,2}) เดือน(?: ถึง (\d{1,2}) เดือน)?/);
 
       if (matches) {
@@ -59,11 +69,15 @@ export const getPossibleEvents = (age: number, data: string[]) => {
 };
 
 // Filter events that CANNOT be parsed by the standard age regex (Standard Age Format)
+// OR events that are explicitly marked with [SP] tag
 export const getSpecialEvents = (data: string[]) => {
   if (data.length <= 0 || data == null) return [];
   
   return data.filter(entry => {
-    // If it matches the standard format "X เดือน..." it is NOT special
+    // 1. Explicitly marked with [SP] tag
+    if (entry.startsWith('[SP]')) return true;
+
+    // 2. If it matches the standard format "X เดือน..." it is NOT special
     const matches = entry.match(/(\d{1,2}) เดือน(?: ถึง (\d{1,2}) เดือน)?/);
     return !matches;
   });
