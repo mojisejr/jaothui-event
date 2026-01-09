@@ -1,7 +1,7 @@
 import { client } from "../../../sanity/lib/client";
 import { groq } from "next-sanity";
 import type { Event } from "~/interfaces/Event";
-import { getPossibleEvents, parseAgeRanges, findExactAgeMatch } from "~/utils/getPossibleEvents";
+import { getPossibleEvents, parseAgeRanges, findExactAgeMatch, getSpecialEvents } from "~/utils/getPossibleEvents";
 
 export async function getEventById(eventId: string) {
   try {
@@ -275,9 +275,14 @@ export const getEventTypesWithAutoAssignment = async (eventId: string, age: numb
   const provinceFiltered = getPossibleEvents(age, provinceData);
   const nationalFiltered = getPossibleEvents(age, nationalData);
 
+  const specialProvinceTypes = getSpecialEvents(provinceData);
+  const specialNationalTypes = getSpecialEvents(nationalData);
+
   return {
     provinceTypes: provinceTypes ? provinceFiltered : [],
     nationalTypes: nationalTypes ? nationalFiltered : [],
+    specialProvinceTypes,
+    specialNationalTypes,
     autoAssignment,
   };
 };

@@ -62,6 +62,7 @@ const FormV3 = ({
     message: string;
   } | null>(null);
   const [isAutoAssigned, setIsAutoAssigned] = useState<boolean>(false);
+  const [isManualMode, setIsManualMode] = useState<boolean>(false);
 
   const {
     data: metadata,
@@ -106,6 +107,17 @@ const FormV3 = ({
     setValue,
   } = useForm<EventRegisterType>();
 
+  const handleToggleManualMode = useCallback((manual: boolean) => {
+    setIsManualMode(manual);
+    if (manual) {
+      // When entering manual mode, clear all auto-assignment states
+      setIsAutoAssigned(false);
+      setAutoAssignedClass(null);
+      setValue("competitionLevel", "");
+      setValue("competitionType", "");
+    }
+  }, [setValue]);
+
   const onSubmit = handleSubmit(async (data) => {
     if (
       data.accept1 == "n" ||
@@ -121,7 +133,7 @@ const FormV3 = ({
       // Use admin registration endpoint with 'birthday' field
       const adminRegistrationData = {
         name: data.buffaloName,
-        type: data.competitionType,
+        type: data.competitionType.replace("[SP]", "").trim(),
         level: data.competitionLevel,
         ownerName: `${data.firstName} ${data.lastName}`,
         sex: data.buffaloSex,
@@ -142,7 +154,7 @@ const FormV3 = ({
       // Use regular registration endpoint with 'birthdate' field
       const regularRegistrationData = {
         name: data.buffaloName,
-        type: data.competitionType,
+        type: data.competitionType.replace("[SP]", "").trim(),
         level: data.competitionLevel,
         ownerName: `${data.firstName} ${data.lastName}`,
         sex: data.buffaloSex,
@@ -172,9 +184,13 @@ const FormV3 = ({
   }, [setValue]);
 
   useEffect(() => {
-    const subscription = watch(
-      ({ buffaloBirthDate, microchip }) => {
-        // const diff = dayjs(startAt).diff(buffaloBirthDate, "month");
+    // Watch specific fields to prevent infinite loops when updating other fields
+    const subscription = watch((value, { name, type }) => {
+      // Only execute logic if the changed field is buffaloBirthDate or microchip
+      if (name === 'buffaloBirthDate' || name === 'microchip') {
+        const { buffaloBirthDate, microchip } = value;
+        if (!buffaloBirthDate) return;
+        
         const start = dayjs(buffaloBirthDate);
         // const end = dayjs(deadline).subtract(1, "day");
         const end = dayjs(deadline);
@@ -186,11 +202,17 @@ const FormV3 = ({
         }
 
         setCalculatedAge(diff);
-        setInputMicrochip(microchip);
-      },
-    );
+        setInputMicrochip(microchip!);
+        
+        // Reset manual mode whenever birthday changes (to try auto-assign first)
+        // But ONLY if it was triggered by user input, not programmatic set
+        if (type === 'change' || type === 'blur') {
+           setIsManualMode(false);
+        }
+      }
+    });
     return () => subscription.unsubscribe();
-  }, [deadline]);
+  }, [deadline, watch]);
 
   useEffect(() => {
     if (metadata != undefined) {
@@ -225,6 +247,9 @@ const FormV3 = ({
 
   // Auto-assignment effect
   useEffect(() => {
+    // If Manual Mode is on, do NOT override with auto assignment
+    if (isManualMode) return;
+
     if (typesWithAutoAssignment?.autoAssignment) {
       const { success, competitionLevel, competitionType, message } =
         typesWithAutoAssignment.autoAssignment;
@@ -239,9 +264,10 @@ const FormV3 = ({
         // Clear auto-assignment if not successful
         setAutoAssignedClass({ competitionLevel: null, competitionType: null, message });
         setIsAutoAssigned(false);
+        // Do not force manual mode here, let the user see the "not found" message and decide
       }
     }
-  }, [typesWithAutoAssignment, setValue]);
+  }, [typesWithAutoAssignment, setValue, isManualMode]);
 
   return (
     <div className="flex justify-center">
@@ -442,55 +468,167 @@ const FormV3 = ({
                 </div>
               </div>
             </div>
-          ) : isAutoAssigned && autoAssignedClass?.competitionLevel ? (
-            <div className="rounded-md bg-green-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-semibold text-green-800">
-                    จัดรุ่นสำเร็จ!
-                  </h3>
-                  <div className="mt-2 text-sm text-green-700">
-                    <p className="font-medium">
-                      {autoAssignedClass.message}
+          ) : isManualMode ? (
+            <div className="rounded-md bg-orange-50 p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between border-b border-orange-200 pb-2">
+                <h3 className="text-sm font-bold text-orange-800">
+                  สมัครรุ่นพิเศษ (ระบุข้อมูลด้วยตนเอง)
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => handleToggleManualMode(false)}
+                  className="text-xs font-medium text-orange-600 hover:text-orange-800"
+                >
+                  ✕ ยกเลิกและใช้รุ่นแนะนำ
+                </button>
+              </div>
+
+              {watch("competitionType") && watch("competitionLevel") ? (
+                /* Display Selected Manual Class */
+                <div className="flex flex-col gap-3">
+                  <div className="rounded bg-white p-3 ring-1 ring-orange-200">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-orange-500">
+                      รุ่นพิเศษที่เลือก:
                     </p>
-                    <div className="mt-2 space-y-1">
-                      <p>
-                        <span className="font-semibold">ระดับ:</span> ระดับ
-                        {autoAssignedClass.competitionLevel}
-                      </p>
-                      <p>
-                        <span className="font-semibold">รุ่น:</span>{" "}
-                        {autoAssignedClass.competitionType}
-                      </p>
-                    </div>
+                    <p className="mt-1 text-sm font-bold text-orange-900">
+                      {watch("competitionType")?.replace("[SP]", "").trim()}
+                    </p>
+                    <p className="text-xs text-orange-700">
+                      ({watch("competitionLevel")})
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue("competitionType", "");
+                    }}
+                    className="text-center text-xs text-orange-600 underline"
+                  >
+                    เปลี่ยนรุ่นพิเศษอื่น
+                  </button>
+                </div>
+              ) : (
+                /* Selection Box */
+                <div className="space-y-3">
+                  <div className="form-control">
+                    <label className="label label-text text-orange-900 pb-1">
+                      1. เลือกระดับการประกวด
+                    </label>
+                    <select
+                      className="select select-sm select-bordered w-full text-base-content border-orange-300 focus:border-orange-500 focus:ring-orange-500"
+                      {...register("competitionLevel", { required: true })}
+                    >
+                      <option value="">-- กรุณาเลือก --</option>
+                      <option value="จังหวัด">ระดับจังหวัด</option>
+                      <option value="ประเทศ">ระดับประเทศ</option>
+                    </select>
+                  </div>
+                  {watch("competitionLevel") && (
+                  <div className="form-control">
+                    <label className="label label-text text-orange-900 pb-1">
+                      2. เลือกรุ่นการประกวด
+                    </label>
+                    <select
+                      className="select select-sm select-bordered w-full text-base-content border-orange-300 focus:border-orange-500 focus:ring-orange-500"
+                      {...register("competitionType", { required: true })}
+                    >
+                      <option value="">-- กรุณาเลือกรุ่น --</option>
+                      {watch("competitionLevel") === "จังหวัด" && (
+                        <>
+                          {typesWithAutoAssignment?.specialProvinceTypes?.map((type, idx) => (
+                            <option key={`prov-sp-${idx}`} value={type}>
+                              {type.replace("[SP]", "").trim()}
+                            </option>
+                          ))}
+                        </>
+                      )}
+                      {watch("competitionLevel") === "ประเทศ" && (
+                        <>
+                          {typesWithAutoAssignment?.specialNationalTypes?.map((type, idx) => (
+                            <option key={`nat-sp-${idx}`} value={type}>
+                              {type.replace("[SP]", "").trim()}
+                            </option>
+                          ))}
+                        </>
+                      )}
+                    </select>
+                  </div>
+                  )}
+                  <p className="text-[10px] italic text-orange-700">
+                    * ระบบจะแสดงเฉพาะรุ่นพิเศษที่ไม่สามารถคำนวณจากอายุได้
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : isAutoAssigned && autoAssignedClass?.competitionLevel ? (
+            <div className="rounded-md bg-green-50 p-4 shadow-sm border border-green-100">
+              <div className="flex justify-between items-start">
+                <div className="ml-1">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <h3 className="text-sm font-bold text-green-800">
+                      ตรวจสอบรุ่นประกวดอัตโนมัติสำเร็จ
+                    </h3>
+                  </div>
+                  <div className="mt-3 text-sm text-green-700">
+                    <p className="font-semibold text-lg leading-tight mb-1">
+                      {autoAssignedClass.competitionType}
+                    </p>
+                    <p className="text-xs opacity-80">
+                      ระดับ{autoAssignedClass.competitionLevel} | คำนวณตามอายุ {calculatedAge} เดือน
+                    </p>
                   </div>
                 </div>
+                {((typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) > 0 || (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) > 0) && (
+                   <button
+                     type="button"
+                     onClick={() => handleToggleManualMode(true)}
+                     className="ml-4 rounded-full bg-white px-3 py-1 text-[10px] font-bold text-green-700 shadow-sm ring-1 ring-inset ring-green-300 hover:bg-green-100 transition-colors"
+                   >
+                     สมัครรุ่นพิเศษ?
+                   </button>
+                )}
               </div>
             </div>
           ) : autoAssignedClass?.message && !isAutoAssigned ? (
-            <div className="rounded-md bg-yellow-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-semibold text-yellow-800">
-                    ไม่สามารถจัดรุ่นอัตโนมัติได้
-                  </h3>
-                  <div className="mt-2 text-sm text-yellow-700">
-                    <p>{autoAssignedClass.message}</p>
+            <div className="rounded-md bg-yellow-50 p-4 border border-yellow-100">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start">
+                  <div className="ml-1">
+                    <h3 className="text-sm font-bold text-yellow-800">
+                      ไม่พบรุ่นที่ตรงตามอายุ ({calculatedAge} เดือน)
+                    </h3>
+                    <div className="mt-1 text-xs text-yellow-700">
+                      <p>ท่านสามารถลองแก้ไขวันเกิด หรือใช้ปุ่มด้านล่างเพื่อเลือกสมัครในรุ่นพิเศษด้วยตนเอง</p>
+                    </div>
                   </div>
                 </div>
+                {((typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) > 0 || (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) > 0) && (
+                   <button
+                     type="button"
+                     onClick={() => handleToggleManualMode(true)}
+                     className="w-full rounded bg-yellow-600 px-3 py-2 text-sm font-bold text-white shadow-sm hover:bg-yellow-700 transition-colors"
+                   >
+                     เลือกรุ่นแข่งขันด้วยตนเอง / รุ่นพิเศษ
+                   </button>
+                )}
               </div>
             </div>
           ) : null}
 
-          {/* Hidden inputs to hold auto-assigned values */}
-          <input
-            type="hidden"
-            {...register("competitionLevel", { required: true })}
-          />
-          <input
-            type="hidden"
-            {...register("competitionType", { required: true })}
-          />
+          {/* Hidden inputs to hold auto-assigned values when NOT in manual mode */}
+          {!isManualMode && (
+          <>
+            <input
+              type="hidden"
+              {...register("competitionLevel", { required: true })}
+            />
+            <input
+              type="hidden"
+              {...register("competitionType", { required: true })}
+            />
+          </>
+          )}
           <div className="form-group">
             <label className="label label-text">เงื่อนไชข้อตกลง</label>
             <div className="grid grid-cols-1 gap-2">
