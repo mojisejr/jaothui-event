@@ -55,7 +55,6 @@ const FormV3 = ({
   const thaiDate = parseThaiDate(new Date(deadline).getTime());
   const { replace } = useRouter();
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
-  const [inputMicrochip, setInputMicrochip] = useState<string>();
   const [autoAssignedClass, setAutoAssignedClass] = useState<{
     competitionLevel: string | null;
     competitionType: string | null;
@@ -105,6 +104,7 @@ const FormV3 = ({
     watch,
     reset,
     setValue,
+    getValues,
   } = useForm<EventRegisterType>();
 
   const handleToggleManualMode = useCallback((manual: boolean) => {
@@ -175,8 +175,12 @@ const FormV3 = ({
   });
 
   const handleSearchMetadata = () => {
-    if (inputMicrochip == undefined) return;
-    search({ microchip: inputMicrochip });
+    const microchipValue = getValues("microchip")?.trim();
+    if (!microchipValue) {
+      alert("กรุณากรอกเลขไมโครชิพก่อนค้นหา");
+      return;
+    }
+    search({ microchip: microchipValue });
   };
 
   const handleBirthDateChange = useCallback((isoDate: string) => {
@@ -188,7 +192,7 @@ const FormV3 = ({
     const subscription = watch((value, { name, type }) => {
       // Only execute logic if the changed field is buffaloBirthDate or microchip
       if (name === 'buffaloBirthDate' || name === 'microchip') {
-        const { buffaloBirthDate, microchip } = value;
+        const { buffaloBirthDate } = value;
         if (!buffaloBirthDate) return;
         
         const start = dayjs(buffaloBirthDate);
@@ -202,7 +206,6 @@ const FormV3 = ({
         }
 
         setCalculatedAge(diff);
-        setInputMicrochip(microchip!);
         
         // Reset manual mode whenever birthday changes (to try auto-assign first)
         // But ONLY if it was triggered by user input, not programmatic set
@@ -355,6 +358,7 @@ const FormV3 = ({
                   </label>
                 </div>
                 <button
+                  type="button"
                   disabled={searching || isLoading}
                   onClick={() => handleSearchMetadata()}
                   className="btn btn-primary btn-sm"
