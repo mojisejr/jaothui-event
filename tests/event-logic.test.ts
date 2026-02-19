@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { filterAdminActiveEvents } from "~/server/services/event-visibility.service";
 
 type EventForVisibility = {
   eventId: string;
@@ -9,20 +10,6 @@ type EventForVisibility = {
   deadline?: string;
   endAt?: string;
 };
-
-/**
- * Expected Admin visibility for Phase 3 implementation.
- * Rule: isActive + not passed event end date (+1 day grace for on-site registration flow).
- */
-function isVisibleForAdmin(event: EventForVisibility, now: Date): boolean {
-  if (!event.isActive) return false;
-  if (!event.endAt) return true;
-
-  const endAtWithGrace = new Date(event.endAt);
-  endAtWithGrace.setDate(endAtWithGrace.getDate() + 1);
-
-  return now <= endAtWithGrace;
-}
 
 /**
  * Existing public user visibility rule from getRegistrationOpenEvents.
@@ -71,7 +58,10 @@ describe("event visibility logic for admin registration journey", () => {
       endAt: "2026-02-25T00:00:00.000Z",
     };
 
-    expect(isVisibleForAdmin(normalEvent, now)).toBe(true);
+    const adminVisibleEvents = filterAdminActiveEvents([
+      normalEvent as unknown as Parameters<typeof filterAdminActiveEvents>[0][number],
+    ], now);
+    expect(adminVisibleEvents).toHaveLength(1);
     expect(isVisibleForUser(normalEvent, now)).toBe(true);
   });
 
@@ -88,7 +78,10 @@ describe("event visibility logic for admin registration journey", () => {
       endAt: "2026-02-25T00:00:00.000Z",
     };
 
-    expect(isVisibleForAdmin(postDeadlineEvent, now)).toBe(true);
+    const adminVisibleEvents = filterAdminActiveEvents([
+      postDeadlineEvent as unknown as Parameters<typeof filterAdminActiveEvents>[0][number],
+    ], now);
+    expect(adminVisibleEvents).toHaveLength(1);
     expect(isVisibleForUser(postDeadlineEvent, now)).toBe(false);
   });
 
@@ -104,7 +97,10 @@ describe("event visibility logic for admin registration journey", () => {
       endAt: "2026-02-26T00:00:00.000Z",
     };
 
-    expect(isVisibleForAdmin(endedEvent, now)).toBe(false);
+    const adminVisibleEvents = filterAdminActiveEvents([
+      endedEvent as unknown as Parameters<typeof filterAdminActiveEvents>[0][number],
+    ], now);
+    expect(adminVisibleEvents).toHaveLength(0);
     expect(isVisibleForUser(endedEvent, now)).toBe(false);
   });
 
@@ -120,7 +116,10 @@ describe("event visibility logic for admin registration journey", () => {
       endAt: "2026-02-25T00:00:00.000Z",
     };
 
-    expect(isVisibleForAdmin(inactiveEvent, now)).toBe(false);
+    const adminVisibleEvents = filterAdminActiveEvents([
+      inactiveEvent as unknown as Parameters<typeof filterAdminActiveEvents>[0][number],
+    ], now);
+    expect(adminVisibleEvents).toHaveLength(0);
     expect(isVisibleForUser(inactiveEvent, now)).toBe(false);
   });
 
@@ -137,7 +136,10 @@ describe("event visibility logic for admin registration journey", () => {
       endAt: "2026-02-27T00:00:00.000Z",
     };
 
-    expect(isVisibleForAdmin(preRegistrationEvent, now)).toBe(true);
+    const adminVisibleEvents = filterAdminActiveEvents([
+      preRegistrationEvent as unknown as Parameters<typeof filterAdminActiveEvents>[0][number],
+    ], now);
+    expect(adminVisibleEvents).toHaveLength(1);
     expect(isVisibleForUser(preRegistrationEvent, now)).toBe(false);
   });
 });
