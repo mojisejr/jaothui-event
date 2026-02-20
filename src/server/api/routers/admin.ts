@@ -5,13 +5,12 @@ import { TRPCError } from "@trpc/server";
 
 export const adminRouter = createTRPCRouter({
   /**
-   * Get events currently accepting registrations for admin dropdown
-   * Reuses existing getRegistrationOpenEvents functionality
+   * Get events visible to admin registration flow
+   * Uses admin visibility logic (allows post-deadline while event is still active)
    */
   getActiveEvents: publicProcedure.query(async () => {
-    // Import and reuse existing functionality
-    const { getRegistrationOpenEvents } = await import("~/server/services/event.service");
-    return await getRegistrationOpenEvents();
+    const { getAdminActiveEvents } = await import("~/server/services/event.service");
+    return await getAdminActiveEvents();
   }),
 
   /**
@@ -75,11 +74,11 @@ export const adminRouter = createTRPCRouter({
           }
         }
 
-        // Validate age range
-        if (input.buffaloAge < 1 || input.buffaloAge > 30) {
+        // Validate age range (months)
+        if (input.buffaloAge < 1 || input.buffaloAge > 360) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "อายุควายต้องอยู่ระหว่าง 1-30 ปี",
+            message: "อายุควายต้องอยู่ระหว่าง 1-360 เดือน",
           });
         }
 
