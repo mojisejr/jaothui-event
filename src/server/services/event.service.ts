@@ -2,6 +2,7 @@ import { client } from "../../../sanity/lib/client";
 import { groq } from "next-sanity";
 import type { Event } from "~/interfaces/Event";
 import { getPossibleEvents, parseAgeRanges, findExactAgeMatch, getSpecialEvents } from "~/utils/getPossibleEvents";
+import { filterAdminActiveEvents } from "~/server/services/event-visibility.service";
 
 export async function getEventById(eventId: string) {
   try {
@@ -122,6 +123,31 @@ export async function getRegistrationOpenEvents() {
     });
 
     return registrationOpenEvents;
+  } catch (error) {
+    console.log(error);
+    return [];
+  }
+}
+
+export async function getAdminActiveEvents() {
+  try {
+    const query = groq`*[_type == "event" && isActive == true] {
+    "eventId": _id,
+    "imageUrl": image.asset -> url,
+    "name": title,
+    "eventAt": startAt,
+    "deadline": buffaloAgeDeadline,
+    "eventType": eventType,
+    endAt,
+    metadata,
+    isActive,
+    registrationActive,
+    registrationStartAt,
+    registrationDeadline
+    }`;
+
+    const events = await client.fetch<Event[]>(query);
+    return filterAdminActiveEvents(events);
   } catch (error) {
     console.log(error);
     return [];
