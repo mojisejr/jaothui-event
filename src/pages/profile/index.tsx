@@ -10,6 +10,7 @@ import { useRouter } from "next/router";
 export default function ProfilePage() {
   const { replace } = useRouter();
   const { loggedIn, profile } = useLine();
+  const profileUserId = profile?.userId ?? "";
 
   const {
     data: user,
@@ -18,6 +19,11 @@ export default function ProfilePage() {
   } = api.user.getById.useQuery({
     userId: profile?.userId!,
   });
+
+  api.user.getProfileStats.useQuery(
+    { userId: profileUserId },
+    { enabled: Boolean(profileUserId) },
+  );
 
   useEffect(() => {
     if (!loggedIn) {
