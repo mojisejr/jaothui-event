@@ -1,10 +1,21 @@
 import { getUserByUserId } from "~/server/services/user.service";
+import { getProfileStatsByUserId } from "~/server/services/user.service";
 
 import { createNewUser } from "~/server/services/user.service";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import z from "zod";
 
 export const userRouter = createTRPCRouter({
+  getProfileStats: publicProcedure
+    .input(
+      z.object({
+        userId: z.string().min(1),
+      }),
+    )
+    .query(async ({ input }) => {
+      return await getProfileStatsByUserId(input.userId);
+    }),
+
   getById: publicProcedure
     .input(
       z.object({

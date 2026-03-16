@@ -3,6 +3,34 @@ import { db } from "../db";
 import { client } from "../../../sanity/lib/client";
 import { groq } from "next-sanity";
 import { User } from "@prisma/client";
+import {
+  calculateProfileStats as calculateProfileStatsFromRegisters,
+  type ProfileStatsRegister,
+} from "~/server/services/profile-stats.service";
+
+function sanitizeSanityLiteral(value: string) {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+export async function getProfileStatsByUserId(userId: string) {
+  try {
+    const safeUserId = sanitizeSanityLiteral(userId);
+    const query = groq`*[_type == "eventRegister" && user._ref == "${safeUserId}"]{
+      _id,
+      "event": event->{ _id, endAt, isActive }
+    }`;
+
+    const registers = await client.fetch<ProfileStatsRegister[]>(query);
+    return calculateProfileStatsFromRegisters(registers);
+  } catch (error) {
+    console.log(error);
+    return {
+      activeBuffaloCount: 0,
+      activeEventCount: 0,
+      evaluatedRegisterCount: 0,
+    };
+  }
+}
 
 export async function getUserByUserId(userId: string) {
   try {
