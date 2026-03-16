@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import ProfileMenu from "~/components/Profile/Menu";
+import ProfileHeader from "~/components/Profile/ProfileHeader";
 import RegisterForm from "~/components/Register/Form";
-import { Profile } from "~/components/Register/Profile";
 import Loading1 from "~/components/Shared/Loading1";
 import { useLine } from "~/context/lineContext";
 import { api } from "~/utils/api";
@@ -20,7 +20,8 @@ export default function ProfilePage() {
     userId: profile?.userId!,
   });
 
-  api.user.getProfileStats.useQuery(
+  const { data: profileStats, isLoading: profileStatsLoading } =
+    api.user.getProfileStats.useQuery(
     { userId: profileUserId },
     { enabled: Boolean(profileUserId) },
   );
@@ -37,11 +38,14 @@ export default function ProfilePage() {
   return (
     <div className="flex h-full min-h-screen w-full flex-col items-center justify-center">
       {profile ? (
-        <div className="grid-col-1 grid w-[220px] gap-10">
-          <Profile
+        <div className="grid-col-1 grid w-full max-w-md gap-8 px-4 py-6">
+          <ProfileHeader
             avatar={profile.pictureUrl!}
             name={profile.displayName!}
-            email={profile.email!}
+            email={profile.email}
+            activeBuffaloCount={profileStats?.activeBuffaloCount ?? 0}
+            activeEventCount={profileStats?.activeEventCount ?? 0}
+            isStatsLoading={profileStatsLoading}
           />
           {!isLoading ? (
             <div>
