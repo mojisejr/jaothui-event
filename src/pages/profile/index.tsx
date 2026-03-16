@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { motion } from "framer-motion";
 import ProfileMenu from "~/components/Profile/Menu";
 import ProfileHeader from "~/components/Profile/ProfileHeader";
 import RegisterForm from "~/components/Register/Form";
@@ -33,30 +34,45 @@ export default function ProfilePage() {
     if (!user) {
       refetch();
     }
-  }, [user]);
+  }, [loggedIn, refetch, replace, user]);
+
+  const reveal = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0 },
+  };
 
   return (
-    <div className="flex h-full min-h-screen w-full flex-col items-center justify-center">
+    <div className="flex h-full min-h-screen w-full flex-col items-center justify-center bg-base-100">
       {profile ? (
-        <div className="grid-col-1 grid w-full max-w-md gap-8 px-4 py-6">
-          <ProfileHeader
-            avatar={profile.pictureUrl!}
-            name={profile.displayName!}
-            email={profile.email}
-            activeBuffaloCount={profileStats?.activeBuffaloCount ?? 0}
-            activeEventCount={profileStats?.activeEventCount ?? 0}
-            isStatsLoading={profileStatsLoading}
-          />
-          {!isLoading ? (
-            <div>
-              {!user ? <RegisterForm profile={profile} /> : <ProfileMenu />}
-            </div>
-          ) : (
-            <div className="text-center">
-              <Loading1 />
-            </div>
-          )}
-        </div>
+        <motion.div
+          initial="hidden"
+          animate="show"
+          transition={{ staggerChildren: 0.08 }}
+          className="grid-col-1 grid w-full max-w-md gap-8 px-4 py-6"
+        >
+          <motion.div variants={reveal} transition={{ duration: 0.25 }}>
+            <ProfileHeader
+              avatar={profile.pictureUrl!}
+              name={profile.displayName!}
+              email={profile.email}
+              activeBuffaloCount={profileStats?.activeBuffaloCount ?? 0}
+              activeEventCount={profileStats?.activeEventCount ?? 0}
+              isStatsLoading={profileStatsLoading}
+            />
+          </motion.div>
+
+          <motion.div variants={reveal} transition={{ duration: 0.25, delay: 0.05 }}>
+            {!isLoading ? (
+              <div>
+                {!user ? <RegisterForm profile={profile} /> : <ProfileMenu />}
+              </div>
+            ) : (
+              <div className="text-center">
+                <Loading1 />
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
       ) : (
         <Loading1 />
       )}
