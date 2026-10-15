@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+import { useLine } from "~/context/lineContext";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
@@ -52,6 +53,8 @@ const FormV3 = ({
   onAdminSubmit?: (data: any) => void;
   isRegistering?: boolean;
 }) => {
+  const { liff } = useLine();
+  const operationId = useRef("");
   const thaiDate = parseThaiDate(new Date(deadline).getTime());
   const { replace } = useRouter();
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
@@ -88,9 +91,9 @@ const FormV3 = ({
   } = api.admin.registerAdminEvent.useMutation();
 
   // Determine current loading state
-  const isLoading = isAdminMode ? 
-    (adminRegistering || isRegistering) : 
-    registering;
+  const isLoading = isAdminMode
+    ? adminRegistering || isRegistering
+    : registering;
 
   const { data: typesWithAutoAssignment, isLoading: typeLoading } =
     api.event.getTypesWithAutoAssignment.useQuery({
@@ -98,27 +101,31 @@ const FormV3 = ({
       age: calculatedAge,
     });
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    reset,
-    setValue,
-    getValues,
-  } = useForm<EventRegisterType>();
+  const { register, handleSubmit, watch, reset, setValue, getValues } =
+    useForm<EventRegisterType>();
 
-  const handleToggleManualMode = useCallback((manual: boolean) => {
-    setIsManualMode(manual);
-    if (manual) {
-      // When entering manual mode, clear all auto-assignment states
-      setIsAutoAssigned(false);
-      setAutoAssignedClass(null);
-      setValue("competitionLevel", "");
-      setValue("competitionType", "");
-    }
-  }, [setValue]);
+  const handleToggleManualMode = useCallback(
+    (manual: boolean) => {
+      setIsManualMode(manual);
+      if (manual) {
+        // When entering manual mode, clear all auto-assignment states
+        setIsAutoAssigned(false);
+        setAutoAssignedClass(null);
+        setValue("competitionLevel", "");
+        setValue("competitionType", "");
+      }
+    },
+    [setValue],
+  );
 
   const onSubmit = handleSubmit(async (data) => {
+    operationId.current ||= crypto.randomUUID();
+    if (!liff?.getIDToken() && !liff?.getAccessToken()) {
+      alert(
+        "กรุณาเข้าสู่ระบบ LINE ใหม่เพื่อยืนยันตัวตน หากยังสมัครไม่ได้ กรุณาติดต่อเจ้าหน้าที่",
+      );
+      return;
+    }
     if (
       data.accept1 == "n" ||
       data.accept2 == "n" ||
@@ -132,6 +139,11 @@ const FormV3 = ({
     if (isAdminMode && onAdminSubmit) {
       // Use admin registration endpoint with 'birthday' field
       const adminRegistrationData = {
+        idToken: liff?.getIDToken() ?? undefined,
+        lineAccessToken: !liff?.getIDToken()
+          ? (liff?.getAccessToken() ?? undefined)
+          : undefined,
+        operationId: operationId.current,
         name: data.buffaloName,
         type: data.competitionType.replace("[SP]", "").trim(),
         level: data.competitionLevel,
@@ -153,6 +165,11 @@ const FormV3 = ({
     } else {
       // Use regular registration endpoint with 'birthdate' field
       const regularRegistrationData = {
+        idToken: liff?.getIDToken() ?? undefined,
+        lineAccessToken: !liff?.getIDToken()
+          ? (liff?.getAccessToken() ?? undefined)
+          : undefined,
+        operationId: operationId.current,
         name: data.buffaloName,
         type: data.competitionType.replace("[SP]", "").trim(),
         level: data.competitionLevel,
@@ -183,18 +200,21 @@ const FormV3 = ({
     search({ microchip: microchipValue });
   };
 
-  const handleBirthDateChange = useCallback((isoDate: string) => {
-    setValue("buffaloBirthDate", isoDate);
-  }, [setValue]);
+  const handleBirthDateChange = useCallback(
+    (isoDate: string) => {
+      setValue("buffaloBirthDate", isoDate);
+    },
+    [setValue],
+  );
 
   useEffect(() => {
     // Watch specific fields to prevent infinite loops when updating other fields
     const subscription = watch((value, { name, type }) => {
       // Only execute logic if the changed field is buffaloBirthDate or microchip
-      if (name === 'buffaloBirthDate' || name === 'microchip') {
+      if (name === "buffaloBirthDate" || name === "microchip") {
         const { buffaloBirthDate } = value;
         if (!buffaloBirthDate) return;
-        
+
         const start = dayjs(buffaloBirthDate);
         // const end = dayjs(deadline).subtract(1, "day");
         const end = dayjs(deadline);
@@ -206,11 +226,11 @@ const FormV3 = ({
         }
 
         setCalculatedAge(diff);
-        
+
         // Reset manual mode whenever birthday changes (to try auto-assign first)
         // But ONLY if it was triggered by user input, not programmatic set
-        if (type === 'change' || type === 'blur') {
-           setIsManualMode(false);
+        if (type === "change" || type === "blur") {
+          setIsManualMode(false);
         }
       }
     });
@@ -265,7 +285,11 @@ const FormV3 = ({
         setIsAutoAssigned(true);
       } else {
         // Clear auto-assignment if not successful
-        setAutoAssignedClass({ competitionLevel: null, competitionType: null, message });
+        setAutoAssignedClass({
+          competitionLevel: null,
+          competitionType: null,
+          message,
+        });
         setIsAutoAssigned(false);
         // Do not force manual mode here, let the user see the "not found" message and decide
       }
@@ -353,7 +377,10 @@ const FormV3 = ({
                     disabled={searching || isLoading}
                     {...register("microchip")}
                   />
-                  <label id="microchip-help" className="label label-text-alt text-xs text-primary">
+                  <label
+                    id="microchip-help"
+                    className="label label-text-alt text-xs text-primary"
+                  >
                     หากไม่มี microchip ให้ใส่ชื่อควายของคุณลงในช่อง microchip
                   </label>
                 </div>
@@ -399,7 +426,7 @@ const FormV3 = ({
               </div>
               <div className="form-control">
                 <select
-                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary disabled:text-base-300"
                   aria-label="สีกระบือ"
                   aria-required="true"
                   disabled={searching || isLoading}
@@ -412,7 +439,7 @@ const FormV3 = ({
               </div>
               <div className="form-control">
                 <select
-                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary disabled:text-base-300"
                   aria-label="เพศกระบือ"
                   aria-required="true"
                   disabled={searching || isLoading}
@@ -468,7 +495,9 @@ const FormV3 = ({
             <div className="rounded-md bg-blue-50 p-4">
               <div className="flex">
                 <div className="ml-3">
-                  <p className="text-sm text-blue-700">กำลังคำนวณรุ่นที่เหมาะสม...</p>
+                  <p className="text-sm text-blue-700">
+                    กำลังคำนวณรุ่นที่เหมาะสม...
+                  </p>
                 </div>
               </div>
             </div>
@@ -515,11 +544,11 @@ const FormV3 = ({
                 /* Selection Box */
                 <div className="space-y-3">
                   <div className="form-control">
-                    <label className="label label-text text-orange-900 pb-1">
+                    <label className="label label-text pb-1 text-orange-900">
                       1. เลือกระดับการประกวด
                     </label>
                     <select
-                      className="select select-sm select-bordered w-full text-base-content border-orange-300 focus:border-orange-500 focus:ring-orange-500"
+                      className="select select-bordered select-sm w-full border-orange-300 text-base-content focus:border-orange-500 focus:ring-orange-500"
                       {...register("competitionLevel", { required: true })}
                     >
                       <option value="">-- กรุณาเลือก --</option>
@@ -528,35 +557,39 @@ const FormV3 = ({
                     </select>
                   </div>
                   {watch("competitionLevel") && (
-                  <div className="form-control">
-                    <label className="label label-text text-orange-900 pb-1">
-                      2. เลือกรุ่นการประกวด
-                    </label>
-                    <select
-                      className="select select-sm select-bordered w-full text-base-content border-orange-300 focus:border-orange-500 focus:ring-orange-500"
-                      {...register("competitionType", { required: true })}
-                    >
-                      <option value="">-- กรุณาเลือกรุ่น --</option>
-                      {watch("competitionLevel") === "จังหวัด" && (
-                        <>
-                          {typesWithAutoAssignment?.specialProvinceTypes?.map((type, idx) => (
-                            <option key={`prov-sp-${idx}`} value={type}>
-                              {type.replace("[SP]", "").trim()}
-                            </option>
-                          ))}
-                        </>
-                      )}
-                      {watch("competitionLevel") === "ประเทศ" && (
-                        <>
-                          {typesWithAutoAssignment?.specialNationalTypes?.map((type, idx) => (
-                            <option key={`nat-sp-${idx}`} value={type}>
-                              {type.replace("[SP]", "").trim()}
-                            </option>
-                          ))}
-                        </>
-                      )}
-                    </select>
-                  </div>
+                    <div className="form-control">
+                      <label className="label label-text pb-1 text-orange-900">
+                        2. เลือกรุ่นการประกวด
+                      </label>
+                      <select
+                        className="select select-bordered select-sm w-full border-orange-300 text-base-content focus:border-orange-500 focus:ring-orange-500"
+                        {...register("competitionType", { required: true })}
+                      >
+                        <option value="">-- กรุณาเลือกรุ่น --</option>
+                        {watch("competitionLevel") === "จังหวัด" && (
+                          <>
+                            {typesWithAutoAssignment?.specialProvinceTypes?.map(
+                              (type, idx) => (
+                                <option key={`prov-sp-${idx}`} value={type}>
+                                  {type.replace("[SP]", "").trim()}
+                                </option>
+                              ),
+                            )}
+                          </>
+                        )}
+                        {watch("competitionLevel") === "ประเทศ" && (
+                          <>
+                            {typesWithAutoAssignment?.specialNationalTypes?.map(
+                              (type, idx) => (
+                                <option key={`nat-sp-${idx}`} value={type}>
+                                  {type.replace("[SP]", "").trim()}
+                                </option>
+                              ),
+                            )}
+                          </>
+                        )}
+                      </select>
+                    </div>
                   )}
                   <p className="text-[10px] italic text-orange-700">
                     * ระบบจะแสดงเฉพาะรุ่นพิเศษที่ไม่สามารถคำนวณจากอายุได้
@@ -565,37 +598,41 @@ const FormV3 = ({
               )}
             </div>
           ) : isAutoAssigned && autoAssignedClass?.competitionLevel ? (
-            <div className="rounded-md bg-green-50 p-4 shadow-sm border border-green-100">
-              <div className="flex justify-between items-start">
+            <div className="rounded-md border border-green-100 bg-green-50 p-4 shadow-sm">
+              <div className="flex items-start justify-between">
                 <div className="ml-1">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
                     <h3 className="text-sm font-bold text-green-800">
                       ตรวจสอบรุ่นประกวดอัตโนมัติสำเร็จ
                     </h3>
                   </div>
                   <div className="mt-3 text-sm text-green-700">
-                    <p className="font-semibold text-lg leading-tight mb-1">
+                    <p className="mb-1 text-lg font-semibold leading-tight">
                       {autoAssignedClass.competitionType}
                     </p>
                     <p className="text-xs opacity-80">
-                      ระดับ{autoAssignedClass.competitionLevel} | คำนวณตามอายุ {calculatedAge} เดือน
+                      ระดับ{autoAssignedClass.competitionLevel} | คำนวณตามอายุ{" "}
+                      {calculatedAge} เดือน
                     </p>
                   </div>
                 </div>
-                {((typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) > 0 || (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) > 0) && (
-                   <button
-                     type="button"
-                     onClick={() => handleToggleManualMode(true)}
-                     className="ml-4 rounded-full bg-white px-3 py-1 text-[10px] font-bold text-green-700 shadow-sm ring-1 ring-inset ring-green-300 hover:bg-green-100 transition-colors"
-                   >
-                     สมัครรุ่นพิเศษ?
-                   </button>
+                {((typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) >
+                  0 ||
+                  (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) >
+                    0) && (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleManualMode(true)}
+                    className="ml-4 rounded-full bg-white px-3 py-1 text-[10px] font-bold text-green-700 shadow-sm ring-1 ring-inset ring-green-300 transition-colors hover:bg-green-100"
+                  >
+                    สมัครรุ่นพิเศษ?
+                  </button>
                 )}
               </div>
             </div>
           ) : autoAssignedClass?.message && !isAutoAssigned ? (
-            <div className="rounded-md bg-yellow-50 p-4 border border-yellow-100">
+            <div className="rounded-md border border-yellow-100 bg-yellow-50 p-4">
               <div className="flex flex-col gap-3">
                 <div className="flex items-start">
                   <div className="ml-1">
@@ -603,18 +640,24 @@ const FormV3 = ({
                       ไม่พบรุ่นที่ตรงตามอายุ ({calculatedAge} เดือน)
                     </h3>
                     <div className="mt-1 text-xs text-yellow-700">
-                      <p>ท่านสามารถลองแก้ไขวันเกิด หรือใช้ปุ่มด้านล่างเพื่อเลือกสมัครในรุ่นพิเศษด้วยตนเอง</p>
+                      <p>
+                        ท่านสามารถลองแก้ไขวันเกิด
+                        หรือใช้ปุ่มด้านล่างเพื่อเลือกสมัครในรุ่นพิเศษด้วยตนเอง
+                      </p>
                     </div>
                   </div>
                 </div>
-                {((typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) > 0 || (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) > 0) && (
-                   <button
-                     type="button"
-                     onClick={() => handleToggleManualMode(true)}
-                     className="w-full rounded bg-yellow-600 px-3 py-2 text-sm font-bold text-white shadow-sm hover:bg-yellow-700 transition-colors"
-                   >
-                     เลือกรุ่นแข่งขันด้วยตนเอง / รุ่นพิเศษ
-                   </button>
+                {((typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) >
+                  0 ||
+                  (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) >
+                    0) && (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleManualMode(true)}
+                    className="w-full rounded bg-yellow-600 px-3 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-yellow-700"
+                  >
+                    เลือกรุ่นแข่งขันด้วยตนเอง / รุ่นพิเศษ
+                  </button>
                 )}
               </div>
             </div>
@@ -622,16 +665,16 @@ const FormV3 = ({
 
           {/* Hidden inputs to hold auto-assigned values when NOT in manual mode */}
           {!isManualMode && (
-          <>
-            <input
-              type="hidden"
-              {...register("competitionLevel", { required: true })}
-            />
-            <input
-              type="hidden"
-              {...register("competitionType", { required: true })}
-            />
-          </>
+            <>
+              <input
+                type="hidden"
+                {...register("competitionLevel", { required: true })}
+              />
+              <input
+                type="hidden"
+                {...register("competitionType", { required: true })}
+              />
+            </>
           )}
           <div className="form-group">
             <label className="label label-text">เงื่อนไชข้อตกลง</label>
@@ -651,7 +694,9 @@ const FormV3 = ({
                       aria-label="ยินยอมข้อ 1"
                       {...register("accept1", { required: true })}
                     />
-                    <label htmlFor="accept1-yes" className="text-white">ยินยอม</label>
+                    <label htmlFor="accept1-yes" className="text-white">
+                      ยินยอม
+                    </label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -662,7 +707,9 @@ const FormV3 = ({
                       aria-label="ไม่ยินยอมข้อ 1"
                       {...register("accept1", { required: true })}
                     />
-                    <label htmlFor="accept1-no" className="text-white">ไม่ยินยอม</label>
+                    <label htmlFor="accept1-no" className="text-white">
+                      ไม่ยินยอม
+                    </label>
                   </div>
                 </div>
               </fieldset>
@@ -682,7 +729,9 @@ const FormV3 = ({
                       aria-label="ยินยอมข้อ 2"
                       {...register("accept2", { required: true })}
                     />
-                    <label htmlFor="accept2-yes" className="text-white">ยินยอม</label>
+                    <label htmlFor="accept2-yes" className="text-white">
+                      ยินยอม
+                    </label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -693,7 +742,9 @@ const FormV3 = ({
                       aria-label="ไม่ยินยอมข้อ 2"
                       {...register("accept2", { required: true })}
                     />
-                    <label htmlFor="accept2-no" className="text-white">ไม่ยินยอม</label>
+                    <label htmlFor="accept2-no" className="text-white">
+                      ไม่ยินยอม
+                    </label>
                   </div>
                 </div>
               </fieldset>
@@ -712,7 +763,9 @@ const FormV3 = ({
                       aria-label="ยินยอมข้อ 3"
                       {...register("accept3", { required: true })}
                     />
-                    <label htmlFor="accept3-yes" className="text-white">ยินยอม</label>
+                    <label htmlFor="accept3-yes" className="text-white">
+                      ยินยอม
+                    </label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -723,7 +776,9 @@ const FormV3 = ({
                       aria-label="ไม่ยินยอมข้อ 3"
                       {...register("accept3", { required: true })}
                     />
-                    <label htmlFor="accept3-no" className="text-white">ไม่ยินยอม</label>
+                    <label htmlFor="accept3-no" className="text-white">
+                      ไม่ยินยอม
+                    </label>
                   </div>
                 </div>
               </fieldset>
@@ -742,7 +797,9 @@ const FormV3 = ({
                       aria-label="ยินยอมข้อ 4"
                       {...register("accept4", { required: true })}
                     />
-                    <label htmlFor="accept4-yes" className="text-white">ยินยอม</label>
+                    <label htmlFor="accept4-yes" className="text-white">
+                      ยินยอม
+                    </label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -753,7 +810,9 @@ const FormV3 = ({
                       aria-label="ไม่ยินยอมข้อ 4"
                       {...register("accept4", { required: true })}
                     />
-                    <label htmlFor="accept4-no" className="text-white">ไม่ยินยอม</label>
+                    <label htmlFor="accept4-no" className="text-white">
+                      ไม่ยินยอม
+                    </label>
                   </div>
                 </div>
               </fieldset>
@@ -765,7 +824,11 @@ const FormV3 = ({
             className="btn btn-primary btn-sm my-2"
             aria-label="ยืนยันการลงทะเบียนเข้าร่วมงาน"
           >
-            {isLoading ? (isAdminMode ? "กำลังลงทะเบียน (Admin)" : "กำลังยืนยัน") : "ยืนยันการลงทะเบียน"}
+            {isLoading
+              ? isAdminMode
+                ? "กำลังลงทะเบียน (Admin)"
+                : "กำลังยืนยัน"
+              : "ยืนยันการลงทะเบียน"}
           </button>
         </form>
       </div>

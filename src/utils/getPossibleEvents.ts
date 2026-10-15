@@ -20,7 +20,7 @@ export const parseAgeRanges = (data: string[]): AgeRange[] => {
         };
       }
 
-      const matches = entry.match(/(\d{1,2}) เดือน(?: ถึง (\d{1,2}) เดือน)?/);
+      const matches = /(\d{1,2}) เดือน(?: ถึง (\d{1,2}) เดือน)?/.exec(entry);
 
       if (matches) {
         return {
@@ -78,7 +78,7 @@ export const getSpecialEvents = (data: string[]) => {
     if (entry.startsWith('[SP]')) return true;
 
     // 2. If it matches the standard format "X เดือน..." it is NOT special
-    const matches = entry.match(/(\d{1,2}) เดือน(?: ถึง (\d{1,2}) เดือน)?/);
+    const matches = /(\d{1,2}) เดือน(?: ถึง (\d{1,2}) เดือน)?/.exec(entry);
     return !matches;
   });
 };

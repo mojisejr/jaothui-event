@@ -1,4 +1,4 @@
-import { client } from "../../../sanity/lib/client";
+import { client } from "~/server/sanity/client";
 import { groq } from "next-sanity";
 import { CanVote } from "~/interfaces/CanVote";
 import { CandidateScore } from "~/interfaces/CandidateScore";

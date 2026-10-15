@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+import { useLine } from "~/context/lineContext";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
@@ -64,6 +65,8 @@ const RoyalForm = ({
   _startAt: string;
   deadline: string;
 }) => {
+  const { liff } = useLine();
+  const operationId = useRef("");
   const [province, setProvince] = useState<string>();
   const [amphoe, setAmphoe] = useState<string>();
 
@@ -109,6 +112,13 @@ const RoyalForm = ({
   } = useForm<RoyalFormTypes>();
 
   const onSubmit = handleSubmit(async (data) => {
+    operationId.current ||= crypto.randomUUID();
+    if (!liff?.getIDToken() && !liff?.getAccessToken()) {
+      alert(
+        "กรุณาเข้าสู่ระบบ LINE ใหม่เพื่อยืนยันตัวตน หากยังสมัครไม่ได้ กรุณาติดต่อเจ้าหน้าที่",
+      );
+      return;
+    }
     setSubmiting(true);
     if (
       data.d1Accept == "n" ||
@@ -153,7 +163,20 @@ const RoyalForm = ({
       imagesList[4]!,
     );
 
-    const uploadResults = await imagesUpload(userId, eventId, parsedImageData);
+    let uploadResults: Array<{ _id: string }>;
+    try {
+      uploadResults = await imagesUpload(
+        userId,
+        eventId,
+        parsedImageData,
+        liff?.getIDToken() ?? "",
+        !liff?.getIDToken() ? (liff?.getAccessToken() ?? undefined) : undefined,
+      );
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ไม่สามารถอัพโหลดรูปได้");
+      setSubmiting(false);
+      return;
+    }
 
     if (!uploadResults) {
       alert("ไม่ามารถอัพโหลดรูปได้");
@@ -163,6 +186,11 @@ const RoyalForm = ({
 
     /**Upload Register Event */
     registerEvent({
+      idToken: liff?.getIDToken() ?? undefined,
+      lineAccessToken: !liff?.getIDToken()
+        ? (liff?.getAccessToken() ?? undefined)
+        : undefined,
+      operationId: operationId.current,
       name: data.buffaloName,
       type: data.competitionType,
       level: data.competitionLevel,
@@ -216,12 +244,15 @@ const RoyalForm = ({
           // Now we only subtract 1 day from the start date before calculating the diff to match the "1 day" rule.
           const albinoStart = start.subtract(1, "day");
           let albinoDiff = end.diff(albinoStart, "month");
-          const albinoRemainderDays = end.diff(albinoStart.add(albinoDiff, "month"), "day");
-          
+          const albinoRemainderDays = end.diff(
+            albinoStart.add(albinoDiff, "month"),
+            "day",
+          );
+
           if (albinoRemainderDays > 0) {
             albinoDiff += 1;
           }
-          
+
           setCalculatedAge(albinoDiff);
         }
 
@@ -278,7 +309,11 @@ const RoyalForm = ({
         setIsAutoAssigned(true);
       } else {
         // Clear auto-assignment if not successful
-        setAutoAssignedClass({ competitionLevel: null, competitionType: null, message });
+        setAutoAssignedClass({
+          competitionLevel: null,
+          competitionType: null,
+          message,
+        });
         setIsAutoAssigned(false);
       }
     }
@@ -460,7 +495,10 @@ const RoyalForm = ({
                     disabled={searching || registering}
                     {...register("microchip")}
                   />
-                  <label id="microchip-help-royal" className="label label-text-alt text-xs text-primary">
+                  <label
+                    id="microchip-help-royal"
+                    className="label label-text-alt text-xs text-primary"
+                  >
                     หากไม่มี microchip ให้ใส่ชื่อควายของคุณลงในช่อง microchip
                   </label>
                 </div>
@@ -506,7 +544,7 @@ const RoyalForm = ({
               {/**buffaloColor */}
               <div className="form-control">
                 <select
-                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary disabled:text-base-300"
                   aria-label="สีกระบือ"
                   aria-required="true"
                   disabled={searching || registering}
@@ -521,7 +559,7 @@ const RoyalForm = ({
               {/**buffaloSex */}
               <div className="form-control">
                 <select
-                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary disabled:text-base-300"
                   aria-label="เพศกระบือ"
                   aria-required="true"
                   disabled={searching || registering}
@@ -586,7 +624,9 @@ const RoyalForm = ({
             <div className="rounded-md bg-blue-50 p-4">
               <div className="flex">
                 <div className="ml-3">
-                  <p className="text-sm text-blue-700">กำลังคำนวณรุ่นที่เหมาะสม...</p>
+                  <p className="text-sm text-blue-700">
+                    กำลังคำนวณรุ่นที่เหมาะสม...
+                  </p>
                 </div>
               </div>
             </div>
@@ -598,9 +638,7 @@ const RoyalForm = ({
                     จัดรุ่นสำเร็จ!
                   </h3>
                   <div className="mt-2 text-sm text-green-700">
-                    <p className="font-medium">
-                      {autoAssignedClass.message}
-                    </p>
+                    <p className="font-medium">{autoAssignedClass.message}</p>
                     <div className="mt-2 space-y-1">
                       <p>
                         <span className="font-semibold">ระดับ:</span> ระดับ
@@ -646,7 +684,9 @@ const RoyalForm = ({
           <div className="form-group">
             {/**buffaloImage */}
             <div className="form-control">
-              <div className="label label-text">ภาพบัตรประจำตัวสัตว์ (ภาพที่ 1)</div>
+              <div className="label label-text">
+                ภาพบัตรประจำตัวสัตว์ (ภาพที่ 1)
+              </div>
               <div className="flex w-full flex-col items-center justify-center gap-1">
                 <figure className="max-w-64">
                   <Image
@@ -670,7 +710,9 @@ const RoyalForm = ({
 
             {/**buffaloImage2 */}
             <div className="form-control">
-              <div className="label label-text">ภาพบัตรประจำตัวสัตว์ (ภาพที่ 2)</div>
+              <div className="label label-text">
+                ภาพบัตรประจำตัวสัตว์ (ภาพที่ 2)
+              </div>
               <input
                 type="file"
                 {...register("buffaloImage2", { required: true })}
