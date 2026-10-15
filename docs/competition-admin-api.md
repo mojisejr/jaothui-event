@@ -86,6 +86,16 @@ supplied ID token never falls back to an access token; ambiguous credentials
 are rejected. Staff provenance is separate from applicant identity; onsite
 entrants need not have a LINE account.
 
+The notification state `sent` means LINE accepted the API request; it does not
+prove user delivery or reading. Before the first provider call, the service
+persists the server-resolved recipient/message and first-attempt server time.
+Retries keep that immutable request and UUID key, and stop at 24 hours rather
+than risk a duplicate after LINE's retry-key window expires. A new approval
+decision resets the snapshot and key; operators must check uncertain earlier
+delivery before deciding to send again. A provider409 is treated as accepted
+only when its response includes `x-line-accepted-request-id`. See the
+[official LINE retry contract](https://developers.line.biz/en/docs/messaging-api/retrying-api-request/).
+
 Legacy event IDs, references, nullable supplementary documents and history stay
 compatible. Events without the additive `competitionState` use the documented
 legacy flags/date fallbacks. New managed events require explicit valid dates

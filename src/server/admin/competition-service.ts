@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { type SanityClient } from "next-sanity";
 import { client } from "~/server/sanity/client";
 import {
@@ -809,6 +809,9 @@ export class CompetitionAdminService {
       competitionActor: "dashboard-shared",
       notificationState: entry.applicant?.lineId ? "pending" : "not-applicable",
       notificationRetryKey: operationId,
+      notificationFirstAttemptAt: null,
+      notificationPayload: null,
+      notificationAttemptId: null,
     };
     let tx = this.db
       .transaction()
@@ -840,7 +843,10 @@ export class CompetitionAdminService {
     const approval = entry.approval as Doc | undefined;
     if (!approval || typeof approval.approvementResult !== "boolean")
       return error(409, "NO_APPROVAL", "ยังไม่มีผลพิจารณา");
-    if (approval.notificationState === "sent" || !entry.applicant?.lineId)
+    if (
+      approval.notificationState === "sent" ||
+      (!entry.applicant?.lineId && !approval.notificationPayload)
+    )
       return entry;
     if (process.env.COMPETITION_LINE_NOTIFICATIONS_ENABLED !== "true")
       return error(
@@ -848,52 +854,109 @@ export class CompetitionAdminService {
         "NOTIFICATION_DISABLED",
         "ยังไม่เปิดการส่ง LINE สำหรับหลังบ้านใหม่",
       );
+    if (!z.string().uuid().safeParse(approval.notificationRetryKey).success)
+      return error(
+        409,
+        "NOTIFICATION_REVIEW_REQUIRED",
+        "ผลพิจารณาเดิมยังไม่มีรหัสส่ง LINE กรุณาบันทึกผลพิจารณาอีกครั้งก่อนส่ง",
+      );
+    const existingAttempt =
+      approval.notificationFirstAttemptAt != null ||
+      approval.notificationPayload != null;
+    const firstAttemptAt = existingAttempt
+      ? Date.parse(approval.notificationFirstAttemptAt)
+      : Date.now();
+    if (
+      !Number.isFinite(firstAttemptAt) ||
+      Date.now() - firstAttemptAt >= 24 * 60 * 60 * 1000 ||
+      firstAttemptAt > Date.now()
+    )
+      return error(
+        409,
+        "NOTIFICATION_REVIEW_REQUIRED",
+        "หมดช่วงส่ง LINE ซ้ำอย่างปลอดภัย กรุณาตรวจผลการส่งก่อนดำเนินการอีกครั้ง",
+      );
     // A stable LINE retry key deduplicates delivery if the network fails after acceptance.
     const { messagingApi } = await import("@line/bot-sdk");
     const { royalApprovementMessageParser } = await import(
       "~/server/messaging/message-parser"
     );
+    const payloadSchema = z.object({
+      to: z.string().min(1),
+      messages: z
+        .array(z.object({ type: z.literal("text"), text: z.string().min(1) }))
+        .length(1),
+    });
+    const payload = payloadSchema.safeParse(
+      existingAttempt
+        ? approval.notificationPayload
+        : {
+            to: entry.applicant.lineId,
+            messages: [
+              {
+                type: "text",
+                text: royalApprovementMessageParser({
+                  ownerName: entry.ownerName,
+                  buffaloName: entry.name,
+                  microchip: entry.microchip,
+                  comment: approval.comment,
+                  success: approval.approvementResult,
+                  docId: approval._id,
+                }),
+              },
+            ],
+          },
+    );
+    if (!payload.success)
+      return error(
+        409,
+        "NOTIFICATION_REVIEW_REQUIRED",
+        "ข้อมูลส่ง LINE เดิมไม่ครบ กรุณาตรวจผลการส่งก่อนดำเนินการอีกครั้ง",
+      );
+    // Persist the immutable request before contacting LINE; stale claims fail before any send.
+    const claimed = await this.db
+      .patch(approval._id)
+      .ifRevisionId(approval._rev)
+      .set({
+        notificationFirstAttemptAt: new Date(firstAttemptAt).toISOString(),
+        notificationPayload: payload.data,
+        notificationAttemptId: randomUUID(),
+      })
+      .commit({ visibility: "sync" });
+    let notificationState: "sent" | "failed" = "sent";
     try {
       const line = new messagingApi.MessagingApiClient({
         channelAccessToken: process.env.oa_token ?? "",
       });
-      await line.pushMessage(
-        {
-          to: entry.applicant.lineId,
-          messages: [
-            {
-              type: "text",
-              text: royalApprovementMessageParser({
-                ownerName: entry.ownerName,
-                buffaloName: entry.name,
-                microchip: entry.microchip,
-                comment: approval.comment,
-                success: approval.approvementResult,
-                docId: approval._id,
-              }),
-            },
-          ],
-        },
-        approval.notificationRetryKey,
-      );
-      await this.db
-        .patch(approval._id)
-        .ifRevisionId(approval._rev)
-        .set({
-          notificationState: "sent",
-          notificationUpdatedAt: new Date().toISOString(),
-        })
-        .commit({ visibility: "sync" });
-    } catch {
-      await this.db
-        .patch(approval._id)
-        .ifRevisionId(approval._rev)
-        .set({
-          notificationState: "failed",
-          notificationUpdatedAt: new Date().toISOString(),
-        })
-        .commit({ visibility: "sync" });
+      await line.pushMessage(payload.data, approval.notificationRetryKey);
+    } catch (cause) {
+      // SDK8 HTTPError retains Axios response headers in originalError.response.
+      // LINE409 acknowledges an accepted retry only with this response header.
+      const rejected = cause as {
+        statusCode?: number;
+        originalError?: {
+          response?: { status?: number; headers?: Record<string, unknown> };
+        };
+      } | null;
+      const acceptedId =
+        rejected?.originalError?.response?.headers?.[
+          "x-line-accepted-request-id"
+        ];
+      const acceptedRetry =
+        rejected?.statusCode === 409 &&
+        rejected.originalError?.response?.status === 409 &&
+        typeof acceptedId === "string" &&
+        acceptedId.trim().length > 0;
+      notificationState = acceptedRetry ? "sent" : "failed";
     }
+    await this.db
+      .patch(approval._id)
+      .ifRevisionId(claimed._rev)
+      .set({
+        notificationState,
+        notificationUpdatedAt: new Date().toISOString(),
+      })
+      .commit({ visibility: "sync" });
     return this.application(id, registrationId);
   }
 }

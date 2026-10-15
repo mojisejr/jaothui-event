@@ -456,6 +456,48 @@ describe("competition admin protected authority", () => {
       "ไม่พบใบสมัครในงานนี้",
     );
   });
+  it("resets the immutable notification attempt when a new approval decision is recorded", async () => {
+    const m = memory();
+    const approval = {
+      _id: "approval",
+      _rev: "approval-1",
+      _type: "approvment",
+      approvementResult: false,
+      notificationRetryKey: operation,
+      notificationFirstAttemptAt: "2026-10-15T00:00:00Z",
+      notificationPayload: {
+        to: "old-recipient",
+        messages: [{ type: "text", text: "old-decision" }],
+      },
+      notificationAttemptId: "old-attempt",
+      notificationState: "failed",
+    };
+    m.docs.set("approval", approval);
+    m.docs.set("entry", {
+      _id: "entry",
+      _rev: "entry-1",
+      _type: "eventRegister",
+      event: { _ref: "event" },
+      applicant: { lineId: "server-recipient" },
+      approval,
+    });
+    await m.service.approval(
+      "event",
+      "entry",
+      second,
+      "entry-1",
+      true,
+      "updated decision",
+    );
+    expect(m.docs.get("approval")).toMatchObject({
+      approvementResult: true,
+      notificationState: "pending",
+      notificationRetryKey: second,
+      notificationFirstAttemptAt: null,
+      notificationPayload: null,
+      notificationAttemptId: null,
+    });
+  });
   it("locks rules using the strong event counter even while the registration index is empty", async () => {
     const m = memory();
     const draft = await m.service.create(operation, input);
