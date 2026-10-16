@@ -27,6 +27,7 @@ const entry = (id: string, extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   metadata.lookup.mockReset();
 });
@@ -310,6 +311,39 @@ describe("event-scoped metadata authority", () => {
     expect(metadata.lookup).toHaveBeenCalledWith("synthetic-chip", {
       throwOnError: true,
     });
+  });
+  it("bounds a hung registry lookup at eight seconds while preserving duplicate authority", async () => {
+    vi.useFakeTimers();
+    metadata.lookup.mockImplementation(() => new Promise(() => {}));
+    const pending = setup().metadata("event", "synthetic-chip");
+    await vi.dynamicImportSettled();
+    expect(metadata.lookup).toHaveBeenCalledTimes(1);
+    let settled = false;
+    void pending.then(() => {
+      settled = true;
+    });
+    await vi.advanceTimersByTimeAsync(7999);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await pending).toMatchObject({
+      found: false,
+      metadata: null,
+      lookupUnavailable: true,
+      lookupWarning: expect.any(String),
+      duplicateCount: 1,
+      duplicateRegistrations: [{ _id: "duplicate" }],
+    });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it("clears the registry timeout after a fast success or provider failure", async () => {
+    vi.useFakeTimers();
+    const service = setup();
+    metadata.lookup.mockResolvedValue({ name: "", certify: { microchip: "" } });
+    await service.metadata("event", "synthetic-chip");
+    expect(vi.getTimerCount()).toBe(0);
+    metadata.lookup.mockRejectedValue(new Error("synthetic registry failure"));
+    await service.metadata("event", "synthetic-chip");
+    expect(vi.getTimerCount()).toBe(0);
   });
   it("distinguishes empty lookup from provider failure and invalid input", async () => {
     const service = setup();

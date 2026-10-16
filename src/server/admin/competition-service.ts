@@ -867,15 +867,24 @@ export class CompetitionAdminService {
     const { getMetadataByMicrochipId } = await import(
       "~/server/services/metadata.service"
     );
-    let metadata;
+    let metadata: Awaited<ReturnType<typeof getMetadataByMicrochipId>>;
+    let lookupTimeout: ReturnType<typeof setTimeout> | undefined;
     let lookupUnavailable = false;
     try {
-      metadata = await getMetadataByMicrochipId(microchip, {
-        throwOnError: true,
-      });
+      metadata = await Promise.race([
+        getMetadataByMicrochipId(microchip, { throwOnError: true }),
+        new Promise<never>((_resolve, reject) => {
+          lookupTimeout = setTimeout(
+            () => reject(new Error("Metadata lookup timed out")),
+            8000,
+          );
+        }),
+      ]);
     } catch {
       // Duplicate warnings remain authoritative even if the external registry is down.
       lookupUnavailable = true;
+    } finally {
+      if (lookupTimeout !== undefined) clearTimeout(lookupTimeout);
     }
     const found =
       !!metadata?.name?.trim() &&
