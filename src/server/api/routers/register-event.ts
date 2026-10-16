@@ -1,6 +1,8 @@
+import { verifyApplicantAuthorization } from "~/server/services/line-auth.service";
+import { createRoyalCompetitionRegistration } from "~/server/services/competition-registration.service";
 import { admin, createTRPCRouter, publicProcedure } from "../trpc";
 import z from "zod";
-import { CreateNewEventRegisterDTO } from "~/interfaces/CreateNewEventRegisterDTO";
+import type { CreateNewEventRegisterDTO } from "~/interfaces/CreateNewEventRegisterDTO";
 import { TRPCError } from "@trpc/server";
 import {
   canRgister,
@@ -9,14 +11,6 @@ import {
   getById,
   getRegisterByEvent,
 } from "~/server/services/register-event.service";
-import { TRPCClientError } from "@trpc/client";
-import {
-  createNewApprovement,
-  createNewEventAddress,
-  createNewImageObjects,
-} from "~/server/services/royal.service";
-import { getEventById } from "~/server/services/event.service";
-import { client } from "../../../../sanity/lib/client";
 import { royalMessageParser } from "~/server/messaging/message-parser";
 import { notify } from "~/server/messaging/notification";
 
@@ -26,11 +20,14 @@ export const registerEventRouter = createTRPCRouter({
       z.object({
         eventId: z.string(),
         userId: z.string(),
+        idToken: z.string().min(1).optional(),
+        lineAccessToken: z.string().min(1).optional(),
+        operationId: z.string().uuid(),
         type: z.string(),
         level: z.string().optional(),
         name: z.string(),
-        sex: z.string(),
-        color: z.string(),
+        sex: z.enum(["male", "female"]),
+        color: z.enum(["black", "albino"]),
         birthdate: z.string(),
         microchip: z.string(),
         ownerName: z.string(),
@@ -55,106 +52,41 @@ export const registerEventRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       try {
-        // Server-side validation: Ensure this is a royal event
-        const event = await getEventById(input.eventId);
-        if (!event) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "ไม่พบข้อมูลกิจกรรม",
-          });
-        }
-        if (event.eventType !== "royal") {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "กิจกรรมนี้ไม่ใช่ประเภท Royal ไม่สามารถลงทะเบียนผ่านฟอร์มนี้ได้",
-          });
-        }
-
-        //1.create new eventRegister data
-        const eventRegisterResult = await createNewRegister({
-          eventId: input.eventId,
-          userId: input.userId,
-          type: input.type,
-          level: input.level ?? "ประเทศ",
-          name: input.name,
-          sex: input.sex,
-          buffaloAge: input.buffaloAge,
-          color: input.color,
+        await verifyApplicantAuthorization(input, input.userId);
+        const result = await createRoyalCompetitionRegistration({
+          ...input,
           birthday: input.birthdate,
-          microchip: input.microchip,
-          ownerName: input.ownerName,
-          ownerTel: input.ownerTel,
-          //new: 15-oct-2024
-          fatherName: input.fatherName,
-          motherName: input.motherName,
-          farmName: input.farmName,
-          province: input.province,
+          level: input.level ?? "ประเทศ",
+          imageIds: [
+            input.buffaloImage,
+            input.buffaloImage2,
+            input.frontImage,
+            input.sideImage,
+            input.backImage,
+          ],
         });
-
-        if (!eventRegisterResult)
-          throw new TRPCClientError("ไมสามารถบันทึกข้อมูลได้");
-        //2. create image object data
-
-        const eventImageResult = await createNewImageObjects({
-          userId: input.userId,
-          eventId: input.eventId,
-          eventRegisterId: eventRegisterResult._id,
-          buffaloImageId: input.buffaloImage,
-          buffaloImage2Id: input.buffaloImage2,
-          frontImageId: input.frontImage,
-          sideImageId: input.sideImage,
-          backImageId: input.backImage,
-        });
-
-        if (!eventImageResult) {
-          await client.delete(eventRegisterResult._id);
-          throw new TRPCClientError("ไม่สามารถบันทึกข้อมูลรูปภาพได้");
+        // Notification failure must not turn an already persisted signup into an apparent failure.
+        try {
+          if (!result.replayed)
+            await notify(
+              input.userId,
+              royalMessageParser({
+                ownerName: input.ownerName,
+                buffaloName: input.name,
+                microchip: input.microchip,
+                docId: result.approvalId,
+              }),
+            );
+        } catch {
+          console.error("Royal registration notification failed");
         }
-        //3. create approvement data
-        const approvementResult = await createNewApprovement({
-          eventId: input.eventId,
-          eventRegisterId: eventRegisterResult._id,
-          imagesId: eventImageResult._id,
-        });
-
-        if (!approvementResult) {
-          await client.delete(eventRegisterResult._id);
-          await client.delete(eventImageResult._id);
-          throw new TRPCClientError("ไม่สามารถบันทึกข้อมูลได้");
-        }
-        //4. create event address data
-        const addressResult = await createNewEventAddress({
-          userId: input.userId,
-          eventId: input.eventId,
-          eventRegisterId: eventRegisterResult._id,
-          address: input.address,
-          district: input.district,
-          amphoe: input.amphoe,
-          province: input.province,
-          zipcode: input.zipcode,
-        });
-
-        if (!addressResult) {
-          await client.delete(eventRegisterResult._id);
-          await client.delete(eventImageResult._id);
-          await client.delete(approvementResult._id);
-          throw new TRPCClientError("ไม่สามารถบันทึกข้อมูลได้");
-        }
-
-        const message = royalMessageParser({
-          ownerName: input.ownerName,
-          buffaloName: input.name,
-          microchip: input.microchip,
-          docId: approvementResult._id,
-        });
-
-        await notify(input.userId, message);
-
-        //5. notify user through line
-
-        return eventRegisterResult;
+        return result.registration;
       } catch (error) {
-        throw new TRPCError({ message: "", code: "INTERNAL_SERVER_ERROR" });
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          message: error instanceof Error ? error.message : "ไม่สามารถสมัครได้",
+          code: "BAD_REQUEST",
+        });
       }
     }),
   register: publicProcedure
@@ -162,11 +94,14 @@ export const registerEventRouter = createTRPCRouter({
       z.object({
         eventId: z.string(),
         userId: z.string(),
+        idToken: z.string().min(1).optional(),
+        lineAccessToken: z.string().min(1).optional(),
+        operationId: z.string().uuid(),
         type: z.string(),
         level: z.string(),
         name: z.string(),
-        sex: z.string(),
-        color: z.string(),
+        sex: z.enum(["male", "female"]),
+        color: z.enum(["black", "albino"]),
         birthdate: z.string(),
         microchip: z.string(),
         ownerName: z.string(),
@@ -185,7 +120,9 @@ export const registerEventRouter = createTRPCRouter({
       //     message: "ควายตัวนี้สมัครไปแล้ว",
       //   });
       try {
-        const dto: CreateNewEventRegisterDTO = {
+        await verifyApplicantAuthorization(input, input.userId);
+        const dto: CreateNewEventRegisterDTO & { operationId: string } = {
+          operationId: input.operationId,
           userId: input.userId,
           eventId: input.eventId,
           type: input.type,
@@ -206,10 +143,10 @@ export const registerEventRouter = createTRPCRouter({
 
         return await createNewRegister(dto);
       } catch (error) {
-        console.log(error);
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "ไม่สามารถสมัครได้",
+          code: "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "ไม่สามารถสมัครได้",
         });
       }
     }),

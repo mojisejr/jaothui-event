@@ -55,9 +55,7 @@ export const createTRPCContext = (_opts: CreateNextContextOptions) => {
       db,
     };
   } else if (_opts.req.body != undefined) {
-    console.log(_opts.req.body);
     const data = contextParser(JSON.stringify(_opts.req.body) as string);
-    console.log(data);
     return {
       userId: data?.userId,
       db,

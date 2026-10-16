@@ -1,6 +1,11 @@
+import { verifyApplicantAuthorization } from "~/server/services/line-auth.service";
 import { admin, createTRPCRouter, publicProcedure } from "../trpc";
 import z from "zod";
-import { AdminRegisterDTO, createAdminRegister, checkDuplicateMicrochip } from "~/server/services/admin-register.service";
+import {
+  type AdminRegisterDTO,
+  createAdminRegister,
+  checkDuplicateMicrochip,
+} from "~/server/services/admin-register.service";
 import { TRPCError } from "@trpc/server";
 
 export const adminRouter = createTRPCRouter({
@@ -9,7 +14,9 @@ export const adminRouter = createTRPCRouter({
    * Uses admin visibility logic (allows post-deadline while event is still active)
    */
   getActiveEvents: publicProcedure.query(async () => {
-    const { getAdminActiveEvents } = await import("~/server/services/event.service");
+    const { getAdminActiveEvents } = await import(
+      "~/server/services/event.service"
+    );
     return await getAdminActiveEvents();
   }),
 
@@ -18,10 +25,12 @@ export const adminRouter = createTRPCRouter({
    * Used for duplicate detection with admin override
    */
   checkDuplicate: publicProcedure
-    .input(z.object({ 
-      eventId: z.string(), 
-      microchip: z.string() 
-    }))
+    .input(
+      z.object({
+        eventId: z.string(),
+        microchip: z.string(),
+      }),
+    )
     .query(async ({ input }) => {
       return await checkDuplicateMicrochip(input.eventId, input.microchip);
     }),
@@ -38,6 +47,8 @@ export const adminRouter = createTRPCRouter({
       z.object({
         eventId: z.string(),
         userId: z.string(),
+        idToken: z.string().min(1).optional(),
+        lineAccessToken: z.string().min(1).optional(),
         type: z.string(),
         level: z.string(),
         name: z.string(),
@@ -53,18 +64,31 @@ export const adminRouter = createTRPCRouter({
         buffaloAge: z.number(),
         province: z.string(),
         overrideDuplicate: z.boolean().default(false),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
+        await verifyApplicantAuthorization(input, input.userId);
         // Validate required fields
         const requiredFields = [
-          'eventId', 'userId', 'type', 'level', 'name', 
-          'sex', 'color', 'birthday', 'microchip', 
-          'ownerName', 'ownerTel', 'fatherName', 'motherName', 
-          'farmName', 'buffaloAge', 'province'
+          "eventId",
+          "userId",
+          "type",
+          "level",
+          "name",
+          "sex",
+          "color",
+          "birthday",
+          "microchip",
+          "ownerName",
+          "ownerTel",
+          "fatherName",
+          "motherName",
+          "farmName",
+          "buffaloAge",
+          "province",
         ];
-        
+
         for (const field of requiredFields) {
           if (!input[field as keyof typeof input]) {
             throw new TRPCError({
@@ -122,10 +146,9 @@ export const adminRouter = createTRPCRouter({
         }
 
         return result;
-
       } catch (error) {
         console.error("Admin registration error:", error);
-        
+
         if (error instanceof TRPCError) {
           throw error;
         }

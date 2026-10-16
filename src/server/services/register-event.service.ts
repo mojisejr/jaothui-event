@@ -1,13 +1,21 @@
-import { CreateNewEventRegisterDTO } from "~/interfaces/CreateNewEventRegisterDTO";
-import { client } from "../../../sanity/lib/client";
+import {
+  registrationIdentity,
+  existingRegistration,
+} from "./competition-idempotency.service";
+import {
+  prepareCompetitionRegistration,
+  registrationTransaction,
+} from "./competition-registration.service";
+import type { CreateNewEventRegisterDTO } from "~/interfaces/CreateNewEventRegisterDTO";
+import { client } from "~/server/sanity/client";
 import { groq } from "next-sanity";
-import { EventRegister } from "~/interfaces/EventRegister";
+import type { EventRegister } from "~/interfaces/EventRegister";
 import dayjs from "dayjs";
 
 export async function getAllRegisteredBy(userId: string) {
   try {
     // const query = groq`*[_type=="eventRegister" && user._ref == "U02832c9c6dbba5b2f3f83f3560e5c8af"]
-    const query = groq`*[_type=="eventRegister" && user._ref == "${userId}"]
+    const query = groq`*[_type=="eventRegister" && user._ref == "${userId}" && event->competitionState != "draft"]
   {
          _id,
   level,
@@ -49,7 +57,7 @@ export async function getAllRegisteredBy(userId: string) {
 
 export async function getById(id: string) {
   try {
-    const query = groq`*[_type == "eventRegister" && _id == "${id}"]{
+    const query = groq`*[_type == "eventRegister" && _id == "${id}" && event->competitionState != "draft"]{
      _id,
   level,
   type,
@@ -77,11 +85,21 @@ export async function getById(id: string) {
   }
 }
 
-export async function createNewRegister(event: CreateNewEventRegisterDTO) {
+export async function createNewRegister(
+  event: CreateNewEventRegisterDTO & { operationId: string },
+) {
+  const identity = registrationIdentity(event, event);
+  const existing = await existingRegistration(identity.id, identity.hash);
+  if (existing) return existing;
   try {
+    const prepared = await prepareCompetitionRegistration(event, "public");
+    if (prepared.event.eventType === "royal")
+      throw new Error("กรุณาใช้แบบฟอร์ม Royal พร้อมรูปและที่อยู่");
     const newRegisterDocument = {
+      _id: identity.id,
+      registrationRequestHash: identity.hash,
       _type: "eventRegister",
-      type: event.type,
+      type: prepared.type,
       level: event.level,
       name: event.name,
       sex: event.sex,
@@ -90,7 +108,7 @@ export async function createNewRegister(event: CreateNewEventRegisterDTO) {
       microchip: event.microchip,
       ownerName: event.ownerName,
       ownerTel: event.ownerTel,
-      buffaloAge: event.buffaloAge,
+      buffaloAge: prepared.buffaloAge,
       //new 15-oct-2024
       fatherName: event.fatherName,
       motherName: event.motherName,
@@ -106,12 +124,16 @@ export async function createNewRegister(event: CreateNewEventRegisterDTO) {
       },
     };
 
-    const created = await client.create(newRegisterDocument);
+    const result = await registrationTransaction(prepared.event)
+      .create(newRegisterDocument)
+      .commit({ returnDocuments: true });
+    const created = result[1];
 
     return created;
   } catch (error) {
-    console.log(error);
-    return null;
+    const replay = await existingRegistration(identity.id, identity.hash);
+    if (replay) return replay;
+    throw error;
   }
 }
 

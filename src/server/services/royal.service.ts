@@ -1,5 +1,5 @@
 import { CreateNewApprovementDTO } from "~/interfaces/CreateNewApprovementDTO";
-import { client } from "../../../sanity/lib/client";
+import { client } from "~/server/sanity/client";
 import { CreateNewImageObjectDTO } from "~/interfaces/CreateImageObjectDTO";
 import { CreateNewEventAddressDTO } from "~/interfaces/CreateNewEventAddress";
 import { groq } from "next-sanity";

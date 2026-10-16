@@ -1,5 +1,5 @@
 import { groq } from "next-sanity";
-import { client } from "../../../sanity/lib/client";
+import { client } from "~/server/sanity/client";
 import { User } from "~/interfaces/User";
 
 enum Role {

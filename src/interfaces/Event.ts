@@ -1,5 +1,6 @@
 export interface Event {
   eventId: string;
+  competitionState?: "draft" | "published" | "closed";
   imageUrl: string;
   name: string;
   eventAt: string;
