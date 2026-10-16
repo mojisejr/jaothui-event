@@ -168,6 +168,194 @@ function validateChangedCatalogs(
     if (errors.length) error(422, "INVALID_CATALOG", errors.join("; "));
   }
 }
+const stringValue = (value: unknown) =>
+  typeof value === "string" ? value : "";
+const validAge = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0;
+const applicationProjection = `{...,"sex":coalesce(sex,gender),"applicant":user->{_id,lineId},"approval":*[_type=="approvment" && event._ref==$id && eventRegister._ref==^._id] | order(coalesce(approvementDate,_updatedAt,_createdAt) desc,_id desc)[0],"images":*[_type=="eventImage" && event._ref==$id && eventRegister._ref==^._id] | order(_createdAt asc,_id asc){_id,"images":imageArray[]{imageTitle,"url":imageAsset.asset->url}},"address":*[_type=="eventAddress" && event._ref==$id && eventRegister._ref==^._id] | order(_updatedAt desc,_id desc)[0]}`;
+export function normalizeApplication(doc: Doc) {
+  const approval =
+    doc.approval && typeof doc.approval === "object"
+      ? {
+          ...doc.approval,
+          _id: stringValue(doc.approval._id),
+          _rev: stringValue(doc.approval._rev),
+          approvementResult:
+            typeof doc.approval.approvementResult === "boolean"
+              ? doc.approval.approvementResult
+              : null,
+          comment: stringValue(doc.approval.comment),
+          approvementDate: stringValue(doc.approval.approvementDate) || null,
+          notificationState:
+            doc.approval.notificationAttemptAt &&
+            (!doc.approval.notificationUpdatedAt ||
+              Date.parse(doc.approval.notificationAttemptAt) >
+                Date.parse(doc.approval.notificationUpdatedAt))
+              ? "uncertain"
+              : stringValue(doc.approval.notificationState) || "unknown",
+          notificationUpdatedAt:
+            stringValue(doc.approval.notificationUpdatedAt) || null,
+        }
+      : null;
+  const applicant =
+    doc.applicant && typeof doc.applicant === "object"
+      ? {
+          _id: stringValue(doc.applicant._id),
+          lineId: stringValue(doc.applicant.lineId) || null,
+        }
+      : null;
+  const result = {
+    ...doc,
+    ...Object.fromEntries(
+      [
+        "name",
+        "birthday",
+        "microchip",
+        "ownerName",
+        "ownerTel",
+        "type",
+        "level",
+        "farmName",
+        "province",
+        "fatherName",
+        "motherName",
+        "color",
+      ].map((key) => [key, stringValue(doc[key])]),
+    ),
+    sex: stringValue(doc.sex) || stringValue(doc.gender),
+    buffaloAge: validAge(doc.buffaloAge) ? doc.buffaloAge : null,
+    approval,
+    approvalStatus:
+      approval?.approvementResult === true
+        ? ("accepted" as const)
+        : approval?.approvementResult === false
+          ? ("rejected" as const)
+          : ("pending" as const),
+    applicant,
+    hasLineRecipient:
+      !!applicant?.lineId ||
+      !!stringValue(doc.approval?.notificationPayload?.to).trim(),
+    deliveryEnabled:
+      process.env.COMPETITION_LINE_NOTIFICATIONS_ENABLED === "true",
+    images: Array.isArray(doc.images)
+      ? doc.images
+          .filter((image: unknown) => image && typeof image === "object")
+          .map((image: Doc) => ({
+            _id: stringValue(image._id),
+            images: Array.isArray(image.images)
+              ? image.images.map((part: Doc) => ({
+                  imageTitle: stringValue(part?.imageTitle),
+                  url: stringValue(part?.url) || null,
+                }))
+              : [],
+          }))
+      : [],
+    address:
+      doc.address && typeof doc.address === "object"
+        ? Object.fromEntries(
+            ["_id", "address", "district", "amphoe", "province", "zipcode"].map(
+              (key) => [key, stringValue(doc.address[key])],
+            ),
+          )
+        : null,
+    isAdminRegistration: doc.isAdminRegistration === true,
+    registeredAt:
+      stringValue(doc.registeredAt) || stringValue(doc._createdAt) || null,
+  };
+  return result as typeof result & Doc;
+}
+export const applicationListSchema = z.object({
+  search: z.string().trim().max(300).default(""),
+  status: z.enum(["pending", "accepted", "rejected"]).optional(),
+  type: z.string().max(2000).optional(),
+  level: z.enum(["national", "province"]).optional(),
+  sex: z.string().max(100).optional(),
+  color: z.string().max(100).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+export function applicationList(records: Doc[], raw: unknown) {
+  const input = applicationListSchema.parse(raw);
+  const all = records.map(normalizeApplication);
+  const term = input.search.toLocaleLowerCase();
+  const filtered = all.filter(
+    (row) =>
+      (!term ||
+        [row.name, row.ownerName, row.microchip, row.ownerTel, row.farmName]
+          .join(" ")
+          .toLocaleLowerCase()
+          .includes(term)) &&
+      (!input.type ||
+        normalizeClassName(row.type) === normalizeClassName(input.type)) &&
+      (!input.level ||
+        (row.level === "จังหวัด" || row.level === "province"
+          ? "province"
+          : row.level === "ประเทศ" || row.level === "national"
+            ? "national"
+            : "") === input.level) &&
+      (!input.sex ||
+        row.sex.toLocaleLowerCase() === input.sex.toLocaleLowerCase()) &&
+      (!input.color ||
+        row.color.toLocaleLowerCase() === input.color.toLocaleLowerCase()),
+  );
+  const counts = {
+    total: filtered.length,
+    pending: 0,
+    accepted: 0,
+    rejected: 0,
+  };
+  for (const row of filtered) counts[row.approvalStatus]++;
+  const selected = filtered.filter(
+    (row) => !input.status || row.approvalStatus === input.status,
+  );
+  const unique = (key: "type" | "level" | "sex" | "color") =>
+    [...new Set(all.map((row) => stringValue(row[key])).filter(Boolean))].sort(
+      (a, b) => a.localeCompare(b, "th"),
+    );
+  return {
+    items: selected.slice(
+      (input.page - 1) * input.pageSize,
+      input.page * input.pageSize,
+    ),
+    total: selected.length,
+    page: input.page,
+    pageSize: input.pageSize,
+    counts,
+    facets: {
+      types: unique("type"),
+      levels: unique("level"),
+      sexes: unique("sex"),
+      colors: unique("color"),
+    },
+  };
+}
+export function exportRegistration(row: Doc, event: CompetitionDTO) {
+  let exportAge: number | null = null;
+  let ageSource: "stored" | "cutoff" | "missing" = "missing";
+  let ageWarning: string | null = null;
+  if (validAge(row.buffaloAge)) {
+    exportAge = row.buffaloAge;
+    ageSource = "stored";
+  } else {
+    try {
+      // Never substitute today's date or the registration deadline for the age cutoff.
+      if (!event.buffaloAgeDeadline) throw new Error("missing cutoff");
+      exportAge = calculateRegistrationAge(event, row.birthday, row.color);
+      ageSource = "cutoff";
+      ageWarning = "calculated-from-cutoff";
+    } catch {
+      ageWarning = "missing-or-invalid-age";
+    }
+  }
+  return {
+    ...normalizeApplication(row),
+    type: normalizeClassName(stringValue(row.type)),
+    exportAge,
+    ageSource,
+    ageWarning,
+  };
+}
+
 export class CompetitionAdminService {
   constructor(private readonly db: SanityClient = client) {}
   async detail(id: string) {
@@ -652,60 +840,87 @@ export class CompetitionAdminService {
   }
   async applications(id: string, raw: unknown) {
     await this.source(id);
-    const input = z
-      .object({
-        search: z.string().default(""),
-        status: z.enum(["pending", "accepted", "rejected"]).optional(),
-        page: z.coerce.number().int().min(1).default(1),
-        pageSize: z.coerce.number().int().min(1).max(100).default(20),
-      })
-      .parse(raw);
     const records = await this.db.fetch<Doc[]>(
-      '*[_type=="eventRegister" && event._ref==$id] | order(_createdAt desc){...,"sex":coalesce(sex,gender),"approval":*[_type=="approvment" && event._ref==$id && eventRegister._ref==^._id][0]{_id,_rev,approvementResult,comment,notificationState}}',
+      '*[_type=="eventRegister" && event._ref==$id] | order(_createdAt desc,_id desc)' +
+        applicationProjection,
       { id },
     );
-    const term = input.search.toLocaleLowerCase();
-    const filtered = records.filter((r) => {
-      const status =
-        r.approval?.approvementResult === true
-          ? "accepted"
-          : r.approval?.approvementResult === false
-            ? "rejected"
-            : "pending";
-      return (
-        (!input.status || input.status === status) &&
-        (!term ||
-          `${r.name} ${r.ownerName} ${r.microchip}`
-            .toLocaleLowerCase()
-            .includes(term))
-      );
-    });
-    return {
-      items: filtered.slice(
-        (input.page - 1) * input.pageSize,
-        input.page * input.pageSize,
-      ),
-      total: filtered.length,
-      page: input.page,
-      pageSize: input.pageSize,
-    };
+    return applicationList(records, raw);
   }
   async application(id: string, registrationId: string) {
     const registration = await this.db.fetch<Doc | null>(
-      '*[_type=="eventRegister" && _id==$registrationId && event._ref==$id][0]{...,"sex":coalesce(sex,gender),"applicant":user->{_id,lineId},"approval":*[_type=="approvment" && event._ref==$id && eventRegister._ref==^._id][0],"images":*[_type=="eventImage" && event._ref==$id && eventRegister._ref==^._id]{_id,"images":imageArray[]{imageTitle,"url":imageAsset.asset->url}},"address":*[_type=="eventAddress" && event._ref==$id && eventRegister._ref==^._id][0]}',
+      '*[_type=="eventRegister" && _id==$registrationId && event._ref==$id][0]' +
+        applicationProjection,
       { id, registrationId },
     );
     if (!registration)
       return error(404, "APPLICATION_NOT_FOUND", "ไม่พบใบสมัครในงานนี้");
-    return registration;
+    return normalizeApplication(registration);
+  }
+  async metadata(id: string, rawMicrochip: unknown) {
+    await this.source(id);
+    const microchip = z.string().trim().min(1).max(100).parse(rawMicrochip);
+    const duplicates = await this.db.fetch<Doc[]>(
+      '*[_type=="eventRegister" && event._ref==$id && microchip==$microchip] | order(_createdAt desc,_id desc){_id,name,type,ownerName}',
+      { id, microchip },
+    );
+    const { getMetadataByMicrochipId } = await import(
+      "~/server/services/metadata.service"
+    );
+    let metadata;
+    let lookupUnavailable = false;
+    try {
+      metadata = await getMetadataByMicrochipId(microchip, {
+        throwOnError: true,
+      });
+    } catch {
+      // Duplicate warnings remain authoritative even if the external registry is down.
+      lookupUnavailable = true;
+    }
+    const found =
+      !!metadata?.name?.trim() &&
+      metadata.certify?.microchip?.trim() === microchip;
+    const birthdate = metadata?.birthdate
+      ? new Date(metadata.birthdate * 1000)
+      : null;
+    return {
+      found,
+      microchip,
+      lookupUnavailable,
+      lookupWarning: lookupUnavailable
+        ? "ไม่สามารถค้นทะเบียนได้ในขณะนี้ กรุณาตรวจและกรอกข้อมูลเอง"
+        : null,
+      metadata: found
+        ? {
+            name: metadata!.name,
+            birthday:
+              birthdate && Number.isFinite(birthdate.getTime())
+                ? birthdate.toISOString().slice(0, 10)
+                : "",
+            sex: stringValue(metadata!.sex).toLowerCase(),
+            color: stringValue(metadata!.color).toLowerCase(),
+            imageUrl: stringValue(metadata!.imageUri),
+            fatherName: "",
+            motherName: "",
+          }
+        : null,
+      duplicateCount: duplicates.length,
+      duplicateRegistrations: duplicates.map((row) => ({
+        _id: row._id,
+        name: stringValue(row.name),
+        type: stringValue(row.type),
+        ownerName: stringValue(row.ownerName),
+      })),
+    };
   }
   async export(id: string) {
     const event = await this.detail(id);
-    const registrations = await this.db.fetch<Doc[]>(
-      '*[_type=="eventRegister" && event._ref==$id]{...,"sex":coalesce(sex,gender)}',
+    const records = await this.db.fetch<Doc[]>(
+      '*[_type=="eventRegister" && event._ref==$id] | order(_createdAt asc,_id asc){...,"sex":coalesce(sex,gender)}',
       { id },
     );
-    return { event, registrations };
+    const registrations = records.map((row) => exportRegistration(row, event));
+    return { event, registrations, rowCount: registrations.length };
   }
   async onsite(
     id: string,
@@ -722,8 +937,8 @@ export class CompetitionAdminService {
         ownerTel: z.string().min(1),
         type: z.string().min(1),
         level: z.enum(["national", "province"]),
-        sex: z.string().min(1),
-        color: z.string().min(1),
+        sex: z.enum(["male", "female"]),
+        color: z.enum(["black", "albino", "white"]),
         farmName: z.string().default(""),
         province: z.string().default(""),
         fatherName: z.string().default(""),
@@ -744,11 +959,16 @@ export class CompetitionAdminService {
       return error(409, "ONSITE_CLOSED", "งานนี้ไม่เปิดลงทะเบียนหน้างานแล้ว");
     }
     const catalogs = config(doc).catalogs[data.level];
-    const authoritativeAge = calculateRegistrationAge(
-      doc,
-      data.birthday,
-      data.color,
-    );
+    let authoritativeAge: number;
+    try {
+      authoritativeAge = calculateRegistrationAge(
+        doc,
+        data.birthday,
+        data.color,
+      );
+    } catch {
+      return error(422, "INVALID_BIRTHDAY", "วันเกิดหรือวันตัดอายุไม่ถูกต้อง");
+    }
     const allowed = [
       ...getPossibleEvents(authoritativeAge, catalogs),
       ...getSpecialEvents(catalogs, authoritativeAge),
@@ -759,6 +979,12 @@ export class CompetitionAdminService {
       )
     )
       return error(422, "INVALID_CLASS", "รุ่นแข่งขันไม่อยู่ในรายการของงาน");
+    if (doc.competitionIndexedRevision !== doc._rev)
+      return error(
+        409,
+        "REGISTRATION_INDEX_PENDING",
+        "ข้อมูลผู้สมัครกำลังอัปเดต กรุณาลองลงทะเบียนอีกครั้ง",
+      );
     const duplicate = await this.db.fetch<number>(
       'count(*[_type=="eventRegister" && event._ref==$id && microchip==$microchip])',
       { id, microchip: data.microchip },
@@ -855,6 +1081,8 @@ export class CompetitionAdminService {
       notificationFirstAttemptAt: null,
       notificationPayload: null,
       notificationAttemptId: null,
+      notificationAttemptAt: null,
+      notificationUpdatedAt: null,
     };
     let tx = this.db
       .transaction()
@@ -881,9 +1109,19 @@ export class CompetitionAdminService {
       .commit({ visibility: "sync" });
     return this.application(id, registrationId);
   }
-  async retryNotification(id: string, registrationId: string) {
+  async retryNotification(
+    id: string,
+    registrationId: string,
+    expectedApprovalRevision?: string,
+  ) {
     const entry = await this.application(id, registrationId);
     const approval = entry.approval as Doc | undefined;
+    if (expectedApprovalRevision && approval?._rev !== expectedApprovalRevision)
+      return error(
+        409,
+        "REVISION_CONFLICT",
+        "ผลพิจารณาเปลี่ยนแล้ว กรุณาโหลดใหม่ก่อนส่ง LINE",
+      );
     if (!approval || typeof approval.approvementResult !== "boolean")
       return error(409, "NO_APPROVAL", "ยังไม่มีผลพิจารณา");
     if (
@@ -934,7 +1172,7 @@ export class CompetitionAdminService {
       existingAttempt
         ? approval.notificationPayload
         : {
-            to: entry.applicant.lineId,
+            to: entry.applicant?.lineId,
             messages: [
               {
                 type: "text",
@@ -964,6 +1202,7 @@ export class CompetitionAdminService {
         notificationFirstAttemptAt: new Date(firstAttemptAt).toISOString(),
         notificationPayload: payload.data,
         notificationAttemptId: randomUUID(),
+        notificationAttemptAt: new Date().toISOString(),
       })
       .commit({ visibility: "sync" });
     let notificationState: "sent" | "failed" = "sent";

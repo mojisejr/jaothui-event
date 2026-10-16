@@ -107,6 +107,26 @@ afterEach(() => {
 });
 
 describe("competition notification provider outcomes", () => {
+  it("refuses a stale viewed approval revision before contacting LINE", async () => {
+    const m = fixture();
+    await expect(
+      m.service.retryNotification("event", "entry", "approval-old"),
+    ).rejects.toMatchObject({ code: "REVISION_CONFLICT" });
+    expect(provider.push).not.toHaveBeenCalled();
+    expect(m.patch).not.toHaveBeenCalled();
+  });
+  it("exposes uncertain state if provider acceptance cannot be persisted", async () => {
+    const m = fixture({ failCommit: 2 });
+    provider.push.mockResolvedValue({});
+    await expect(
+      m.service.retryNotification("event", "entry"),
+    ).rejects.toThrow();
+    expect(
+      (await m.service.application("event", "entry")).approval
+        .notificationState,
+    ).toBe("uncertain");
+    expect(provider.push).toHaveBeenCalledTimes(1);
+  });
   it("records provider acceptance as sent using the server recipient and stable key", async () => {
     const m = fixture();
     provider.push.mockResolvedValue({});

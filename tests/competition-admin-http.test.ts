@@ -1,13 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Readable } from "node:stream";
 import { type NextApiRequest, type NextApiResponse } from "next";
-const stubs = vi.hoisted(() => ({ upload: vi.fn(), list: vi.fn() }));
+const stubs = vi.hoisted(() => ({
+  upload: vi.fn(),
+  list: vi.fn(),
+  metadata: vi.fn(),
+  retry: vi.fn(),
+}));
 vi.mock("~/server/sanity/client", () => ({
   client: { assets: { upload: stubs.upload } },
 }));
 vi.mock("~/server/admin/competition-service", () => ({
   CompetitionAdminService: class {
     list = stubs.list;
+    metadata = stubs.metadata;
+    retryNotification = stubs.retry;
   },
 }));
 import handler from "~/pages/api/admin/competitions/[[...path]]";
@@ -44,6 +51,8 @@ beforeEach(() => {
   vi.stubEnv("JAOTHUI_COMPETITION_ADMIN_WRITES_ENABLED", "true");
   stubs.upload.mockReset();
   stubs.list.mockReset();
+  stubs.metadata.mockReset();
+  stubs.retry.mockReset();
 });
 describe("source competition HTTP boundary", () => {
   it("rejects unauthenticated callers and never invokes read service", async () => {
@@ -104,6 +113,37 @@ describe("source competition HTTP boundary", () => {
       contentType: "image/png",
       filename: ".._unsafe.png",
     });
+  });
+  it("scopes metadata lookup to a validated event with bridge auth", async () => {
+    stubs.metadata.mockResolvedValue({
+      found: false,
+      metadata: null,
+      duplicateCount: 0,
+    });
+    const x = exchange(["event", "metadata"], "GET");
+    x.req.query.microchip = "synthetic-chip";
+    await handler(x.req, x.res);
+    expect(x.result.status).toBe(200);
+    expect(stubs.metadata).toHaveBeenCalledWith("event", "synthetic-chip");
+  });
+  it("requires the viewed approval revision for notification retry", async () => {
+    const missing = exchange(
+      ["event", "applications", "entry", "retry-notification"],
+      "POST",
+      Buffer.from("{}"),
+    );
+    await handler(missing.req, missing.res);
+    expect(missing.result.status).toBe(422);
+    expect(stubs.retry).not.toHaveBeenCalled();
+    stubs.retry.mockResolvedValue({ _id: "entry" });
+    const x = exchange(
+      ["event", "applications", "entry", "retry-notification"],
+      "POST",
+      Buffer.from(JSON.stringify({ expectedRevision: "approval-3" })),
+    );
+    await handler(x.req, x.res);
+    expect(x.result.status).toBe(200);
+    expect(stubs.retry).toHaveBeenCalledWith("event", "entry", "approval-3");
   });
   it("returns 422 for malformed calendar input and 400 for invalid JSON without mutating", async () => {
     const x = exchange([], "POST", Buffer.from("{"));

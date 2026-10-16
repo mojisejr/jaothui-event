@@ -5,6 +5,7 @@ vi.mock("~/server/sanity/client", () => ({ client: {} }));
 import {
   CompetitionAdminService,
   validatePublish,
+  normalizeApplication,
 } from "~/server/admin/competition-service";
 import { assertCompetitionBridgeAuth } from "~/server/admin/competition-auth";
 import {
@@ -184,17 +185,19 @@ describe("competition admin protected authority", () => {
         delete process.env.COMPETITION_LINE_NOTIFICATIONS_ENABLED;
       else process.env.COMPETITION_LINE_NOTIFICATIONS_ENABLED = enabled;
       const m = memory();
-      vi.spyOn(m.service, "application").mockResolvedValue({
-        _id: "entry",
-        _rev: "entry-revision",
-        applicant: { lineId: "synthetic-recipient" },
-        approval: {
-          _id: "approval",
-          _rev: "approval-revision",
-          approvementResult: true,
-          notificationState: "pending",
-        },
-      });
+      vi.spyOn(m.service, "application").mockResolvedValue(
+        normalizeApplication({
+          _id: "entry",
+          _rev: "entry-revision",
+          applicant: { lineId: "synthetic-recipient" },
+          approval: {
+            _id: "approval",
+            _rev: "approval-revision",
+            approvementResult: true,
+            notificationState: "pending",
+          },
+        }),
+      );
       try {
         await expect(
           m.service.retryNotification("event", "entry"),

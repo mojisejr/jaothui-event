@@ -182,6 +182,8 @@ export default async function handler(
         method === "GET"
       )
         data = await service.applications(id, req.query);
+      else if (action === "metadata" && path.length === 2 && method === "GET")
+        data = await service.metadata(id, req.query.microchip);
       else if (
         action === "applications" &&
         path.length === 3 &&
@@ -213,9 +215,20 @@ export default async function handler(
         path.length === 4 &&
         path[3] === "retry-notification" &&
         method === "POST"
-      )
-        data = await service.retryNotification(id, documentId.parse(path[2]));
-      else if (action === "onsite" && path.length === 2 && method === "POST") {
+      ) {
+        const input = z
+          .object({ expectedRevision: z.string().min(1) })
+          .parse(body);
+        data = await service.retryNotification(
+          id,
+          documentId.parse(path[2]),
+          input.expectedRevision,
+        );
+      } else if (
+        action === "onsite" &&
+        path.length === 2 &&
+        method === "POST"
+      ) {
         const input = mutationSchema
           .extend({ registration: z.unknown() })
           .parse(body);

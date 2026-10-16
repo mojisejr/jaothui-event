@@ -22,7 +22,10 @@ export interface Metadata {
   updatedAt: bigint;
 }
 
-export const getMetadataByMicrochipId = async (microchipId: string) => {
+export const getMetadataByMicrochipId = async (
+  microchipId: string,
+  options: { throwOnError?: boolean } = {},
+) => {
   try {
     const data = (await viem.readContract({
       address,
@@ -47,6 +50,7 @@ export const getMetadataByMicrochipId = async (microchipId: string) => {
 
     return parsed;
   } catch (error) {
+    if (options.throwOnError) throw error;
     console.log(error);
   }
 };
