@@ -284,8 +284,8 @@ export const getEventTypesWithAutoAssignment = async (
   const provinceFiltered = getPossibleEvents(age, provinceData);
   const nationalFiltered = getPossibleEvents(age, nationalData);
 
-  const specialProvinceTypes = getSpecialEvents(provinceData);
-  const specialNationalTypes = getSpecialEvents(nationalData);
+  const specialProvinceTypes = getSpecialEvents(provinceData, age);
+  const specialNationalTypes = getSpecialEvents(nationalData, age);
 
   return {
     provinceTypes: provinceTypes ? provinceFiltered : [],

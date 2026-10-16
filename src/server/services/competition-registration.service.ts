@@ -9,6 +9,7 @@ import {
   calculateRegistrationAge,
   type CompetitionPolicyEvent,
 } from "./competition-policy";
+import { normalizeClassName } from "~/lib/competition-classes";
 import { getPossibleEvents, getSpecialEvents } from "~/utils/getPossibleEvents";
 export type RegistrationEvent = CompetitionPolicyEvent & {
   _id: string;
@@ -37,39 +38,48 @@ export async function prepareCompetitionRegistration(
         ? "nationalEventType"
         : null;
   if (!catalogType) throw new Error("ระดับการแข่งขันไม่ถูกต้อง");
-  const catalogs = await client.fetch<Array<{ data: string[] }>>(
-    "*[_type == $catalogType && event._ref == $eventId]{data}",
+  const catalogs = await client.fetch<Array<{ _id: string; data: string[] }>>(
+    "*[_type == $catalogType && event._ref == $eventId]{_id,data}",
     { catalogType, eventId: data.eventId },
   );
-  const labels = catalogs.flatMap((catalog) => catalog.data ?? []);
-  const normalize = (label: string) =>
-    label
-      .replace(/\[SP\]/g, "")
-      .trim()
-      .replace(/\s+/g, " ");
+  // Query indexes discover IDs only. Authoritative rules come from strong document reads.
+  const strongCatalogs = await Promise.all(
+    catalogs.map((catalog) =>
+      client.getDocument<{
+        _id: string;
+        _type: string;
+        event: { _ref: string };
+        data: string[];
+      }>(catalog._id),
+    ),
+  );
+  const labels = strongCatalogs
+    .filter(
+      (catalog) =>
+        catalog?._type === catalogType && catalog.event?._ref === data.eventId,
+    )
+    .flatMap((catalog) => catalog?.data ?? []);
   const allowed = [
     ...getPossibleEvents(age, labels),
-    ...getSpecialEvents(labels),
+    ...getSpecialEvents(labels, age),
   ].filter((label): label is string => !!label);
   const type = allowed.find(
-    (label) => normalize(label) === normalize(data.type),
+    (label) => normalizeClassName(label) === normalizeClassName(data.type),
   );
   if (!type) throw new Error("รุ่นการแข่งขันไม่ตรงกับอายุหรือชุดรุ่นของงาน");
-  return { event, buffaloAge: age, type: normalize(type) };
+  return { event, buffaloAge: age, type: normalizeClassName(type) };
 }
 /** Every competing admin mutation touches this same revision, so close/rule changes cannot race a stale signup. */
 export function registrationTransaction(event: RegistrationEvent) {
-  return client
-    .transaction()
-    .patch(event._id, (patch) =>
-      patch
-        .ifRevisionId(event._rev)
-        .setIfMissing({
-          competitionWriteFence: 0,
-          competitionRegistrationCount: 0,
-        })
-        .inc({ competitionWriteFence: 1, competitionRegistrationCount: 1 }),
-    );
+  return client.transaction().patch(event._id, (patch) =>
+    patch
+      .ifRevisionId(event._rev)
+      .setIfMissing({
+        competitionWriteFence: 0,
+        competitionRegistrationCount: 0,
+      })
+      .inc({ competitionWriteFence: 1, competitionRegistrationCount: 1 }),
+  );
 }
 
 export async function createRoyalCompetitionRegistration(

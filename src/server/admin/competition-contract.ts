@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateCompetitionCatalog } from "~/lib/competition-classes";
 
 export const documentId = z
   .string()
@@ -16,14 +17,8 @@ const day = z
       date.toISOString().slice(0, 10) === value
     );
   }, "Invalid calendar date");
-const catalog = z
-  .array(z.string().trim().min(1).max(300))
-  .max(200)
-  .refine(
-    (labels) => new Set(labels).size === labels.length,
-    "Duplicate class labels",
-  );
-export const competitionInputSchema = z
+const catalog = z.array(z.string().min(1).max(2000)).max(200);
+export const competitionExistingInputSchema = z
   .object({
     title: z.string().trim().min(1).max(300),
     description: z.string().max(20000).default(""),
@@ -69,6 +64,12 @@ export const competitionInputSchema = z
         message: "วันปิดรับสมัครต้องไม่หลังวันจบงาน",
       });
   });
+export const competitionInputSchema =
+  competitionExistingInputSchema.superRefine((input, ctx) => {
+    for (const level of ["national", "province"] as const)
+      for (const message of validateCompetitionCatalog(input.catalogs[level]))
+        ctx.addIssue({ code: "custom", path: ["catalogs", level], message });
+  });
 export type CompetitionInput = z.infer<typeof competitionInputSchema>;
 export const mutationSchema = z.object({
   operationId: z.string().uuid(),
@@ -79,7 +80,7 @@ export const createSchema = z.object({
   input: competitionInputSchema,
 });
 export const updateSchema = mutationSchema.extend({
-  input: competitionInputSchema,
+  input: competitionExistingInputSchema,
 });
 export const listSchema = z.object({
   search: z.string().max(300).default(""),

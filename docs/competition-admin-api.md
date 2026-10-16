@@ -127,3 +127,26 @@ admin delivery retries. Preserve additive schema fields, IDs and records; do
 not run a destructive down-migration or automatically restore obsolete admin
 write paths. These switches control the new admin bridge; public signup still
 follows its authoritative event policy.
+
+## Class builder refinement (#106, #56)
+
+Catalog schema remains `data: string[]`. Managed rules use `@jaothui/class:v1:`
+plus validated JSON containing display name, age/special kind, optional integer
+month bounds, inclusive/exclusive minimum, group and manual criteria. The maximum
+is inclusive. Admin DTOs preserve the stored strings for lossless editing;
+public options and new registration `type` values contain human names only.
+No historical entry is rewritten. Recognized legacy Thai/Arabic month phrases
+remain readable; malformed/unknown encodings and ambiguous age phrases fail
+closed and require operator review. Plain teeth/manual classes remain special,
+and calf-age text is never inferred as the mother's age.
+
+Public normal/Royal queries, both registration write paths, staff onsite and
+impact reports use the same codec. There is no upward age entry: only the
+eligible interval is offered/accepted. Age remains ceiling calendar months with
+the existing Royal non-black one-day birthday adjustment. Special rules can set
+optional minimum/maximum ages; other criteria remain staff checks. Specials are
+never automatic normal-class assignments. The admin bridge accepts at most200
+rows/catalog,2000 characters/stored row; streamed JSON cap is3MiB. New dashboard
+events use national-backed catalogs while province legacy reads stay supported.
+The Phase3 refinement does not deliver Phase4 application/onsite UI or Phase5
+production cutover; no Sanity schema or vote behavior changes are included.

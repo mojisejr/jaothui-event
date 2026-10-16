@@ -12,7 +12,8 @@ import {
 import { client } from "~/server/sanity/client";
 export const config = { api: { bodyParser: false } };
 const MAX_IMAGE = 4 * 1024 * 1024;
-const MAX_JSON = 512 * 1024;
+// Two legacy-backed catalogs, each <=200 rows of <=2000 UTF-16 characters.
+const MAX_JSON = 3 * 1024 * 1024;
 async function read(req: NextApiRequest, max: number): Promise<Buffer> {
   const chunks: Buffer[] = [];
   let bytes = 0;
@@ -245,33 +246,27 @@ export default async function handler(
         .status(cause.status)
         .json({ error: { code: cause.code, message: cause.message } });
     if (cause instanceof z.ZodError)
-      return res
-        .status(422)
-        .json({
-          error: {
-            code: "VALIDATION_ERROR",
-            message: cause.issues
-              .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-              .join("; "),
-          },
-        });
-    const status = (cause as { statusCode?: number })?.statusCode;
-    if (status === 409)
-      return res
-        .status(409)
-        .json({
-          error: {
-            code: "REVISION_CONFLICT",
-            message: "ข้อมูลถูกแก้ไขแล้ว กรุณาโหลดข้อมูลล่าสุด",
-          },
-        });
-    return res
-      .status(500)
-      .json({
+      return res.status(422).json({
         error: {
-          code: "INTERNAL_ERROR",
-          message: "ไม่สามารถดำเนินการได้ กรุณาลองอีกครั้ง",
+          code: "VALIDATION_ERROR",
+          message: cause.issues
+            .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+            .join("; "),
         },
       });
+    const status = (cause as { statusCode?: number })?.statusCode;
+    if (status === 409)
+      return res.status(409).json({
+        error: {
+          code: "REVISION_CONFLICT",
+          message: "ข้อมูลถูกแก้ไขแล้ว กรุณาโหลดข้อมูลล่าสุด",
+        },
+      });
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "ไม่สามารถดำเนินการได้ กรุณาลองอีกครั้ง",
+      },
+    });
   }
 }

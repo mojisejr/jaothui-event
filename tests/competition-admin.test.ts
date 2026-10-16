@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { encodeCompetitionClass } from "~/lib/competition-classes";
 import { type SanityClient } from "next-sanity";
 vi.mock("~/server/sanity/client", () => ({ client: {} }));
 import {
@@ -530,7 +531,17 @@ describe("competition admin protected authority", () => {
       ...input,
       catalogs: {
         national: ["ไม่เกิน 12 เดือน"],
-        province: ["[SP] รุ่นพิเศษ 15 เดือน"],
+        province: [
+          encodeCompetitionClass({
+            name: "รุ่นพิเศษ 15 เดือน",
+            kind: "special",
+            minMonths: 10,
+            maxMonths: 15,
+            minInclusive: true,
+            group: "",
+            criteria: "ตรวจโดยเจ้าหน้าที่",
+          }),
+        ],
       },
     };
     const draft = await m.service.create(operation, config);
@@ -614,6 +625,100 @@ describe("competition admin protected authority", () => {
     });
     expect(onsite.user).toBeUndefined();
     expect(m.docs.get(draft._id)?.competitionRegistrationCount).toBe(1);
+  });
+  it("enforces the same bounded special rule in impact and onsite writes", async () => {
+    const m = memory();
+    const encoded = encodeCompetitionClass({
+      name: "ฟันแท้",
+      kind: "special",
+      minMonths: 13,
+      maxMonths: 15,
+      minInclusive: true,
+      group: "",
+      criteria: "ตรวจโดยเจ้าหน้าที่",
+    });
+    const config = {
+      ...input,
+      catalogs: { national: [encoded], province: [] },
+    };
+    let draft = await m.service.create(operation, config);
+    draft = await m.service.action(draft._id, second, draft._rev, "publish");
+    m.docs.set("entry", {
+      _id: "entry",
+      _rev: "1",
+      _type: "eventRegister",
+      event: { _ref: draft._id },
+      birthday: "2098-01-20",
+      color: "black",
+      buffaloAge: 12,
+      type: "ฟันแท้",
+      level: "ประเทศ",
+    });
+    const report = await m.service.impact(draft._id, draft._rev, config);
+    expect(report.rows[0]).toMatchObject({
+      special: true,
+      oldEligible: false,
+      newEligible: false,
+      affected: true,
+    });
+    const details = {
+      name: "test",
+      birthday: "2098-01-20",
+      microchip: "special-test",
+      ownerName: "test",
+      ownerTel: "000",
+      type: "ฟันแท้",
+      level: "national",
+      sex: "male",
+      color: "black",
+    };
+    await expect(
+      m.service.onsite(
+        draft._id,
+        "21234567-89ab-4cde-8fab-0123456789ab",
+        draft._rev,
+        details,
+      ),
+    ).rejects.toMatchObject({ code: "INVALID_CLASS" });
+    const saved = await m.service.onsite(
+      draft._id,
+      "31234567-89ab-4cde-8fab-0123456789ab",
+      draft._rev,
+      { ...details, birthday: "2097-12-20" },
+    );
+    expect(saved).toMatchObject({ type: "ฟันแท้", buffaloAge: 13 });
+  });
+  it("preserves an unchanged ambiguous legacy catalog on general edits but validates modified catalogs", async () => {
+    const m = memory();
+    const draft = await m.service.create(operation, input);
+    const catalogId = `${draft._id}-national`;
+    const legacy = ["อายุประมาณ 12 เดือน"];
+    m.docs.get(catalogId)!.data = legacy;
+    const before = m.docs.get(catalogId)!._rev;
+    const changed = {
+      ...input,
+      description: "รายละเอียดใหม่",
+      catalogs: { national: legacy, province: [] },
+    };
+    const saved = await m.service.update(
+      draft._id,
+      second,
+      draft._rev,
+      changed,
+    );
+    expect(saved.catalogs.national).toEqual(legacy);
+    expect(m.docs.get(catalogId)!._rev).toBe(before);
+    await expect(
+      m.service.update(
+        saved._id,
+        "21234567-89ab-4cde-8fab-0123456789ab",
+        saved._rev,
+        {
+          ...changed,
+          catalogs: { national: ["อายุประมาณ 15 เดือน"], province: [] },
+        },
+      ),
+    ).rejects.toMatchObject({ code: "INVALID_CATALOG" });
   });
   it("does not turn an unpublished draft public through a close-event action", async () => {
     const m = memory();

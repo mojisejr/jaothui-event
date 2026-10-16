@@ -1,84 +1,63 @@
+import {
+  classDisplayName,
+  isCompetitionClassEligible,
+  parseCompetitionClass,
+} from "~/lib/competition-classes";
 export type AgeRange = {
   level: number;
   min: number;
   max: number | null;
   original: string;
 };
-
-export const parseAgeRanges = (data: string[]): AgeRange[] => {
-  if (data.length <= 0 || data == null) return [];
-  
-  return data
-    .map((entry, index) => {
-      // Ignore entries explicitly marked as special with [SP] tag
-      if (entry.startsWith('[SP]')) {
-        return {
-          level: index,
-          min: 99,
-          max: 99,
-          original: entry,
-        };
-      }
-
-      const matches = /(\d{1,2}) เดือน(?: ถึง (\d{1,2}) เดือน)?/.exec(entry);
-
-      if (matches) {
-        return {
-          level: index,
-          min: parseInt(matches[1] ?? "0", 10),
-          max: matches[2] ? parseInt(matches[2], 10) : null,
-          original: entry,
-        };
-      }
-
-      // If no matches, return a range that won't match any age
-      return {
-        level: index,
-        min: 99,
-        max: 99,
-        original: entry,
-      };
-    })
-    .filter((item) => item !== null && item != undefined);
-};
-
-export const findExactAgeMatch = (age: number, ranges: AgeRange[]): AgeRange | null => {
-  // Find exact match where age falls within the range
-  const exactMatch = ranges.find(
-    (r) => r.min <= age && (r.max === null || age <= r.max)
-  );
-  
-  return exactMatch ?? null;
-};
-
-export const getPossibleEvents = (age: number, data: string[]) => {
-  if (data.length <= 0 || data == null) return [];
-  const result = parseAgeRanges(data);
-
-  // Get the range where age falls in OR where age is greater than max
-  const d = result.filter(
+/** Legacy API retained; only actual age rules can participate in automatic assignment. */
+export const parseAgeRanges = (data: string[]): AgeRange[] =>
+  (data ?? []).flatMap((entry, level) => {
+    const rule = parseCompetitionClass(entry);
+    if (!rule || rule.kind !== "age") return [];
+    return [
+      {
+        level,
+        min:
+          rule.minMonths === null
+            ? 0
+            : rule.minMonths + (rule.minInclusive ? 0 : 1),
+        max: rule.maxMonths,
+        original: classDisplayName(entry),
+      },
+    ];
+  });
+export const findExactAgeMatch = (
+  age: number,
+  ranges: AgeRange[],
+): AgeRange | null =>
+  ranges.find(
     (r) =>
-      (r.min <= age && (r.max === null || age <= r.max)) ||
-      (r.max !== null && age <= r.min),
-  );
-
-  const event = d.map((e) => {
-    return data[e.level];
-  });
-  return event;
-};
-
-// Filter events that CANNOT be parsed by the standard age regex (Standard Age Format)
-// OR events that are explicitly marked with [SP] tag
-export const getSpecialEvents = (data: string[]) => {
-  if (data.length <= 0 || data == null) return [];
-  
-  return data.filter(entry => {
-    // 1. Explicitly marked with [SP] tag
-    if (entry.startsWith('[SP]')) return true;
-
-    // 2. If it matches the standard format "X เดือน..." it is NOT special
-    const matches = /(\d{1,2}) เดือน(?: ถึง (\d{1,2}) เดือน)?/.exec(entry);
-    return !matches;
-  });
-};
+      Number.isFinite(age) && r.min <= age && (r.max === null || age <= r.max),
+  ) ?? null;
+export const getPossibleEvents = (age: number, data: string[]): string[] => [
+  ...new Set(
+    (data ?? [])
+      .filter(
+        (value) =>
+          parseCompetitionClass(value)?.kind === "age" &&
+          isCompetitionClassEligible(age, value),
+      )
+      .map(classDisplayName),
+  ),
+];
+/** With no age, only unbounded manual classes are returned. */
+export const getSpecialEvents = (data: string[], age?: number): string[] => [
+  ...new Set(
+    (data ?? [])
+      .filter((value) => {
+        const rule = parseCompetitionClass(value);
+        return (
+          rule?.kind === "special" &&
+          (age === undefined
+            ? rule.minMonths === null && rule.maxMonths === null
+            : isCompetitionClassEligible(age, value))
+        );
+      })
+      .map(classDisplayName),
+  ),
+];

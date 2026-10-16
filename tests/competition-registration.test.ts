@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { encodeCompetitionClass } from "~/lib/competition-classes";
 const mocks = vi.hoisted(() => ({
   fetch: vi.fn(),
   getDocument: vi.fn(),
@@ -53,7 +54,15 @@ beforeEach(() => {
   vi.setSystemTime(new Date("2026-10-16T12:00:00Z"));
   vi.clearAllMocks();
   mocks.getDocument.mockImplementation(async (id: string) =>
-    id === "event" ? mocks.fetch() : null,
+    id === "event"
+      ? mocks.fetch()
+      : id === "catalog"
+        ? {
+            ...(await mocks.fetch.mock.results.at(-1)?.value)?.[0],
+            _type: "nationalEventType",
+            event: { _ref: "event" },
+          }
+        : null,
   );
   const chain = { create: mocks.create, commit: mocks.commit };
   mocks.patch.mockImplementation((_id, callback) => {
@@ -82,7 +91,7 @@ describe("guarded production registration writes", () => {
   it("recomputes age, validates actual catalog and fences create on source revision", async () => {
     mocks.fetch
       .mockResolvedValueOnce(event)
-      .mockResolvedValueOnce([{ data: [data.type] }]);
+      .mockResolvedValueOnce([{ _id: "catalog", data: [data.type] }]);
     const result = await createNewRegister(data);
     expect(result?._id).toBe("registration");
     expect(mocks.create.mock.calls[0]?.[0]).toMatchObject({
@@ -98,16 +107,85 @@ describe("guarded production registration writes", () => {
   it("never accepts forged age or class outside event catalog", async () => {
     mocks.fetch
       .mockResolvedValueOnce(event)
-      .mockResolvedValueOnce([{ data: ["มากกว่า 20 เดือน ถึง 25 เดือน"] }]);
+      .mockResolvedValueOnce([
+        { _id: "catalog", data: ["มากกว่า 20 เดือน ถึง 25 เดือน"] },
+      ]);
     await expect(
       createNewRegister({ ...data, type: "invented" }),
+    ).rejects.toThrow("รุ่นการแข่งขัน");
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it("enforces structured special age and persists only its decoded human name", async () => {
+    const raw = encodeCompetitionClass({
+      name: "ฟันแท้",
+      kind: "special",
+      minMonths: 14,
+      maxMonths: 20,
+      minInclusive: true,
+      group: "ยักษ์",
+      criteria: "เจ้าหน้าที่ตรวจฟัน",
+    });
+    mocks.fetch
+      .mockResolvedValueOnce(event)
+      .mockResolvedValueOnce([{ _id: "catalog", data: [raw] }]);
+    await expect(
+      createNewRegister({ ...data, type: "ฟันแท้" }),
+    ).rejects.toThrow("รุ่นการแข่งขัน");
+    expect(mocks.create).not.toHaveBeenCalled();
+    mocks.fetch
+      .mockResolvedValueOnce(event)
+      .mockResolvedValueOnce([{ _id: "catalog", data: [raw] }]);
+    await createNewRegister({
+      ...data,
+      birthday: "2025-09-16",
+      type: "[SP] ฟันแท้",
+    });
+    expect(mocks.create.mock.calls[0]?.[0]).toMatchObject({
+      type: "ฟันแท้",
+      buffaloAge: 14,
+    });
+  });
+  it("uses strong catalog rules when the query index still contains an older permissive age", async () => {
+    const stale = encodeCompetitionClass({
+      name: "ฟันแท้",
+      kind: "special",
+      minMonths: null,
+      maxMonths: null,
+      minInclusive: true,
+      group: "",
+      criteria: "",
+    });
+    const strong = encodeCompetitionClass({
+      name: "ฟันแท้",
+      kind: "special",
+      minMonths: 14,
+      maxMonths: null,
+      minInclusive: true,
+      group: "",
+      criteria: "",
+    });
+    mocks.getDocument.mockImplementation(async (id: string) =>
+      id === "event"
+        ? event
+        : id === "catalog"
+          ? {
+              _id: "catalog",
+              _type: "nationalEventType",
+              event: { _ref: "event" },
+              data: [strong],
+            }
+          : null,
+    );
+    mocks.fetch.mockResolvedValue([{ _id: "catalog", data: [stale] }]);
+    await expect(
+      createNewRegister({ ...data, type: "ฟันแท้" }),
     ).rejects.toThrow("รุ่นการแข่งขัน");
     expect(mocks.create).not.toHaveBeenCalled();
   });
   it("propagates revision conflicts instead of returning success or retrying stale rules", async () => {
     mocks.fetch
       .mockResolvedValueOnce(event)
-      .mockResolvedValueOnce([{ data: [data.type] }]);
+      .mockResolvedValueOnce([{ _id: "catalog", data: [data.type] }]);
     mocks.commit.mockRejectedValue(new Error("revision conflict"));
     await expect(createNewRegister(data)).rejects.toThrow("revision conflict");
     expect(mocks.commit).toHaveBeenCalledTimes(1);
@@ -177,7 +255,7 @@ describe("Royal atomic document graph", () => {
   it("commits all four documents with ownership and never stores caller token fields", async () => {
     mocks.fetch
       .mockResolvedValueOnce({ ...event, eventType: "royal" })
-      .mockResolvedValueOnce([{ data: [data.type] }])
+      .mockResolvedValueOnce([{ _id: "catalog", data: [data.type] }])
       .mockResolvedValueOnce(5);
     const input = {
       ...data,
@@ -206,7 +284,7 @@ describe("Royal atomic document graph", () => {
   it("rejects assets owned by another event/applicant before any write", async () => {
     mocks.fetch
       .mockResolvedValueOnce({ ...event, eventType: "royal" })
-      .mockResolvedValueOnce([{ data: [data.type] }])
+      .mockResolvedValueOnce([{ _id: "catalog", data: [data.type] }])
       .mockResolvedValueOnce(0);
     await expect(
       createRoyalCompetitionRegistration({
@@ -248,7 +326,7 @@ describe("idempotent public operations", () => {
   it("does not allow the normal endpoint to bypass Royal images/address", async () => {
     mocks.fetch
       .mockResolvedValueOnce({ ...event, eventType: "royal" })
-      .mockResolvedValueOnce([{ data: [data.type] }]);
+      .mockResolvedValueOnce([{ _id: "catalog", data: [data.type] }]);
     await expect(createNewRegister(data)).rejects.toThrow("Royal");
     expect(mocks.create).not.toHaveBeenCalled();
   });

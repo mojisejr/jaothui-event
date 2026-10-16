@@ -308,7 +308,9 @@ const RoyalForm = ({
         setAutoAssignedClass({ competitionLevel, competitionType, message });
         setIsAutoAssigned(true);
       } else {
-        // Clear auto-assignment if not successful
+        // Clear stale choices when birthday/catalog eligibility changes.
+        setValue("competitionLevel", "");
+        setValue("competitionType", "");
         setAutoAssignedClass({
           competitionLevel: null,
           competitionType: null,
@@ -630,7 +632,9 @@ const RoyalForm = ({
                 </div>
               </div>
             </div>
-          ) : isAutoAssigned && autoAssignedClass?.competitionLevel ? (
+          ) : isAutoAssigned &&
+            watch("competitionType") === autoAssignedClass?.competitionType &&
+            autoAssignedClass?.competitionLevel ? (
             <div className="rounded-md bg-green-50 p-4">
               <div className="flex">
                 <div className="ml-3">
@@ -667,6 +671,67 @@ const RoyalForm = ({
               </div>
             </div>
           ) : null}
+
+          {((typesWithAutoAssignment?.specialNationalTypes.length ?? 0) > 0 ||
+            (typesWithAutoAssignment?.specialProvinceTypes.length ?? 0) >
+              0) && (
+            <div className="form-control">
+              <label className="label label-text" htmlFor="royal-class-choice">
+                รุ่นแข่งขัน / รุ่นพิเศษที่ผ่านเงื่อนไขอายุ
+              </label>
+              <select
+                id="royal-class-choice"
+                className="select select-bordered min-h-[44px] w-full text-base-content"
+                disabled={typeLoading || registering}
+                value={JSON.stringify([
+                  watch("competitionLevel") ?? "",
+                  watch("competitionType") ?? "",
+                ])}
+                onChange={(e) => {
+                  const [level, type] = JSON.parse(e.target.value) as [
+                    string,
+                    string,
+                  ];
+                  setValue("competitionLevel", level);
+                  setValue("competitionType", type);
+                }}
+              >
+                <option value={JSON.stringify(["", ""])}>
+                  -- กรุณาเลือกรุ่น --
+                </option>
+                {autoAssignedClass?.competitionLevel && (
+                  <option
+                    value={JSON.stringify([
+                      autoAssignedClass.competitionLevel,
+                      autoAssignedClass.competitionType,
+                    ])}
+                  >
+                    {autoAssignedClass.competitionType}
+                  </option>
+                )}
+                {typesWithAutoAssignment?.specialNationalTypes.map((type) => (
+                  <option
+                    key={`national-${type}`}
+                    value={JSON.stringify(["ประเทศ", type])}
+                  >
+                    {type.replace(/^\[SP\]\s*/, "")}
+                  </option>
+                ))}
+                {typesWithAutoAssignment?.specialProvinceTypes.map((type) => (
+                  <option
+                    key={`province-${type}`}
+                    value={JSON.stringify(["จังหวัด", type])}
+                  >
+                    {type.replace(/^\[SP\]\s*/, "")} (จังหวัด)
+                  </option>
+                ))}
+              </select>
+              <p className="text-sm">
+                รุ่นพิเศษตรวจอายุขั้นต่ำ/สูงสุดตามที่งานกำหนด
+                ส่วนคุณสมบัติอื่นให้เจ้าหน้าที่ตรวจสอบ
+              </p>
+            </div>
+          )}
 
           {/* Hidden inputs to hold auto-assigned values */}
           <input

@@ -3,6 +3,7 @@ import { type SanityClient } from "next-sanity";
 import { client } from "~/server/sanity/client";
 import {
   competitionInputSchema,
+  competitionExistingInputSchema,
   CompetitionAdminError,
   type CompetitionDTO,
   type CompetitionInput,
@@ -17,6 +18,11 @@ import {
 } from "~/server/services/competition-policy";
 import { z } from "zod";
 import dayjs from "dayjs";
+import {
+  normalizeClassName,
+  parseCompetitionClass,
+  validateCompetitionCatalog,
+} from "~/lib/competition-classes";
 import { getPossibleEvents, getSpecialEvents } from "~/utils/getPossibleEvents";
 
 type Doc = Record<string, any> & { _id: string; _rev: string };
@@ -129,8 +135,14 @@ function fields(input: CompetitionInput) {
       : {}),
   };
 }
-export function validatePublish(input: CompetitionInput) {
-  competitionInputSchema.parse(input);
+export function validatePublish(
+  input: CompetitionInput,
+  preserveLegacyCatalogs = false,
+) {
+  (preserveLegacyCatalogs
+    ? competitionExistingInputSchema
+    : competitionInputSchema
+  ).parse(input);
   for (const key of [
     "startAt",
     "endAt",
@@ -145,6 +157,16 @@ export function validatePublish(input: CompetitionInput) {
       error(422, "INCOMPLETE_EVENT", `กรุณาระบุ ${key} ก่อนเปิดงาน`);
   if (!input.catalogs.national.length && !input.catalogs.province.length)
     error(422, "INCOMPLETE_CATALOG", "กรุณาระบุอย่างน้อยหนึ่งรุ่นแข่งขัน");
+}
+function validateChangedCatalogs(
+  old: CompetitionInput,
+  next: CompetitionInput,
+) {
+  for (const level of ["national", "province"] as const) {
+    if (hash(old.catalogs[level]) === hash(next.catalogs[level])) continue;
+    const errors = validateCompetitionCatalog(next.catalogs[level]);
+    if (errors.length) error(422, "INVALID_CATALOG", errors.join("; "));
+  }
 }
 export class CompetitionAdminService {
   constructor(private readonly db: SanityClient = client) {}
@@ -166,7 +188,18 @@ export class CompetitionAdminService {
       competitionIndexedRevision: joined?._rev,
       imageAssetId: strong.image?.asset?._ref,
       imageUrl: joined?.imageUrl,
-      catalogDocuments: joined?.catalogDocuments ?? [],
+      catalogDocuments: (
+        await Promise.all(
+          ((joined?.catalogDocuments ?? []) as Doc[]).map((catalog) =>
+            this.db.getDocument<Doc>(catalog._id),
+          ),
+        )
+      ).filter(
+        (catalog): catalog is NonNullable<typeof catalog> =>
+          !!catalog &&
+          ["nationalEventType", "provinceEventType"].includes(catalog._type) &&
+          catalog.event?._ref === id,
+      ),
       registrationCount: Math.max(
         joined?.registrationCount ?? 0,
         strong.competitionRegistrationCount ?? 0,
@@ -290,13 +323,14 @@ export class CompetitionAdminService {
     raw: CompetitionInput,
     review?: { reportId: string; reviewReference: string; reason: string },
   ) {
-    const input = competitionInputSchema.parse(raw);
+    const input = competitionExistingInputSchema.parse(raw);
     const payload = { action: "update", id, revision, input, review };
     const previous = await this.previous(operationId, payload);
     if (previous) return this.detail(previous);
     const doc = await this.source(id);
     this.revision(doc, revision);
     const old = config(doc);
+    validateChangedCatalogs(old, input);
     const rulesChanged =
       old.buffaloAgeDeadline !== input.buffaloAgeDeadline ||
       old.eventType !== input.eventType ||
@@ -326,7 +360,7 @@ export class CompetitionAdminService {
       doc.competitionState === "published" ||
       (!doc.competitionState && doc.isActive)
     )
-      validatePublish(input);
+      validatePublish(input, true);
     await this.asset(input);
     let tx = this.db.transaction().patch(id, (p) =>
       p
@@ -361,6 +395,12 @@ export class CompetitionAdminService {
           "พบเอกสารรุ่นซ้ำ กรุณาตรวจข้อมูลเดิมก่อนแก้ไข",
         );
       const existing = catalogs[0];
+      if (
+        existing &&
+        hash(existing.data ?? []) === hash(labels) &&
+        existing.eventName === input.title
+      )
+        continue;
       if (existing)
         tx = tx.patch(existing._id, (p) =>
           p
@@ -483,9 +523,10 @@ export class CompetitionAdminService {
     return this.detail(id);
   }
   async impact(id: string, revision: string, raw: CompetitionInput) {
-    const input = competitionInputSchema.parse(raw);
+    const input = competitionExistingInputSchema.parse(raw);
     const doc = await this.source(id);
     this.revision(doc, revision);
+    validateChangedCatalogs(config(doc), input);
     if (doc.competitionIndexedRevision !== doc._rev)
       return error(
         409,
@@ -507,11 +548,6 @@ export class CompetitionAdminService {
         a.level === "จังหวัด" || a.level === "province"
           ? "province"
           : "national";
-      const normalize = (label: string) =>
-        label
-          .replace(/\[SP\]/g, "")
-          .trim()
-          .replace(/\s+/g, " ");
       const previousCatalog = config(doc).catalogs[level],
         nextCatalog = input.catalogs[level];
       let oldAge: number | null = null,
@@ -530,7 +566,7 @@ export class CompetitionAdminService {
               ...new Set(
                 [
                   ...getPossibleEvents(oldAge, previousCatalog),
-                  ...getSpecialEvents(previousCatalog),
+                  ...getSpecialEvents(previousCatalog, oldAge),
                 ].filter((label): label is string => !!label),
               ),
             ];
@@ -541,15 +577,17 @@ export class CompetitionAdminService {
               ...new Set(
                 [
                   ...getPossibleEvents(newAge, nextCatalog),
-                  ...getSpecialEvents(nextCatalog),
+                  ...getSpecialEvents(nextCatalog, newAge),
                 ].filter((label): label is string => !!label),
               ),
             ];
       const oldEligible = oldPossibleClasses.some(
-        (label) => normalize(label) === normalize(a.type ?? ""),
+        (label) =>
+          normalizeClassName(label) === normalizeClassName(a.type ?? ""),
       );
       const newEligible = newPossibleClasses.some(
-        (label) => normalize(label) === normalize(a.type ?? ""),
+        (label) =>
+          normalizeClassName(label) === normalizeClassName(a.type ?? ""),
       );
       const adjustedBirthday =
         doc.eventType === "royal" &&
@@ -583,8 +621,10 @@ export class CompetitionAdminService {
         newEligible,
         type: a.type,
         level: a.level,
-        special: getSpecialEvents(previousCatalog).some(
-          (label) => normalize(label) === normalize(a.type ?? ""),
+        special: previousCatalog.some(
+          (label) =>
+            parseCompetitionClass(label)?.kind === "special" &&
+            normalizeClassName(label) === normalizeClassName(a.type ?? ""),
         ),
         affected:
           oldAge !== newAge || oldEligible !== newEligible || !newEligible,
@@ -711,13 +751,11 @@ export class CompetitionAdminService {
     );
     const allowed = [
       ...getPossibleEvents(authoritativeAge, catalogs),
-      ...getSpecialEvents(catalogs),
+      ...getSpecialEvents(catalogs, authoritativeAge),
     ].filter((label): label is string => !!label);
     if (
       !allowed.some(
-        (label) =>
-          label.replace(/^\[SP\]\s*/, "") ===
-          data.type.replace(/^\[SP\]\s*/, ""),
+        (label) => normalizeClassName(label) === normalizeClassName(data.type),
       )
     )
       return error(422, "INVALID_CLASS", "รุ่นแข่งขันไม่อยู่ในรายการของงาน");
@@ -747,7 +785,12 @@ export class CompetitionAdminService {
         _id: registrationId,
         _type: "eventRegister",
         ...data,
-        type: data.type.replace(/^\[SP\]\s*/, ""),
+        type: normalizeClassName(
+          allowed.find(
+            (label) =>
+              normalizeClassName(label) === normalizeClassName(data.type),
+          )!,
+        ),
         buffaloAge: authoritativeAge,
         level: data.level === "province" ? "จังหวัด" : "ประเทศ",
         event: ref(id),

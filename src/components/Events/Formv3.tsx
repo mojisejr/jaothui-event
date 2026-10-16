@@ -111,11 +111,17 @@ const FormV3 = ({
         // When entering manual mode, clear all auto-assignment states
         setIsAutoAssigned(false);
         setAutoAssignedClass(null);
-        setValue("competitionLevel", "");
+        setValue(
+          "competitionLevel",
+          (typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) === 0 &&
+            (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) > 0
+            ? "ประเทศ"
+            : "",
+        );
         setValue("competitionType", "");
       }
     },
-    [setValue],
+    [setValue, typesWithAutoAssignment],
   );
 
   const onSubmit = handleSubmit(async (data) => {
@@ -145,7 +151,7 @@ const FormV3 = ({
           : undefined,
         operationId: operationId.current,
         name: data.buffaloName,
-        type: data.competitionType.replace("[SP]", "").trim(),
+        type: data.competitionType.replace(/^\[SP\]\s*/, "").trim(),
         level: data.competitionLevel,
         ownerName: `${data.firstName} ${data.lastName}`,
         sex: data.buffaloSex,
@@ -171,7 +177,7 @@ const FormV3 = ({
           : undefined,
         operationId: operationId.current,
         name: data.buffaloName,
-        type: data.competitionType.replace("[SP]", "").trim(),
+        type: data.competitionType.replace(/^\[SP\]\s*/, "").trim(),
         level: data.competitionLevel,
         ownerName: `${data.firstName} ${data.lastName}`,
         sex: data.buffaloSex,
@@ -524,7 +530,7 @@ const FormV3 = ({
                       รุ่นพิเศษที่เลือก:
                     </p>
                     <p className="mt-1 text-sm font-bold text-orange-900">
-                      {watch("competitionType")?.replace("[SP]", "").trim()}
+                      {watch("competitionType")?.replace(/^\[SP\]\s*/, "").trim()}
                     </p>
                     <p className="text-xs text-orange-700">
                       ({watch("competitionLevel")})
@@ -552,8 +558,10 @@ const FormV3 = ({
                       {...register("competitionLevel", { required: true })}
                     >
                       <option value="">-- กรุณาเลือก --</option>
-                      <option value="จังหวัด">ระดับจังหวัด</option>
-                      <option value="ประเทศ">ระดับประเทศ</option>
+                      {(typesWithAutoAssignment?.specialProvinceTypes?.length ??
+                        0) > 0 && <option value="จังหวัด">ระดับจังหวัด</option>}
+                      {(typesWithAutoAssignment?.specialNationalTypes?.length ??
+                        0) > 0 && <option value="ประเทศ">ระดับประเทศ</option>}
                     </select>
                   </div>
                   {watch("competitionLevel") && (
@@ -571,7 +579,7 @@ const FormV3 = ({
                             {typesWithAutoAssignment?.specialProvinceTypes?.map(
                               (type, idx) => (
                                 <option key={`prov-sp-${idx}`} value={type}>
-                                  {type.replace("[SP]", "").trim()}
+                                  {type.replace(/^\[SP\]\s*/, "").trim()}
                                 </option>
                               ),
                             )}
@@ -582,7 +590,7 @@ const FormV3 = ({
                             {typesWithAutoAssignment?.specialNationalTypes?.map(
                               (type, idx) => (
                                 <option key={`nat-sp-${idx}`} value={type}>
-                                  {type.replace("[SP]", "").trim()}
+                                  {type.replace(/^\[SP\]\s*/, "").trim()}
                                 </option>
                               ),
                             )}
@@ -592,7 +600,8 @@ const FormV3 = ({
                     </div>
                   )}
                   <p className="text-[10px] italic text-orange-700">
-                    * ระบบจะแสดงเฉพาะรุ่นพิเศษที่ไม่สามารถคำนวณจากอายุได้
+                    * แสดงรุ่นพิเศษที่ผ่านเงื่อนไขอายุแล้ว
+                    คุณสมบัติอื่นให้เจ้าหน้าที่ตรวจสอบ
                   </p>
                 </div>
               )}
