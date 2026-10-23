@@ -1,3 +1,8 @@
+import {
+  competitionAdminPage,
+  type CompetitionCutoverProps,
+} from "~/server/admin/legacy-competition-cutover";
+import CompetitionAdminUnavailable from "~/components/Admin/CompetitionAdminUnavailable";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { DashboardMenu } from "~/components/Admin/DashboardMenu";
@@ -6,7 +11,19 @@ import VotesTab from "~/components/Admin/VotesTab";
 import AdminRegistrationForm from "~/components/Admin/AdminRegistrationForm";
 import { useAdmin } from "~/context/adminContext";
 
-export default function AdminDashboard() {
+export const getServerSideProps = competitionAdminPage("index");
+
+export default function AdminDashboard({
+  competitionAdminUnavailable,
+}: CompetitionCutoverProps) {
+  return competitionAdminUnavailable ? (
+    <CompetitionAdminUnavailable />
+  ) : (
+    <LegacyAdminDashboard />
+  );
+}
+
+function LegacyAdminDashboard() {
   const { admin } = useAdmin();
   const { replace, query } = useRouter();
   const { tab } = query;

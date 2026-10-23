@@ -1,10 +1,4 @@
-import {
-  ReactNode,
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { ReactNode, createContext, useContext } from "react";
 import { useLine } from "./lineContext";
 import { api } from "~/utils/api";
 
@@ -18,26 +12,17 @@ const defaultContext: contextType = { admin: false };
 const AdminContext = createContext(defaultContext);
 
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const [admin, setAdmin] = useState<boolean>(false);
-  const { liff, profile } = useLine();
-  const { data: user, refetch } = api.user.getById.useQuery({
-    userId: profile?.userId!,
-  });
+  const { profile } = useLine();
+  const userId = profile?.userId ?? "";
+  const { data: user } = api.user.getById.useQuery(
+    { userId },
+    { enabled: Boolean(userId) },
+  );
 
-  useEffect(() => {
-    void isAdmin();
-    void refetch();
-  }, [user, liff]);
-
-  async function isAdmin() {
-    if (user?.role === "ADMIN") {
-      setAdmin(true);
-    } else {
-      setAdmin(false);
-    }
-  }
-
-  const value = { admin, adminUser: user };
+  const value = {
+    admin: Boolean(userId && user?.role === "ADMIN"),
+    adminUser: user,
+  };
   return (
     <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
   );

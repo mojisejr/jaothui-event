@@ -19,6 +19,13 @@
 - **Testing**: [Vitest](https://vitest.dev/) (Root-level TDD)
 
 ## 🗺️ Key Landmarks
+- Competition authority (verified 2026-10-24, #106): Sanity `event` → national/province catalogs and `eventRegister`; Royal supplements are `eventImage`, `eventAddress`, `approvment`. Competition writes below use Sanity, not the legacy Prisma diagram.
+- [src/server/admin/competition-service.ts](src/server/admin/competition-service.ts): canonical event/catalog/application/onsite/approval/export service; revision fences, idempotency and historical age preservation.
+- [src/pages/api/admin/competitions/[[...path]].ts](src/pages/api/admin/competitions/[[...path]].ts): authenticated REST bridge called by dashboard; write kill switch retains read/export.
+- [src/server/services/competition-policy.ts](src/server/services/competition-policy.ts), [competition-registration.service.ts](src/server/services/competition-registration.service.ts): inclusive Bangkok dates, independent signup/event closure and public/onsite eligibility.
+- [src/lib/competition-classes.ts](src/lib/competition-classes.ts): versioned class codec and legacy reader; preserve during rollback.
+- [src/server/admin/legacy-competition-cutover.ts](src/server/admin/legacy-competition-cutover.ts), [src/server/api/legacy-competition-procedure.ts](src/server/api/legacy-competition-procedure.ts): opt-in competition-only SSR redirects and old API guard before caller-userId authorization. `/admin/roll`, exact `tab=votes` and public signup/status/history are outside cutover.
+- [docs/competition-admin-api.md](docs/competition-admin-api.md), [.env.example](.env.example): source-first release/configuration/recovery; production and real LINE/operator acceptance remain separate gates.
 - [src/server/api/routers/](src/server/api/routers/): แหล่งรวม tRPC Routers (Admin, Event, Register, User)
 - [src/server/services/](src/server/services/): Business Logic Layer แยกออกจาก Router (e.g., `event-visibility.service.ts`)
 - [prisma/schema.prisma](prisma/schema.prisma): Database Blueprint
@@ -60,12 +67,12 @@ erDiagram
 
 ## �🔄 Data Flow
 1. **User Side**: LINE LIFF -> [Next.js Frontend] -> [tRPC Client] -> [tRPC Router] -> [Service Layer] -> [Prisma/Sanity]
-2. **Admin Side**: Dashboard UI -> [Admin Router] -> [Admin Service] -> [Prisma]
+2. **Competition Admin Side (#106)**: dashboard shared login → protected server proxy → authenticated source REST bridge → canonical competition service → Sanity. Old competition admin pages/APIs disable only by explicit cutover after dashboard readiness.
 3. **Storage**: [Upload Service] -> [AWS S3 / Supabase Storage]
 
 ## 🐉 Challenges & Dragons
 - ** Buffalo Age Calculation**: การคำนวณอายุควายตามเกณฑ์การประกวด (ต้องแม่นยำระดับเดือน)
-- **Admin Visibility Grace Period**: เงื่อนไขพิเศษที่ Admin ต้องเห็นงานได้นานกว่า Public (วันจบงาน + 1 วัน)
+- **Competition Eligibility**: public signup can close before event end; onsite only through inclusive Bangkok event end day, with no extra-day mutation grace. History/read/export remain available after closure.
 - **Hybrid Router**: การจัดการโปรเจกต์ที่มีทั้ง Pages Router และ App Router (Legacy vs Modern)
 - **External Integration**: ความเสถียรของการเชื่อมต่อ LINE LIFF และการจัดการ Token
 

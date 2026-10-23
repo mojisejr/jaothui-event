@@ -1,3 +1,4 @@
+import { assertLegacyCompetitionAdminEnabled } from "~/server/admin/legacy-competition-cutover";
 import {
   prepareCompetitionRegistration,
   registrationTransaction,
@@ -31,6 +32,7 @@ export interface AdminRegisterResult {
 export async function createAdminRegister(
   data: AdminRegisterDTO,
 ): Promise<AdminRegisterResult> {
+  assertLegacyCompetitionAdminEnabled();
   try {
     const prepared = await prepareCompetitionRegistration(data, "onsite");
     // Check for duplicate microchip in same event
@@ -148,6 +150,7 @@ export async function checkDuplicateMicrochip(
   exists: boolean;
   registration?: any;
 }> {
+  assertLegacyCompetitionAdminEnabled();
   try {
     const query = groq`*[_type == "eventRegister" && event._ref == "${eventId}" && microchip == "${microchip}"][0]{
       _id,

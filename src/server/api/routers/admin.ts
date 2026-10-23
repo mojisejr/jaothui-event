@@ -1,5 +1,9 @@
 import { verifyApplicantAuthorization } from "~/server/services/line-auth.service";
-import { admin, createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter } from "../trpc";
+import {
+  legacyCompetitionAdminProcedure,
+  legacyCompetitionProcedure,
+} from "../legacy-competition-procedure";
 import z from "zod";
 import {
   type AdminRegisterDTO,
@@ -13,7 +17,7 @@ export const adminRouter = createTRPCRouter({
    * Get events visible to admin registration flow
    * Uses admin visibility logic (allows post-deadline while event is still active)
    */
-  getActiveEvents: publicProcedure.query(async () => {
+  getActiveEvents: legacyCompetitionProcedure.query(async () => {
     const { getAdminActiveEvents } = await import(
       "~/server/services/event.service"
     );
@@ -24,7 +28,7 @@ export const adminRouter = createTRPCRouter({
    * Check if a microchip is already registered for an event
    * Used for duplicate detection with admin override
    */
-  checkDuplicate: publicProcedure
+  checkDuplicate: legacyCompetitionProcedure
     .input(
       z.object({
         eventId: z.string(),
@@ -42,7 +46,7 @@ export const adminRouter = createTRPCRouter({
    * - Admin user association
    * - Duplicate detection with override option
    */
-  registerAdminEvent: admin
+  registerAdminEvent: legacyCompetitionAdminProcedure
     .input(
       z.object({
         eventId: z.string(),

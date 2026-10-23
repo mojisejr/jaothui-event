@@ -1,3 +1,4 @@
+import { assertLegacyCompetitionAdminEnabled } from "~/server/admin/legacy-competition-cutover";
 import {
   registrationIdentity,
   existingRegistration,
@@ -154,6 +155,7 @@ export async function canRgister(eventId: string, microchip: string) {
 }
 
 export async function getRegisterByEvent(eventId: string) {
+  assertLegacyCompetitionAdminEnabled();
   try {
     const query = groq`*[_type == "eventRegister" && event._ref == "${eventId}"]{
       _id,

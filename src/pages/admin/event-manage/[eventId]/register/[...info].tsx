@@ -1,3 +1,8 @@
+import {
+  competitionAdminPage,
+  type CompetitionCutoverProps,
+} from "~/server/admin/legacy-competition-cutover";
+import CompetitionAdminUnavailable from "~/components/Admin/CompetitionAdminUnavailable";
 import React, { useEffect } from "react";
 import { useRouter } from "next/router";
 import { useLine } from "~/context/lineContext";
@@ -7,7 +12,19 @@ import RegisterAddressDetail from "~/components/Admin/RegisterAddressDetail";
 import RegisterImagesDetail from "~/components/Admin/RegisterImagesDetail";
 import RegisterApprovementDetail from "~/components/Admin/RegisterApprovementDetail";
 
-export default function RegisterDetailPage() {
+export const getServerSideProps = competitionAdminPage("application");
+
+export default function RegisterDetailPage({
+  competitionAdminUnavailable,
+}: CompetitionCutoverProps) {
+  return competitionAdminUnavailable ? (
+    <CompetitionAdminUnavailable />
+  ) : (
+    <LegacyRegisterDetailPage />
+  );
+}
+
+function LegacyRegisterDetailPage() {
   const { query, replace } = useRouter();
   const { profile } = useLine();
   const { admin } = useAdmin();
@@ -41,8 +58,16 @@ export default function RegisterDetailPage() {
     <div className="h-screen w-full overflow-y-scroll text-white">
       <div className="flex flex-col gap-2 p-2">
         <RegisterGeneralDetail userId={registerId} />
-        <RegisterAddressDetail userId={profile?.userId} targetId={registerId} eventId={eventId} />
-        <RegisterImagesDetail userId={profile?.userId} targetId={registerId} eventId={eventId} />
+        <RegisterAddressDetail
+          userId={profile?.userId}
+          targetId={registerId}
+          eventId={eventId}
+        />
+        <RegisterImagesDetail
+          userId={profile?.userId}
+          targetId={registerId}
+          eventId={eventId}
+        />
         <RegisterApprovementDetail
           userId={profile?.userId}
           targetId={targetId}

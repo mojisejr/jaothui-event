@@ -1,7 +1,8 @@
 import { verifyApplicantAuthorization } from "~/server/services/line-auth.service";
 import { createRoyalCompetitionRegistration } from "~/server/services/competition-registration.service";
-import { admin, createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure } from "../trpc";
 import z from "zod";
+import { legacyCompetitionAdminProcedure } from "../legacy-competition-procedure";
 import type { CreateNewEventRegisterDTO } from "~/interfaces/CreateNewEventRegisterDTO";
 import { TRPCError } from "@trpc/server";
 import {
@@ -165,7 +166,7 @@ export const registerEventRouter = createTRPCRouter({
     .query(async ({ input }) => {
       return await getById(input.id);
     }),
-  getAllRegisterByEvent: admin
+  getAllRegisterByEvent: legacyCompetitionAdminProcedure
     .input(z.object({ userId: z.string(), eventId: z.string() }))
     .query(async ({ input }) => {
       return await getRegisterByEvent(input.eventId);

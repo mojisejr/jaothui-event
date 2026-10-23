@@ -6,6 +6,7 @@ const stubs = vi.hoisted(() => ({
   list: vi.fn(),
   metadata: vi.fn(),
   retry: vi.fn(),
+  export: vi.fn(),
 }));
 vi.mock("~/server/sanity/client", () => ({
   client: { assets: { upload: stubs.upload } },
@@ -15,6 +16,7 @@ vi.mock("~/server/admin/competition-service", () => ({
     list = stubs.list;
     metadata = stubs.metadata;
     retryNotification = stubs.retry;
+    export = stubs.export;
   },
 }));
 import handler from "~/pages/api/admin/competitions/[[...path]]";
@@ -53,6 +55,7 @@ beforeEach(() => {
   stubs.list.mockReset();
   stubs.metadata.mockReset();
   stubs.retry.mockReset();
+  stubs.export.mockReset();
 });
 describe("source competition HTTP boundary", () => {
   it("rejects unauthenticated callers and never invokes read service", async () => {
@@ -68,6 +71,24 @@ describe("source competition HTTP boundary", () => {
     await handler(x.req, x.res);
     expect(x.result.status).toBe(503);
     expect(x.result.body.error.code).toBe("WRITES_DISABLED");
+  });
+  it("keeps authenticated list and historical export available with both cutover and write kill switch active", async () => {
+    vi.stubEnv("COMPETITION_LEGACY_ADMIN_DISABLED", "true");
+    vi.stubEnv("JAOTHUI_COMPETITION_ADMIN_WRITES_ENABLED", "false");
+    stubs.list.mockResolvedValue({ events: [{ id: "ended-event" }] });
+    stubs.export.mockResolvedValue({
+      event: { id: "ended-event" },
+      registrations: [],
+    });
+    const list = exchange([], "GET");
+    await handler(list.req, list.res);
+    expect(list.result.status).toBe(200);
+    const exported = exchange(["ended-event", "export"], "GET");
+    await handler(exported.req, exported.res);
+    expect(exported.result.status).toBe(200);
+    expect(stubs.export).toHaveBeenCalledWith("ended-event");
+    expect(exported.result.body.data.event.id).toBe("ended-event");
+    vi.unstubAllEnvs();
   });
   it("enforces the actual streamed image byte limit before uploading", async () => {
     const x = exchange(["cover"], "POST", Buffer.alloc(4 * 1024 * 1024 + 1), {

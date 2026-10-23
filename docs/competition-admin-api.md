@@ -5,21 +5,25 @@ Related work: [#106](https://github.com/mojisejr/jaothui-event/issues/106).
 The event application owns competition rules and Sanity mutations. Dashboard
 operators use the existing shared dashboard login; its server calls this REST
 bridge. The dashboard must not receive a Sanity writer credential in browser code.
-This checkpoint covers source foundations and the event workspace. Production
-admin cutover remains on hold until phases 4–5, application/onsite UI verification,
-and the designated LINE operator proof are complete.
+Phases 1–4 implement the policy, bridge, dashboard workspace, application review,
+onsite entry and exports. Phase 5 adds the opt-in legacy admin cutover and release
+regression coverage. Production cutover remains pending complete engineering
+verification, designated LINE proof and operator acceptance; code readiness is
+not production acceptance.
 
 ## Configuration
 
-| Variable | Purpose and default |
-| --- | --- |
-| `JAOTHUI_COMPETITION_ADMIN_API_KEY` | Source server bearer secret, at least 32 characters. Missing/short configuration fails closed. Match the dashboard server setting; never expose it through `NEXT_PUBLIC_*`. |
-| `JAOTHUI_COMPETITION_ADMIN_WRITES_ENABLED` | Only the exact value `true` permits bridge mutations, including cover uploads and impact report creation. Default: disabled. Reads still require the bearer secret. |
-| `SANITY_API_WRITE_TOKEN` | Preferred server-only Sanity writer token. Provision the appropriate project/dataset permissions. |
-| `NEXT_PUBLIC_SANITY_PROJECT_ID` / `NEXT_PUBLIC_SANITY_DATASET` | Existing Sanity project/dataset selection. The server writer and public readers must target the intended same dataset. |
-| `LINE_LOGIN_CHANNEL_ID` | Preferred LINE Login channel used to verify public applicant credentials. If absent, the channel prefix of `NEXT_PUBLIC_LIFF_ID` is used. |
-| `COMPETITION_LINE_NOTIFICATIONS_ENABLED` | Only exact `true` enables the new admin notification retry path. Default: disabled. Approval persistence remains separate from delivery. |
-| `oa_token` | Existing LINE Messaging API credential, needed for enabled delivery. Keep server-only. |
+| Variable                                                       | Purpose and default                                                                                                                                                                                                                                |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `JAOTHUI_COMPETITION_ADMIN_API_KEY`                            | Source server bearer secret, at least 32 characters. Missing/short configuration fails closed. Match the dashboard server setting; never expose it through `NEXT_PUBLIC_*`.                                                                        |
+| `JAOTHUI_COMPETITION_ADMIN_WRITES_ENABLED`                     | Only the exact value `true` permits bridge mutations, including cover uploads and impact report creation. Default: disabled. Reads still require the bearer secret.                                                                                |
+| `SANITY_API_WRITE_TOKEN`                                       | Preferred server-only Sanity writer token. Provision the appropriate project/dataset permissions.                                                                                                                                                  |
+| `NEXT_PUBLIC_SANITY_PROJECT_ID` / `NEXT_PUBLIC_SANITY_DATASET` | Existing Sanity project/dataset selection. The server writer and public readers must target the intended same dataset.                                                                                                                             |
+| `LINE_LOGIN_CHANNEL_ID`                                        | Preferred LINE Login channel used to verify public applicant credentials. If absent, the channel prefix of `NEXT_PUBLIC_LIFF_ID` is used.                                                                                                          |
+| `COMPETITION_LINE_NOTIFICATIONS_ENABLED`                       | Only exact `true` enables the new admin notification retry path. Default: disabled. Approval persistence remains separate from delivery.                                                                                                           |
+| `oa_token`                                                     | Existing LINE Messaging API credential, needed for enabled delivery. Keep server-only.                                                                                                                                                             |
+| `COMPETITION_LEGACY_ADMIN_DISABLED`                            | Only exact `true` disables old competition admin procedures/services and redirects old competition admin pages. Missing/false retains source-first compatibility. Independent of bridge write/LINE switches.                                       |
+| `JAOTHUI_COMPETITION_DASHBOARD_URL`                            | Source-server destination: HTTPS origin or exact `/dashboard/competitions` base. No credentials, query, fragment or other path. Loopback HTTP only outside production. Invalid/missing config with cutover on serves safe503 with no old controls. |
 
 The server writer temporarily falls back to the old `NEXT_PUBLIC_SANITY_TOKEN`
 value when `SANITY_API_WRITE_TOKEN` is absent. That lookup is confined to the
@@ -38,18 +42,18 @@ All routes live under `/api/admin/competitions` and require
 `Authorization: Bearer <server secret>`. Responses use `{data: ...}` or a
 sanitized `{error: {code, message}}`; responses are not cached.
 
-| Method/path | Operation |
-| --- | --- |
-| `GET /` | Search, composed lifecycle/registration/type/date filters, paging and counts. |
-| `POST /` | Create a hidden competition draft and its catalogs atomically. |
-| `GET /:id`, `PATCH /:id` | Read or replace editable configuration. |
+| Method/path                                                                                | Operation                                                                                                  |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `GET /`                                                                                    | Search, composed lifecycle/registration/type/date filters, paging and counts.                              |
+| `POST /`                                                                                   | Create a hidden competition draft and its catalogs atomically.                                             |
+| `GET /:id`, `PATCH /:id`                                                                   | Read or replace editable configuration.                                                                    |
 | `POST /:id/publish`, `/close-registration`, `/open-registration`, `/close-event`, `/clone` | Publish, manual controls, or copy configuration/catalogs into a new draft. Cloning does not copy entrants. |
-| `POST /cover` | Raw JPEG/PNG/WebP/GIF upload, maximum 4 MiB; validates the file signature. |
-| `POST /:id/impact-report`, `/apply-reviewed-rules` | Report proposed rule changes and apply them with an external review reference/reason. |
-| `GET /:id/applications`, `GET /:id/applications/:registrationId` | Application list/detail; the registration must belong to the event. |
-| `POST /:id/onsite`, `POST /:id/applications/:registrationId/approval` | Staff entry or approval/rejection, with separate actor provenance. |
-| `POST /:id/applications/:registrationId/retry-notification` | Explicit delivery retry; requires notification enablement and an actual applicant recipient. |
-| `GET /:id/export` | Authoritative event configuration and stored application data for dashboard exports. |
+| `POST /cover`                                                                              | Raw JPEG/PNG/WebP/GIF upload, maximum 4 MiB; validates the file signature.                                 |
+| `POST /:id/impact-report`, `/apply-reviewed-rules`                                         | Report proposed rule changes and apply them with an external review reference/reason.                      |
+| `GET /:id/applications`, `GET /:id/applications/:registrationId`                           | Application list/detail; the registration must belong to the event.                                        |
+| `POST /:id/onsite`, `POST /:id/applications/:registrationId/approval`                      | Staff entry or approval/rejection, with separate actor provenance.                                         |
+| `POST /:id/applications/:registrationId/retry-notification`                                | Explicit delivery retry; requires notification enablement and an actual applicant recipient.               |
+| `GET /:id/export`                                                                          | Authoritative event configuration and stored application data for dashboard exports.                       |
 
 Create/configuration/action/onsite/approval requests carry a UUID `operationId`.
 Reuse it with the identical payload when retrying an uncertain request. Reusing
@@ -111,22 +115,60 @@ mutation proof. Set the dataset explicitly on both source and dashboard and
 keep notification delivery disabled. Never point a proof script at production
 or send to a real recipient without the designated operator boundary.
 
-1. Deploy source policy/read compatibility and the authenticated bridge first,
-   with bridge writes and new admin notifications disabled.
-2. Provision the server-only writer and bridge settings; verify authorized
-   reads, credential boundaries and the intended dataset.
-3. Deploy the dashboard workspace and finish phases 4–5, regression, legacy
-   cutover and operator verification, including real LINE credentials/delivery.
-4. Enable production writes only after those release gates are satisfied.
-   Enable new admin LINE delivery separately after its operator proof.
+Feature PRs target `staging`. Source production is Vercel project
+`jaothui-events`, branch `main`, default host `jaothui-events.vercel.app`.
+Dashboard production is `jaothui-dashboard`, branch `main`, public host
+`dboard.jaothui.com`. Preview deployment or staging merge is not production
+acceptance. No Sanity schema migration or bulk historical repair is required.
+
+1. Complete engineering/preview proof on isolated `dev`; keep LINE disabled
+   until a designated test recipient and send authorization are supplied. Preserve
+   the deployed-source recovery checkpoint.
+2. Release source feature → `staging` → `main` first, with legacy cutover false,
+   bridge writes false and LINE false. Provision the server-only Sanity writer
+   and matching bridge secret (>=32 chars); verify authorized reads and matching
+   Sanity project/dataset. Public LINE login/signup/status/history must still work.
+3. Release dashboard feature → `staging` → `main`, configuring its source base URL
+   and matching server-only key. Retain existing shared username/password/JWT
+   secret. Verify login, event IDs, application history and old/new exports.
+4. After release gates and explicit production authorization, enable bridge writes
+   for the controlled operator journey. Enable admin LINE separately only for the
+   approved test recipient; verify physical receipt, not merely `sent`.
+5. Set `JAOTHUI_COMPETITION_DASHBOARD_URL=https://dboard.jaothui.com` and
+   `COMPETITION_LEGACY_ADMIN_DISABLED=true` on source, redeploy, then verify old
+   page redirects and direct obsolete API denial. A valid but unavailable dashboard
+   remains the destination; an outage never restores old writes. Invalid/missing
+   destination serves safe503 with no legacy controls.
+
+Legacy route mapping (temporary redirect, private/no-store):
+
+| Source page                                                           | Dashboard destination                                           |
+| --------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `/admin`, `/admin?tab=event`, `/admin?tab=registration`               | `/dashboard/competitions`                                       |
+| `/admin/event-manage/:eventId`                                        | `/dashboard/competitions/:eventId/applications`                 |
+| `/admin/event-manage/:eventId/register/:registrationId/:legacyUserId` | `/dashboard/competitions/:eventId/applications/:registrationId` |
+
+Profile admin navigation goes through the controlled `/admin?tab=event` entry.
+Redirects use validated server route params, never caller query destinations,
+tokens or old LINE/user IDs. Dashboard authorization and event/application
+association checks still run. `/admin?tab=votes`, `/admin/roll`, vote/raffle APIs
+and public LINE login/signup/status/history retain existing behavior. Cutover
+guards only old competition APIs: onsite, duplicate checks, event registrant
+lists and Royal admin detail/approval. Public `royal.getStatus` stays available.
+Guards run before caller-userId admin lookup and storage/provider work, including
+direct forged-ID requests.
 
 To stop new dashboard changes, set
 `JAOTHUI_COMPETITION_ADMIN_WRITES_ENABLED=false` on the source and redeploy/reload
 its environment. Keep `COMPETITION_LINE_NOTIFICATIONS_ENABLED=false` to stop new
 admin delivery retries. Preserve additive schema fields, IDs and records; do
 not run a destructive down-migration or automatically restore obsolete admin
-write paths. These switches control the new admin bridge; public signup still
-follows its authoritative event policy.
+write paths. Keep `COMPETITION_LEGACY_ADMIN_DISABLED=true` after cutover even
+when dashboard writes are stopped; authenticated bridge reads/export remain
+usable. Recover forward from the compatible checkpoint; never deploy a reader
+predating `@jaothui/class:v1:` after managed catalogs exist. Public signup still
+follows its authoritative event policy. Existing malformed historical labels
+remain unchanged and require explicit review before copying/reusing them.
 
 ## Class builder refinement (#106, #56)
 
@@ -148,5 +190,6 @@ optional minimum/maximum ages; other criteria remain staff checks. Specials are
 never automatic normal-class assignments. The admin bridge accepts at most200
 rows/catalog,2000 characters/stored row; streamed JSON cap is3MiB. New dashboard
 events use national-backed catalogs while province legacy reads stay supported.
-The Phase3 refinement does not deliver Phase4 application/onsite UI or Phase5
-production cutover; no Sanity schema or vote behavior changes are included.
+Phase4 adds application review/onsite/export UI. Phase5 supplies opt-in cutover
+and integration proof; actual LINE receipt and operator acceptance are separate
+pending gates. No Sanity schema or vote behavior changes are included.
