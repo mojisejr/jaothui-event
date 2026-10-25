@@ -6,23 +6,31 @@ import {
   approve,
   getPublicApprovementStatus,
 } from "~/server/services/royal.service";
-import { createTRPCRouter, royalAdmin, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure } from "../trpc";
 import { z } from "zod";
 import { royalApprovementMessageParser } from "~/server/messaging/message-parser";
 import { notify } from "~/server/messaging/notification";
 
+import { legacyRoyalCompetitionAdminProcedure } from "../legacy-competition-procedure";
+
 export const royalAdminRoutes = createTRPCRouter({
-  getAllRegistered: royalAdmin
+  getAllRegistered: legacyRoyalCompetitionAdminProcedure
     .input(z.object({ userId: z.string(), eventId: z.string() }))
     .query(async ({ input }) => {
       return await getAllRegistered(input.eventId);
     }),
-  getAddress: royalAdmin
-    .input(z.object({ targetId: z.string(), userId: z.string(), eventId: z.string() }))
+  getAddress: legacyRoyalCompetitionAdminProcedure
+    .input(
+      z.object({
+        targetId: z.string(),
+        userId: z.string(),
+        eventId: z.string(),
+      }),
+    )
     .query(async ({ input }) => {
       return await getAddress(input.eventId, input.targetId);
     }),
-  getImages: royalAdmin
+  getImages: legacyRoyalCompetitionAdminProcedure
     .input(
       z.object({
         targetId: z.string(),
@@ -33,12 +41,18 @@ export const royalAdminRoutes = createTRPCRouter({
     .query(async ({ input }) => {
       return await getImages(input.eventId, input.targetId);
     }),
-  getApprovement: royalAdmin
-    .input(z.object({ targetId: z.string(), userId: z.string(), eventId: z.string() }))
+  getApprovement: legacyRoyalCompetitionAdminProcedure
+    .input(
+      z.object({
+        targetId: z.string(),
+        userId: z.string(),
+        eventId: z.string(),
+      }),
+    )
     .query(async ({ input }) => {
       return await getApprovement(input.eventId, input.targetId);
     }),
-  approve: royalAdmin
+  approve: legacyRoyalCompetitionAdminProcedure
     .input(
       z.object({
         targetId: z.string(),

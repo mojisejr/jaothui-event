@@ -11,29 +11,9 @@ type EventForVisibility = {
   endAt?: string;
 };
 
-/**
- * Existing public user visibility rule from getRegistrationOpenEvents.
- */
+import { getCompetitionPolicy } from "~/server/services/competition-policy";
 function isVisibleForUser(event: EventForVisibility, now: Date): boolean {
-  if (!event.isActive) return false;
-  if (event.registrationActive === false) return false;
-
-  if (event.registrationStartAt) {
-    const startDate = new Date(event.registrationStartAt);
-    if (now < startDate) return false;
-  }
-
-  if (event.registrationDeadline) {
-    const deadlineDate = new Date(event.registrationDeadline);
-    if (now > deadlineDate) return false;
-  }
-
-  if (!event.registrationDeadline && event.deadline) {
-    const fallbackDeadline = new Date(event.deadline);
-    if (now > fallbackDeadline) return false;
-  }
-
-  return true;
+  return getCompetitionPolicy(event, now).publicRegistration === "open";
 }
 
 describe("event visibility logic for admin registration journey", () => {
@@ -58,9 +38,14 @@ describe("event visibility logic for admin registration journey", () => {
       endAt: "2026-02-25T00:00:00.000Z",
     };
 
-    const adminVisibleEvents = filterAdminActiveEvents([
-      normalEvent as unknown as Parameters<typeof filterAdminActiveEvents>[0][number],
-    ], now);
+    const adminVisibleEvents = filterAdminActiveEvents(
+      [
+        normalEvent as unknown as Parameters<
+          typeof filterAdminActiveEvents
+        >[0][number],
+      ],
+      now,
+    );
     expect(adminVisibleEvents).toHaveLength(1);
     expect(isVisibleForUser(normalEvent, now)).toBe(true);
   });
@@ -78,9 +63,14 @@ describe("event visibility logic for admin registration journey", () => {
       endAt: "2026-02-25T00:00:00.000Z",
     };
 
-    const adminVisibleEvents = filterAdminActiveEvents([
-      postDeadlineEvent as unknown as Parameters<typeof filterAdminActiveEvents>[0][number],
-    ], now);
+    const adminVisibleEvents = filterAdminActiveEvents(
+      [
+        postDeadlineEvent as unknown as Parameters<
+          typeof filterAdminActiveEvents
+        >[0][number],
+      ],
+      now,
+    );
     expect(adminVisibleEvents).toHaveLength(1);
     expect(isVisibleForUser(postDeadlineEvent, now)).toBe(false);
   });
@@ -97,9 +87,14 @@ describe("event visibility logic for admin registration journey", () => {
       endAt: "2026-02-26T00:00:00.000Z",
     };
 
-    const adminVisibleEvents = filterAdminActiveEvents([
-      endedEvent as unknown as Parameters<typeof filterAdminActiveEvents>[0][number],
-    ], now);
+    const adminVisibleEvents = filterAdminActiveEvents(
+      [
+        endedEvent as unknown as Parameters<
+          typeof filterAdminActiveEvents
+        >[0][number],
+      ],
+      now,
+    );
     expect(adminVisibleEvents).toHaveLength(0);
     expect(isVisibleForUser(endedEvent, now)).toBe(false);
   });
@@ -116,9 +111,14 @@ describe("event visibility logic for admin registration journey", () => {
       endAt: "2026-02-25T00:00:00.000Z",
     };
 
-    const adminVisibleEvents = filterAdminActiveEvents([
-      inactiveEvent as unknown as Parameters<typeof filterAdminActiveEvents>[0][number],
-    ], now);
+    const adminVisibleEvents = filterAdminActiveEvents(
+      [
+        inactiveEvent as unknown as Parameters<
+          typeof filterAdminActiveEvents
+        >[0][number],
+      ],
+      now,
+    );
     expect(adminVisibleEvents).toHaveLength(0);
     expect(isVisibleForUser(inactiveEvent, now)).toBe(false);
   });
@@ -136,9 +136,14 @@ describe("event visibility logic for admin registration journey", () => {
       endAt: "2026-02-27T00:00:00.000Z",
     };
 
-    const adminVisibleEvents = filterAdminActiveEvents([
-      preRegistrationEvent as unknown as Parameters<typeof filterAdminActiveEvents>[0][number],
-    ], now);
+    const adminVisibleEvents = filterAdminActiveEvents(
+      [
+        preRegistrationEvent as unknown as Parameters<
+          typeof filterAdminActiveEvents
+        >[0][number],
+      ],
+      now,
+    );
     expect(adminVisibleEvents).toHaveLength(1);
     expect(isVisibleForUser(preRegistrationEvent, now)).toBe(false);
   });

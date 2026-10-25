@@ -6,6 +6,52 @@ export const eventType = defineType({
   type: "document",
   fields: [
     defineField({
+      name: "competitionRegistrationCount",
+      title: "Competition Registration Count",
+      type: "number",
+      hidden: true,
+      readOnly: true,
+    }),
+    defineField({
+      name: "competitionWriteFence",
+      title: "Competition Write Fence",
+      type: "number",
+      readOnly: true,
+      hidden: true,
+    }),
+    defineField({
+      name: "competitionAudit",
+      title: "Competition Audit",
+      type: "array",
+      of: [
+        {
+          type: "object",
+          fields: [
+            defineField({
+              name: "competitionRegistrationCount",
+              title: "Competition Registration Count",
+              type: "number",
+              hidden: true,
+              readOnly: true,
+            }),
+            { name: "at", type: "datetime" },
+            { name: "actor", type: "string" },
+            { name: "action", type: "string" },
+            { name: "reason", type: "text" },
+            { name: "operationId", type: "string" },
+          ],
+        },
+      ],
+    }),
+    defineField({
+      name: "competitionState",
+      title: "Competition State",
+      type: "string",
+      options: { list: ["draft", "published", "closed"] },
+      description:
+        "Absent means legacy event; new dashboard events use explicit publication state.",
+    }),
+    defineField({
       title: "Event Title",
       name: "title",
       type: "string",
@@ -79,7 +125,8 @@ export const eventType = defineType({
       title: "Registration Active",
       name: "registrationActive",
       type: "boolean",
-      description: "Controls whether registration is currently open for this event",
+      description:
+        "Controls whether registration is currently open for this event",
       initialValue: true,
     }),
 
@@ -97,7 +144,8 @@ export const eventType = defineType({
       title: "Registration Deadline",
       name: "registrationDeadline",
       type: "date",
-      description: "When registration closes for this event (separate from event deadline)",
+      description:
+        "When registration closes for this event (separate from event deadline)",
       options: {
         dateFormat: "DD-MM-YYYY",
       },

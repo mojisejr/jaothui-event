@@ -63,7 +63,7 @@ export default function ProfileMenu() {
         {admin ? (
           <MenuItem
             href="/admin?tab=event"
-            label="Admin Tools"
+            label="จัดการแข่งขัน / Admin Tools"
             icon={<LuShieldCheck size={18} />}
           />
         ) : null}

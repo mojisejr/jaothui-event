@@ -1,3 +1,4 @@
+import { getCompetitionPolicy } from "~/server/services/competition-policy";
 import React from "react";
 import { api } from "~/utils/api";
 import AdminEventCard from "./AdminEventCard";
@@ -10,7 +11,12 @@ export default function EventList() {
   // Make a local sorted copy so UI shows newest events first.
   // Sort by: eventAt (start date) -> registrationStartAt -> registrationDeadline
   const getEventTimestamp = (event: any) => {
-    const tryDates = [event.eventAt, event.registrationStartAt, event.registrationDeadline, event.deadline];
+    const tryDates = [
+      event.eventAt,
+      event.registrationStartAt,
+      event.registrationDeadline,
+      event.deadline,
+    ];
     for (const d of tryDates) {
       if (d) {
         const t = Date.parse(d);
@@ -20,33 +26,24 @@ export default function EventList() {
     return 0;
   };
 
-  const sortedEvents = data && Array.isArray(data) ? [...data].sort((a: any, b: any) => {
-    return getEventTimestamp(b) - getEventTimestamp(a);
-  }) : data;
+  const sortedEvents =
+    data && Array.isArray(data)
+      ? [...data].sort((a: any, b: any) => {
+          return getEventTimestamp(b) - getEventTimestamp(a);
+        })
+      : data;
 
   // Use `isActive` to determine visual emphasis. If an event is not active
   // it should appear faded even if registration fields indicate 'open'.
   // This keeps the admin view consistent with actual active state.
 
   const getRegistrationStatus = (event: any) => {
-    if (event.registrationActive === false) {
-      return "ปิดรับสมัคร";
-    }
-    
-    const now = new Date();
-    if (event.registrationStartAt && new Date(event.registrationStartAt) > now) {
-      return "ยังไม่เปิดรับสมัคร";
-    }
-    
-    if (event.registrationDeadline && new Date(event.registrationDeadline) < now) {
-      return "ปิดรับสมัคร";
-    }
-    
-    if (!event.registrationDeadline && event.deadline && new Date(event.deadline) < now) {
-      return "ปิดรับสมัคร";
-    }
-    
-    return "เปิดรับสมัคร";
+    const status = getCompetitionPolicy(event).publicRegistration;
+    return status === "open"
+      ? "เปิดรับสมัคร"
+      : status === "not-yet"
+        ? "ยังไม่เปิดรับสมัคร"
+        : "ปิดรับสมัคร";
   };
 
   if (isLoading) {
@@ -55,19 +52,19 @@ export default function EventList() {
         {[...Array(6)].map((_, i) => (
           <div
             key={i}
-            className="card bg-base-200 shadow-lg animate-pulse"
+            className="card animate-pulse bg-base-200 shadow-lg"
             role="status"
             aria-label="Loading event"
           >
             <div className="card-body p-4 md:p-6">
-              <div className="h-6 bg-base-300 rounded w-3/4"></div>
-              <div className="h-4 bg-base-300 rounded w-1/2 mt-2"></div>
-              <div className="flex gap-2 mt-2">
-                <div className="h-6 bg-base-300 rounded w-16"></div>
-                <div className="h-6 bg-base-300 rounded w-24"></div>
+              <div className="h-6 w-3/4 rounded bg-base-300"></div>
+              <div className="mt-2 h-4 w-1/2 rounded bg-base-300"></div>
+              <div className="mt-2 flex gap-2">
+                <div className="h-6 w-16 rounded bg-base-300"></div>
+                <div className="h-6 w-24 rounded bg-base-300"></div>
               </div>
-              <div className="flex justify-end mt-2">
-                <div className="h-8 bg-base-300 rounded w-24"></div>
+              <div className="mt-2 flex justify-end">
+                <div className="h-8 w-24 rounded bg-base-300"></div>
               </div>
             </div>
           </div>

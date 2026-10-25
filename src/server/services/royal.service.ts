@@ -1,5 +1,6 @@
+import { assertLegacyCompetitionAdminEnabled } from "~/server/admin/legacy-competition-cutover";
 import { CreateNewApprovementDTO } from "~/interfaces/CreateNewApprovementDTO";
-import { client } from "../../../sanity/lib/client";
+import { client } from "~/server/sanity/client";
 import { CreateNewImageObjectDTO } from "~/interfaces/CreateImageObjectDTO";
 import { CreateNewEventAddressDTO } from "~/interfaces/CreateNewEventAddress";
 import { groq } from "next-sanity";
@@ -142,6 +143,7 @@ export const createNewEventAddress = async (
 };
 
 export const getAllRegistered = async (eventId: string) => {
+  assertLegacyCompetitionAdminEnabled();
   try {
     const query = groq`*[_type == "eventRegister" && event._ref == "${eventId}"]{
       sex,
@@ -168,6 +170,7 @@ export const getAllRegistered = async (eventId: string) => {
 };
 
 export const getImages = async (eventId: string, registerEventId: string) => {
+  assertLegacyCompetitionAdminEnabled();
   try {
     const query = groq`*[_type == "eventImage" && event._ref == "${eventId}" && eventRegister._ref == "${registerEventId}"]{
     _id,
@@ -185,6 +188,7 @@ export const getImages = async (eventId: string, registerEventId: string) => {
 };
 
 export const getApprovement = async (eventId: string, userId: string) => {
+  assertLegacyCompetitionAdminEnabled();
   try {
     const query = groq`*[_type == "approvment" && eventRegister._ref == "${userId}" && event._ref == "${eventId}"]{
       _id,
@@ -214,6 +218,7 @@ export const approve = async (
   approve: boolean,
   comment?: string,
 ) => {
+  assertLegacyCompetitionAdminEnabled();
   try {
     const result = await client
       .patch(docId)
@@ -231,6 +236,7 @@ export const approve = async (
 };
 
 export const getAddress = async (eventId: string, registerEventId: string) => {
+  assertLegacyCompetitionAdminEnabled();
   try {
     const query = groq`*[_type == "eventAddress" && event._ref == "${eventId}" && eventRegister._ref == "${registerEventId}"]{
       address,
