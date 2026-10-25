@@ -172,7 +172,9 @@ const stringValue = (value: unknown) =>
   typeof value === "string" ? value : "";
 const validAge = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0;
-const applicationProjection = `{...,"sex":coalesce(sex,gender),"applicant":user->{_id,lineId},"approval":*[_type=="approvment" && event._ref==$id && eventRegister._ref==^._id] | order(coalesce(approvementDate,_updatedAt,_createdAt) desc,_id desc)[0],"images":*[_type=="eventImage" && event._ref==$id && eventRegister._ref==^._id] | order(_createdAt asc,_id asc){_id,"images":imageArray[]{imageTitle,"url":imageAsset.asset->url}},"address":*[_type=="eventAddress" && event._ref==$id && eventRegister._ref==^._id] | order(_updatedAt desc,_id desc)[0]}`;
+// Keep approval identity and precedence identical for application screens and exports.
+const approvalProjection = `"approval":*[_type=="approvment" && event._ref==$id && eventRegister._ref==^._id] | order(coalesce(approvementDate,_updatedAt,_createdAt) desc,_id desc)[0]`;
+const applicationProjection = `{...,"sex":coalesce(sex,gender),"applicant":user->{_id,lineId},${approvalProjection},"images":*[_type=="eventImage" && event._ref==$id && eventRegister._ref==^._id] | order(_createdAt asc,_id asc){_id,"images":imageArray[]{imageTitle,"url":imageAsset.asset->url}},"address":*[_type=="eventAddress" && event._ref==$id && eventRegister._ref==^._id] | order(_updatedAt desc,_id desc)[0]}`;
 export function normalizeApplication(doc: Doc) {
   const approval =
     doc.approval && typeof doc.approval === "object"
@@ -925,7 +927,7 @@ export class CompetitionAdminService {
   async export(id: string) {
     const event = await this.detail(id);
     const records = await this.db.fetch<Doc[]>(
-      '*[_type=="eventRegister" && event._ref==$id] | order(_createdAt asc,_id asc){...,"sex":coalesce(sex,gender)}',
+      `*[_type=="eventRegister" && event._ref==$id] | order(_createdAt asc,_id asc){...,"sex":coalesce(sex,gender),${approvalProjection}}`,
       { id },
     );
     const registrations = records.map((row) => exportRegistration(row, event));

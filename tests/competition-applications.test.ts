@@ -364,3 +364,132 @@ describe("event-scoped metadata authority", () => {
     await expect(service.metadata("event", "")).rejects.toThrow();
   });
 });
+
+describe("export reads the same event-fenced latest approval as application readers", () => {
+  it("joins accepted/rejected/pending decisions, resolves latest and tied approvals, and preserves export ages", async () => {
+    // Execute the actual service GROQ against an isolated document dataset.
+    const { parse, evaluate } = await import("groq-js");
+    const documents = [
+      {
+        ...entry("accepted", { buffaloAge: 0, birthday: "2025-10-16" }),
+        _type: "eventRegister",
+        _createdAt: "2026-10-20T00:00:00Z",
+      },
+      {
+        ...entry("rejected", { birthday: "2025-10-15" }),
+        _type: "eventRegister",
+        _createdAt: "2026-10-21T00:00:00Z",
+      },
+      {
+        ...entry("pending"),
+        _type: "eventRegister",
+        _createdAt: "2026-10-22T00:00:00Z",
+      },
+      {
+        ...entry("wrong-event", { event: { _ref: "other-event" } }),
+        _type: "eventRegister",
+        _createdAt: "2026-10-23T00:00:00Z",
+      },
+      {
+        _id: "accepted-old",
+        _type: "approvment",
+        event: { _ref: "event" },
+        eventRegister: { _ref: "accepted" },
+        approvementResult: false,
+        approvementDate: "2026-10-24T00:00:00Z",
+      },
+      {
+        _id: "accepted-new",
+        _type: "approvment",
+        event: { _ref: "event" },
+        eventRegister: { _ref: "accepted" },
+        approvementResult: true,
+        approvementDate: "2026-10-25T00:00:00Z",
+      },
+      {
+        _id: "rejected-a",
+        _type: "approvment",
+        event: { _ref: "event" },
+        eventRegister: { _ref: "rejected" },
+        approvementResult: true,
+        _updatedAt: "2026-10-25T00:00:00Z",
+      },
+      {
+        _id: "rejected-z",
+        _type: "approvment",
+        event: { _ref: "event" },
+        eventRegister: { _ref: "rejected" },
+        approvementResult: false,
+        _updatedAt: "2026-10-25T00:00:00Z",
+      },
+      {
+        _id: "foreign-rejected-newer",
+        _type: "approvment",
+        event: { _ref: "other-event" },
+        eventRegister: { _ref: "accepted" },
+        approvementResult: false,
+        approvementDate: "2026-10-26T00:00:00Z",
+      },
+      {
+        _id: "foreign-pending",
+        _type: "approvment",
+        event: { _ref: "other-event" },
+        eventRegister: { _ref: "pending" },
+        approvementResult: true,
+        approvementDate: "2026-10-26T00:00:00Z",
+      },
+    ];
+    const fetch = vi.fn(
+      async (query: string, params: Record<string, unknown>) => {
+        const result = await evaluate(parse(query), {
+          dataset: documents,
+          params,
+        });
+        return result.get() as Promise<unknown>;
+      },
+    );
+    const service = new CompetitionAdminService({
+      fetch,
+    } as unknown as SanityClient);
+    vi.spyOn(service, "detail").mockResolvedValue(event);
+    vi.spyOn(service, "source").mockResolvedValue({
+      _id: "event",
+      _rev: "event-1",
+    });
+    const exported = await service.export("event");
+    expect(exported.rowCount).toBe(3);
+    expect(
+      exported.registrations.map((row) => [
+        row._id,
+        row.approvalStatus,
+        row.approval?._id,
+      ]),
+    ).toEqual([
+      ["accepted", "accepted", "accepted-new"],
+      ["rejected", "rejected", "rejected-z"],
+      ["pending", "pending", undefined],
+    ]);
+    const listed = await service.applications("event", {});
+    for (const row of exported.registrations) {
+      expect(row.approvalStatus).toBe(
+        listed.items.find((item) => item._id === row._id)?.approvalStatus,
+      );
+      expect((await service.application("event", row._id)).approvalStatus).toBe(
+        row.approvalStatus,
+      );
+    }
+    expect(exported.registrations[0]).toMatchObject({
+      exportAge: 0,
+      ageSource: "stored",
+    });
+    expect(exported.registrations[1]).toMatchObject({
+      exportAge: 13,
+      ageSource: "cutoff",
+    });
+    expect(exported.registrations[2]).toMatchObject({
+      exportAge: null,
+      ageSource: "missing",
+    });
+    expect(exported.event.buffaloAgeDeadline).toBe("2026-10-16");
+  });
+});
