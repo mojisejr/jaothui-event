@@ -169,14 +169,65 @@ describe("real legacy competition procedures and services", () => {
     expect(stubs.fetch).toHaveBeenCalledTimes(1);
   });
   it("keeps public approval status, application detail/history and duplicate lookup available", async () => {
-    stubs.fetch.mockResolvedValue({ _id: "approval", approvementResult: true });
-    expect(await royal.getStatus("approval")).toMatchObject({
-      approvementResult: true,
-    });
-    await registrations.getById({ id: "entry" });
-    await registrations.getAllRegisteredBy({ userId: "applicant" });
-    await registrations.canRgister({ eventId: "event", microchip: "chip" });
-    expect(stubs.fetch).toHaveBeenCalledTimes(4);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-24T05:00:00Z"));
+    const approval = { _id: "approval", approvementResult: true };
+    const entry = {
+      _id: "entry",
+      name: "synthetic-public-entry",
+      microchip: "chip",
+      buffaloAge: 0,
+      event: {
+        _id: "event",
+        title: "synthetic-published-event",
+        isActive: true,
+        endAt: "2026-10-25T05:00:00Z",
+      },
+    };
+    const closedEntry = {
+      ...entry,
+      _id: "closed-entry",
+      event: { ...entry.event, _id: "closed-event", isActive: false },
+    };
+    const endedEntry = {
+      ...entry,
+      _id: "ended-entry",
+      event: { ...entry.event, endAt: "2026-10-24T04:59:59Z" },
+    };
+    stubs.fetch
+      .mockResolvedValueOnce(approval)
+      .mockResolvedValueOnce(entry)
+      .mockResolvedValueOnce([entry, closedEntry, endedEntry])
+      .mockResolvedValueOnce({ _id: "entry", microchip: "chip" })
+      .mockResolvedValueOnce(null);
+    try {
+      expect(await royal.getStatus("approval")).toEqual(approval);
+      expect(await registrations.getById({ id: "entry" })).toEqual(entry);
+      // Preserve the existing history filter: upcoming/manual-closed records
+      // remain readable; records past endAt are omitted by this public endpoint.
+      expect(
+        await registrations.getAllRegisteredBy({ userId: "applicant" }),
+      ).toEqual([entry, closedEntry]);
+      expect(
+        await registrations.canRgister({ eventId: "event", microchip: "chip" }),
+      ).toBe(false);
+      expect(
+        await registrations.canRgister({
+          eventId: "event",
+          microchip: "new-chip",
+        }),
+      ).toBe(true);
+      expect(stubs.fetch).toHaveBeenCalledTimes(5);
+      // The actual public source queries still exclude drafts at the data boundary.
+      expect(stubs.fetch.mock.calls[1]?.[0]).toContain(
+        'event->competitionState != "draft"',
+      );
+      expect(stubs.fetch.mock.calls[2]?.[0]).toContain(
+        'event->competitionState != "draft"',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
   it("preserves public registration credential checks instead of applying the admin cutover guard", async () => {
     stubs.verify.mockRejectedValue(new Error("PUBLIC_APPLICANT_AUTH_CHECK"));
