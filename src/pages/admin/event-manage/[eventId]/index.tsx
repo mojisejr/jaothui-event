@@ -1,3 +1,8 @@
+import {
+  competitionAdminPage,
+  type CompetitionCutoverProps,
+} from "~/server/admin/legacy-competition-cutover";
+import CompetitionAdminUnavailable from "~/components/Admin/CompetitionAdminUnavailable";
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { api } from "~/utils/api";
@@ -6,7 +11,19 @@ import { useAdmin } from "~/context/adminContext";
 import { EventRegister } from "~/interfaces/EventRegister";
 import Link from "next/link";
 
-export default function EventMemberList() {
+export const getServerSideProps = competitionAdminPage("applications");
+
+export default function EventMemberList({
+  competitionAdminUnavailable,
+}: CompetitionCutoverProps) {
+  return competitionAdminUnavailable ? (
+    <CompetitionAdminUnavailable />
+  ) : (
+    <LegacyEventMemberList />
+  );
+}
+
+function LegacyEventMemberList() {
   const { profile } = useLine();
   const { admin } = useAdmin();
   const { query, replace } = useRouter();

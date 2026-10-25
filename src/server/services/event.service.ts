@@ -1,12 +1,18 @@
-import { client } from "../../../sanity/lib/client";
+import { client } from "~/server/sanity/client";
 import { groq } from "next-sanity";
 import type { Event } from "~/interfaces/Event";
-import { getPossibleEvents, parseAgeRanges, findExactAgeMatch, getSpecialEvents } from "~/utils/getPossibleEvents";
+import {
+  getPossibleEvents,
+  parseAgeRanges,
+  findExactAgeMatch,
+  getSpecialEvents,
+} from "~/utils/getPossibleEvents";
+import { getCompetitionPolicy } from "~/server/services/competition-policy";
 import { filterAdminActiveEvents } from "~/server/services/event-visibility.service";
 
 export async function getEventById(eventId: string) {
   try {
-    const query = groq`*[_type == "event" && _id == "${eventId}"] {
+    const query = groq`*[_type == "event" && _id == $eventId && competitionState != "draft"] {
     "eventId": _id,
     "imageUrl": image.asset -> url,
     "name": title,
@@ -18,10 +24,11 @@ export async function getEventById(eventId: string) {
     isActive,
     registrationActive,
     registrationStartAt,
-    registrationDeadline
+    registrationDeadline,
+    competitionState
     }[0]`;
 
-    const event = await client.fetch<Event>(query);
+    const event = await client.fetch<Event>(query, { eventId });
 
     // const events = await db.event.findMany({
     //   where: {
@@ -38,7 +45,7 @@ export async function getEventById(eventId: string) {
 
 export async function getAllActiveEvents() {
   try {
-    const query = groq`*[_type == "event" && isActive == true] {
+    const query = groq`*[_type == "event" && isActive == true && competitionState != "draft"] {
     "eventId": _id,
     "imageUrl": image.asset -> url,
     "name": title,
@@ -50,7 +57,8 @@ export async function getAllActiveEvents() {
     isActive,
     registrationActive,
     registrationStartAt,
-    registrationDeadline
+    registrationDeadline,
+    competitionState
     }`;
 
     const events = await client.fetch<Event[]>(query);
@@ -70,7 +78,7 @@ export async function getAllActiveEvents() {
 
 export async function getRegistrationOpenEvents() {
   try {
-    const query = groq`*[_type == "event" && isActive == true] {
+    const query = groq`*[_type == "event" && isActive == true && competitionState != "draft"] {
     "eventId": _id,
     "imageUrl": image.asset -> url,
     "name": title,
@@ -82,45 +90,15 @@ export async function getRegistrationOpenEvents() {
     isActive,
     registrationActive,
     registrationStartAt,
-    registrationDeadline
+    registrationDeadline,
+    competitionState
     }`;
 
     const events = await client.fetch<Event[]>(query);
-    
-    // Filter events based on registration status and date windows
-    const now = new Date();
-    const registrationOpenEvents = events.filter((event) => {
-      // If registrationActive is explicitly false, exclude the event
-      if (event.registrationActive === false) {
-        return false;
-      }
 
-      // Check registration start date
-      if (event.registrationStartAt) {
-        const startDate = new Date(event.registrationStartAt);
-        if (now < startDate) {
-          return false; // Registration hasn't opened yet
-        }
-      }
-
-      // Check registration deadline
-      if (event.registrationDeadline) {
-        const deadlineDate = new Date(event.registrationDeadline);
-        if (now > deadlineDate) {
-          return false; // Registration has closed
-        }
-      }
-
-      // If no explicit registration control fields, fall back to event deadline
-      if (!event.registrationDeadline && event.deadline) {
-        const eventDeadline = new Date(event.deadline);
-        if (now > eventDeadline) {
-          return false;
-        }
-      }
-
-      return true;
-    });
+    const registrationOpenEvents = events.filter(
+      (event) => getCompetitionPolicy(event).publicRegistration === "open",
+    );
 
     return registrationOpenEvents;
   } catch (error) {
@@ -131,7 +109,7 @@ export async function getRegistrationOpenEvents() {
 
 export async function getAdminActiveEvents() {
   try {
-    const query = groq`*[_type == "event" && isActive == true] {
+    const query = groq`*[_type == "event" && isActive == true && competitionState != "draft"] {
     "eventId": _id,
     "imageUrl": image.asset -> url,
     "name": title,
@@ -143,7 +121,8 @@ export async function getAdminActiveEvents() {
     isActive,
     registrationActive,
     registrationStartAt,
-    registrationDeadline
+    registrationDeadline,
+    competitionState
     }`;
 
     const events = await client.fetch<Event[]>(query);
@@ -156,7 +135,7 @@ export async function getAdminActiveEvents() {
 
 export async function getAllEvents() {
   try {
-    const query = groq`*[_type == "event"] {
+    const query = groq`*[_type == "event" && competitionState != "draft"] {
      "eventId": _id,
     "imageUrl": image.asset -> url,
     "name": title,
@@ -168,7 +147,8 @@ export async function getAllEvents() {
     metadata,
     registrationActive,
     registrationStartAt,
-    registrationDeadline
+    registrationDeadline,
+    competitionState
       }`;
 
     const events = await client.fetch<Event[]>(query);
@@ -233,7 +213,10 @@ export const getEventTypes = async (eventId: string, age: number) => {
   return types;
 };
 
-export const getEventTypesWithAutoAssignment = async (eventId: string, age: number) => {
+export const getEventTypesWithAutoAssignment = async (
+  eventId: string,
+  age: number,
+) => {
   const provinceQuery = groq`*[_type=="provinceEventType" && event._ref=="${eventId}"]{data}[0]`;
   const nationalQuery = groq`*[_type=="nationalEventType" && event._ref=="${eventId}"]{data}[0]`;
 
@@ -301,8 +284,8 @@ export const getEventTypesWithAutoAssignment = async (eventId: string, age: numb
   const provinceFiltered = getPossibleEvents(age, provinceData);
   const nationalFiltered = getPossibleEvents(age, nationalData);
 
-  const specialProvinceTypes = getSpecialEvents(provinceData);
-  const specialNationalTypes = getSpecialEvents(nationalData);
+  const specialProvinceTypes = getSpecialEvents(provinceData, age);
+  const specialNationalTypes = getSpecialEvents(nationalData, age);
 
   return {
     provinceTypes: provinceTypes ? provinceFiltered : [],

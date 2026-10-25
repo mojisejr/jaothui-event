@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+import { useLine } from "~/context/lineContext";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
@@ -64,6 +65,8 @@ const RoyalForm = ({
   _startAt: string;
   deadline: string;
 }) => {
+  const { liff } = useLine();
+  const operationId = useRef("");
   const [province, setProvince] = useState<string>();
   const [amphoe, setAmphoe] = useState<string>();
 
@@ -109,6 +112,13 @@ const RoyalForm = ({
   } = useForm<RoyalFormTypes>();
 
   const onSubmit = handleSubmit(async (data) => {
+    operationId.current ||= crypto.randomUUID();
+    if (!liff?.getIDToken() && !liff?.getAccessToken()) {
+      alert(
+        "กรุณาเข้าสู่ระบบ LINE ใหม่เพื่อยืนยันตัวตน หากยังสมัครไม่ได้ กรุณาติดต่อเจ้าหน้าที่",
+      );
+      return;
+    }
     setSubmiting(true);
     if (
       data.d1Accept == "n" ||
@@ -153,7 +163,20 @@ const RoyalForm = ({
       imagesList[4]!,
     );
 
-    const uploadResults = await imagesUpload(userId, eventId, parsedImageData);
+    let uploadResults: Array<{ _id: string }>;
+    try {
+      uploadResults = await imagesUpload(
+        userId,
+        eventId,
+        parsedImageData,
+        liff?.getIDToken() ?? "",
+        !liff?.getIDToken() ? (liff?.getAccessToken() ?? undefined) : undefined,
+      );
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "ไม่สามารถอัพโหลดรูปได้");
+      setSubmiting(false);
+      return;
+    }
 
     if (!uploadResults) {
       alert("ไม่ามารถอัพโหลดรูปได้");
@@ -163,6 +186,11 @@ const RoyalForm = ({
 
     /**Upload Register Event */
     registerEvent({
+      idToken: liff?.getIDToken() ?? undefined,
+      lineAccessToken: !liff?.getIDToken()
+        ? (liff?.getAccessToken() ?? undefined)
+        : undefined,
+      operationId: operationId.current,
       name: data.buffaloName,
       type: data.competitionType,
       level: data.competitionLevel,
@@ -216,12 +244,15 @@ const RoyalForm = ({
           // Now we only subtract 1 day from the start date before calculating the diff to match the "1 day" rule.
           const albinoStart = start.subtract(1, "day");
           let albinoDiff = end.diff(albinoStart, "month");
-          const albinoRemainderDays = end.diff(albinoStart.add(albinoDiff, "month"), "day");
-          
+          const albinoRemainderDays = end.diff(
+            albinoStart.add(albinoDiff, "month"),
+            "day",
+          );
+
           if (albinoRemainderDays > 0) {
             albinoDiff += 1;
           }
-          
+
           setCalculatedAge(albinoDiff);
         }
 
@@ -277,8 +308,14 @@ const RoyalForm = ({
         setAutoAssignedClass({ competitionLevel, competitionType, message });
         setIsAutoAssigned(true);
       } else {
-        // Clear auto-assignment if not successful
-        setAutoAssignedClass({ competitionLevel: null, competitionType: null, message });
+        // Clear stale choices when birthday/catalog eligibility changes.
+        setValue("competitionLevel", "");
+        setValue("competitionType", "");
+        setAutoAssignedClass({
+          competitionLevel: null,
+          competitionType: null,
+          message,
+        });
         setIsAutoAssigned(false);
       }
     }
@@ -460,7 +497,10 @@ const RoyalForm = ({
                     disabled={searching || registering}
                     {...register("microchip")}
                   />
-                  <label id="microchip-help-royal" className="label label-text-alt text-xs text-primary">
+                  <label
+                    id="microchip-help-royal"
+                    className="label label-text-alt text-xs text-primary"
+                  >
                     หากไม่มี microchip ให้ใส่ชื่อควายของคุณลงในช่อง microchip
                   </label>
                 </div>
@@ -506,7 +546,7 @@ const RoyalForm = ({
               {/**buffaloColor */}
               <div className="form-control">
                 <select
-                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary disabled:text-base-300"
                   aria-label="สีกระบือ"
                   aria-required="true"
                   disabled={searching || registering}
@@ -521,7 +561,7 @@ const RoyalForm = ({
               {/**buffaloSex */}
               <div className="form-control">
                 <select
-                  className="select select-sm text-base-content disabled:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                  className="select select-sm text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary disabled:text-base-300"
                   aria-label="เพศกระบือ"
                   aria-required="true"
                   disabled={searching || registering}
@@ -586,11 +626,15 @@ const RoyalForm = ({
             <div className="rounded-md bg-blue-50 p-4">
               <div className="flex">
                 <div className="ml-3">
-                  <p className="text-sm text-blue-700">กำลังคำนวณรุ่นที่เหมาะสม...</p>
+                  <p className="text-sm text-blue-700">
+                    กำลังคำนวณรุ่นที่เหมาะสม...
+                  </p>
                 </div>
               </div>
             </div>
-          ) : isAutoAssigned && autoAssignedClass?.competitionLevel ? (
+          ) : isAutoAssigned &&
+            watch("competitionType") === autoAssignedClass?.competitionType &&
+            autoAssignedClass?.competitionLevel ? (
             <div className="rounded-md bg-green-50 p-4">
               <div className="flex">
                 <div className="ml-3">
@@ -598,9 +642,7 @@ const RoyalForm = ({
                     จัดรุ่นสำเร็จ!
                   </h3>
                   <div className="mt-2 text-sm text-green-700">
-                    <p className="font-medium">
-                      {autoAssignedClass.message}
-                    </p>
+                    <p className="font-medium">{autoAssignedClass.message}</p>
                     <div className="mt-2 space-y-1">
                       <p>
                         <span className="font-semibold">ระดับ:</span> ระดับ
@@ -630,6 +672,67 @@ const RoyalForm = ({
             </div>
           ) : null}
 
+          {((typesWithAutoAssignment?.specialNationalTypes.length ?? 0) > 0 ||
+            (typesWithAutoAssignment?.specialProvinceTypes.length ?? 0) >
+              0) && (
+            <div className="form-control">
+              <label className="label label-text" htmlFor="royal-class-choice">
+                รุ่นแข่งขัน / รุ่นพิเศษที่ผ่านเงื่อนไขอายุ
+              </label>
+              <select
+                id="royal-class-choice"
+                className="select select-bordered min-h-[44px] w-full text-base-content"
+                disabled={typeLoading || registering}
+                value={JSON.stringify([
+                  watch("competitionLevel") ?? "",
+                  watch("competitionType") ?? "",
+                ])}
+                onChange={(e) => {
+                  const [level, type] = JSON.parse(e.target.value) as [
+                    string,
+                    string,
+                  ];
+                  setValue("competitionLevel", level);
+                  setValue("competitionType", type);
+                }}
+              >
+                <option value={JSON.stringify(["", ""])}>
+                  -- กรุณาเลือกรุ่น --
+                </option>
+                {autoAssignedClass?.competitionLevel && (
+                  <option
+                    value={JSON.stringify([
+                      autoAssignedClass.competitionLevel,
+                      autoAssignedClass.competitionType,
+                    ])}
+                  >
+                    {autoAssignedClass.competitionType}
+                  </option>
+                )}
+                {typesWithAutoAssignment?.specialNationalTypes.map((type) => (
+                  <option
+                    key={`national-${type}`}
+                    value={JSON.stringify(["ประเทศ", type])}
+                  >
+                    {type.replace(/^\[SP\]\s*/, "")}
+                  </option>
+                ))}
+                {typesWithAutoAssignment?.specialProvinceTypes.map((type) => (
+                  <option
+                    key={`province-${type}`}
+                    value={JSON.stringify(["จังหวัด", type])}
+                  >
+                    {type.replace(/^\[SP\]\s*/, "")} (จังหวัด)
+                  </option>
+                ))}
+              </select>
+              <p className="text-sm">
+                รุ่นพิเศษตรวจอายุขั้นต่ำ/สูงสุดตามที่งานกำหนด
+                ส่วนคุณสมบัติอื่นให้เจ้าหน้าที่ตรวจสอบ
+              </p>
+            </div>
+          )}
+
           {/* Hidden inputs to hold auto-assigned values */}
           <input
             type="hidden"
@@ -646,7 +749,9 @@ const RoyalForm = ({
           <div className="form-group">
             {/**buffaloImage */}
             <div className="form-control">
-              <div className="label label-text">ภาพบัตรประจำตัวสัตว์ (ภาพที่ 1)</div>
+              <div className="label label-text">
+                ภาพบัตรประจำตัวสัตว์ (ภาพที่ 1)
+              </div>
               <div className="flex w-full flex-col items-center justify-center gap-1">
                 <figure className="max-w-64">
                   <Image
@@ -670,7 +775,9 @@ const RoyalForm = ({
 
             {/**buffaloImage2 */}
             <div className="form-control">
-              <div className="label label-text">ภาพบัตรประจำตัวสัตว์ (ภาพที่ 2)</div>
+              <div className="label label-text">
+                ภาพบัตรประจำตัวสัตว์ (ภาพที่ 2)
+              </div>
               <input
                 type="file"
                 {...register("buffaloImage2", { required: true })}

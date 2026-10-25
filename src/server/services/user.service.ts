@@ -1,6 +1,6 @@
 import { CreateNewUserDTO } from "~/interfaces/CreateNewUserDTO";
 import { db } from "../db";
-import { client } from "../../../sanity/lib/client";
+import { client } from "~/server/sanity/client";
 import { groq } from "next-sanity";
 import { User } from "@prisma/client";
 import {

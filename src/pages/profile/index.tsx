@@ -17,24 +17,25 @@ export default function ProfilePage() {
     data: user,
     isLoading,
     refetch,
-  } = api.user.getById.useQuery({
-    userId: profile?.userId!,
-  });
-
-  const { data: profileStats, isLoading: profileStatsLoading } =
-    api.user.getProfileStats.useQuery(
+  } = api.user.getById.useQuery(
     { userId: profileUserId },
     { enabled: Boolean(profileUserId) },
   );
+
+  const { data: profileStats, isLoading: profileStatsLoading } =
+    api.user.getProfileStats.useQuery(
+      { userId: profileUserId },
+      { enabled: Boolean(profileUserId) },
+    );
 
   useEffect(() => {
     if (!loggedIn) {
       void replace("/");
     }
-    if (!user) {
+    if (profileUserId && !user) {
       refetch();
     }
-  }, [loggedIn, refetch, replace, user]);
+  }, [loggedIn, profileUserId, refetch, replace, user]);
 
   const reveal = {
     hidden: { opacity: 0, y: 10 },
@@ -61,7 +62,10 @@ export default function ProfilePage() {
             />
           </motion.div>
 
-          <motion.div variants={reveal} transition={{ duration: 0.25, delay: 0.05 }}>
+          <motion.div
+            variants={reveal}
+            transition={{ duration: 0.25, delay: 0.05 }}
+          >
             {!isLoading ? (
               <div>
                 {!user ? <RegisterForm profile={profile} /> : <ProfileMenu />}
