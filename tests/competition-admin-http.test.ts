@@ -7,6 +7,8 @@ const stubs = vi.hoisted(() => ({
   metadata: vi.fn(),
   retry: vi.fn(),
   export: vi.fn(),
+  remove: vi.fn(),
+  recount: vi.fn(),
 }));
 vi.mock("~/server/sanity/client", () => ({
   client: { assets: { upload: stubs.upload } },
@@ -17,6 +19,8 @@ vi.mock("~/server/admin/competition-service", () => ({
     metadata = stubs.metadata;
     retryNotification = stubs.retry;
     export = stubs.export;
+    deleteApplication = stubs.remove;
+    recountRegistrations = stubs.recount;
   },
 }));
 import handler from "~/pages/api/admin/competitions/[[...path]]";
@@ -56,6 +60,8 @@ beforeEach(() => {
   stubs.metadata.mockReset();
   stubs.retry.mockReset();
   stubs.export.mockReset();
+  stubs.remove.mockReset();
+  stubs.recount.mockReset();
 });
 describe("source competition HTTP boundary", () => {
   it("rejects unauthenticated callers and never invokes read service", async () => {
@@ -177,5 +183,75 @@ describe("source competition HTTP boundary", () => {
     );
     await handler(y.req, y.res);
     expect(y.result.status).toBe(422);
+  });
+  it("requires a reason and both revisions before deleting an application", async () => {
+    const operationId = "11111111-1111-4111-8111-111111111111";
+    const path = ["event", "applications", "entry", "delete"];
+    for (const body of [
+      {
+        operationId,
+        expectedRevision: "event-3",
+        registrationRevision: "entry-2",
+        reason: "สั้น",
+      },
+      {
+        operationId,
+        expectedRevision: "event-3",
+        reason: "ลบใบสมัครทดสอบที่สร้างผิด",
+      },
+    ]) {
+      const x = exchange(path, "POST", Buffer.from(JSON.stringify(body)));
+      await handler(x.req, x.res);
+      expect(x.result.status).toBe(422);
+    }
+    expect(stubs.remove).not.toHaveBeenCalled();
+    stubs.remove.mockResolvedValue({
+      registrationId: "entry",
+      previousCount: 2,
+      registrationCount: 1,
+    });
+    const x = exchange(
+      path,
+      "POST",
+      Buffer.from(
+        JSON.stringify({
+          operationId,
+          expectedRevision: "event-3",
+          registrationRevision: "entry-2",
+          reason: "  ลบใบสมัครทดสอบที่สร้างผิด  ",
+        }),
+      ),
+    );
+    await handler(x.req, x.res);
+    expect(x.result.status).toBe(200);
+    expect(stubs.remove).toHaveBeenCalledWith(
+      "event",
+      "entry",
+      operationId,
+      "event-3",
+      "entry-2",
+      "ลบใบสมัครทดสอบที่สร้างผิด",
+    );
+    expect(x.result.body.data.registrationCount).toBe(1);
+  });
+  it("routes recount as a fenced write behind the rollout switch", async () => {
+    const operationId = "22222222-2222-4222-8222-222222222222";
+    const body = Buffer.from(
+      JSON.stringify({ operationId, expectedRevision: "event-3" }),
+    );
+    vi.stubEnv("JAOTHUI_COMPETITION_ADMIN_WRITES_ENABLED", "false");
+    const off = exchange(["event", "recount"], "POST", body);
+    await handler(off.req, off.res);
+    expect(off.result.status).toBe(503);
+    vi.stubEnv("JAOTHUI_COMPETITION_ADMIN_WRITES_ENABLED", "true");
+    stubs.recount.mockResolvedValue({
+      previousCount: 2,
+      registrationCount: 0,
+      changed: true,
+    });
+    const x = exchange(["event", "recount"], "POST", body);
+    await handler(x.req, x.res);
+    expect(x.result.status).toBe(200);
+    expect(stubs.recount).toHaveBeenCalledWith("event", operationId, "event-3");
   });
 });
