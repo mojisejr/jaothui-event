@@ -28,6 +28,12 @@ import {
   validateCompetitionCatalog,
 } from "~/lib/competition-classes";
 import { getPossibleEvents, getSpecialEvents } from "~/utils/getPossibleEvents";
+import {
+  deleteApplication,
+  findOperation,
+  operationDocument,
+  recountRegistrations,
+} from "./competition-registration-admin";
 
 type Doc = Record<string, any> & { _id: string; _rev: string };
 const projection = `{...,"imageAssetId":image.asset._ref,"imageUrl":image.asset->url,"catalogDocuments":*[_type in ["nationalEventType","provinceEventType"] && event._ref == ^._id] | order(_id asc) {_id,_rev,_type,data},"registrationCount":count(*[_type == "eventRegister" && event._ref == ^._id])}`;
@@ -437,17 +443,8 @@ export class CompetitionAdminService {
     operationId: string,
     payload: unknown,
   ): Promise<string | null> {
-    const doc = await this.db.getDocument<Doc>(
-      `competition-operation-${operationId}`,
-    );
-    if (!doc) return null;
-    if (doc.payloadHash !== hash(payload))
-      return error(
-        409,
-        "OPERATION_REUSED",
-        "รหัสการดำเนินการนี้ถูกใช้กับข้อมูลอื่นแล้ว",
-      );
-    return doc.eventId as string;
+    const doc = await findOperation(this.db, operationId, payload);
+    return doc ? (doc.eventId as string) : null;
   }
   private operation(
     operationId: string,
@@ -455,15 +452,28 @@ export class CompetitionAdminService {
     payload: unknown,
     action: string,
   ) {
-    return {
-      _id: `competition-operation-${operationId}`,
-      _type: "competitionAdminOperation",
-      eventId,
-      payloadHash: hash(payload),
-      action,
-      actor: "dashboard-shared",
-      createdAt: new Date().toISOString(),
-    };
+    return operationDocument(operationId, eventId, payload, action);
+  }
+  deleteApplication(
+    id: string,
+    registrationId: string,
+    operationId: string,
+    revision: string,
+    registrationRevision: string,
+    reason: string,
+  ) {
+    return deleteApplication(
+      this.db,
+      id,
+      registrationId,
+      operationId,
+      revision,
+      registrationRevision,
+      reason,
+    );
+  }
+  recountRegistrations(id: string, operationId: string, revision: string) {
+    return recountRegistrations(this.db, id, operationId, revision);
   }
   private async asset(input: CompetitionInput) {
     if (input.imageAssetId) {

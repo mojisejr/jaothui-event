@@ -213,6 +213,37 @@ export default async function handler(
       } else if (
         action === "applications" &&
         path.length === 4 &&
+        path[3] === "delete" &&
+        method === "POST"
+      ) {
+        const input = mutationSchema
+          .extend({
+            registrationRevision: z.string().min(1),
+            reason: z.string().trim().min(10).max(3000),
+          })
+          .parse(body);
+        data = await service.deleteApplication(
+          id,
+          documentId.parse(path[2]),
+          input.operationId,
+          input.expectedRevision,
+          input.registrationRevision,
+          input.reason,
+        );
+      } else if (
+        action === "recount" &&
+        path.length === 2 &&
+        method === "POST"
+      ) {
+        const input = mutationSchema.parse(body);
+        data = await service.recountRegistrations(
+          id,
+          input.operationId,
+          input.expectedRevision,
+        );
+      } else if (
+        action === "applications" &&
+        path.length === 4 &&
         path[3] === "retry-notification" &&
         method === "POST"
       ) {
