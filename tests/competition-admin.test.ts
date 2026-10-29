@@ -76,7 +76,10 @@ function memory() {
       }
       if (query.startsWith('*[_type=="eventRegister"'))
         return [...docs.values()].filter(
-          (d) => d._type === "eventRegister" && d.event?._ref === params.id,
+          (d) =>
+            d._type === "eventRegister" &&
+            d.event?._ref === params.id &&
+            (!params.microchip || d.microchip === params.microchip),
         );
       if (query.startsWith('*[_type=="event"'))
         return [...docs.values()]
@@ -763,5 +766,114 @@ describe("competition admin protected authority", () => {
     expect(result.counts.draft).toBe(1);
     expect(result.items[0]?.policy.publicVisible).toBe(false);
     expect((await m.service.list({ startFrom: "2099-02-01" })).total).toBe(0);
+  });
+});
+
+describe("normal onsite cross-level duplicate policy", () => {
+  const onsiteData = {
+    name: "synthetic buffalo",
+    birthday: "2098-01-20",
+    microchip: "same-chip",
+    ownerName: "synthetic owner",
+    ownerTel: "000",
+    type: "ไม่เกิน 12 เดือน",
+    level: "province" as const,
+    sex: "male" as const,
+    color: "black" as const,
+  };
+  async function setup(eventType: "normal" | "royal" = "normal") {
+    const m = memory();
+    const draft = await m.service.create(operation, {
+      ...input,
+      eventType,
+      catalogs: {
+        national: ["ไม่เกิน 12 เดือน"],
+        province: ["ไม่เกิน 12 เดือน"],
+      },
+    });
+    const published = await m.service.action(
+      draft._id,
+      second,
+      draft._rev,
+      "publish",
+    );
+    return { ...m, published };
+  }
+  function add(
+    m: Awaited<ReturnType<typeof setup>>,
+    id: string,
+    level?: string,
+    chip = "same-chip",
+  ) {
+    m.docs.set(id, {
+      _id: id,
+      _rev: "1",
+      _type: "eventRegister",
+      event: { _ref: m.published._id },
+      microchip: chip,
+      level,
+    });
+  }
+  it("stores a second-level entry for the same chip without an override and replays once", async () => {
+    const m = await setup();
+    add(m, "national-entry", "ประเทศ");
+    add(m, "unrelated-chip", undefined, "other-chip");
+    const first = await m.service.onsite(
+      m.published._id,
+      "21234567-89ab-4cde-8fab-0123456789ab",
+      m.published._rev,
+      onsiteData,
+    );
+    expect(first.level).toBe("จังหวัด");
+    const replay = await m.service.onsite(
+      m.published._id,
+      "21234567-89ab-4cde-8fab-0123456789ab",
+      m.published._rev,
+      onsiteData,
+    );
+    expect(replay._id).toBe(first._id);
+    expect(
+      [...m.docs.values()].filter(
+        (d) => d._type === "eventRegister" && d.microchip === "same-chip",
+      ),
+    ).toHaveLength(2);
+  });
+  it.each(["จังหวัด", "province", undefined, "unrecognized"])(
+    "requires override for same or unknown level %s",
+    async (level) => {
+      const m = await setup();
+      add(m, "other-level", "ประเทศ");
+      add(m, "blocking-level", level);
+      await expect(
+        m.service.onsite(
+          m.published._id,
+          "21234567-89ab-4cde-8fab-0123456789ab",
+          m.published._rev,
+          onsiteData,
+        ),
+      ).rejects.toMatchObject({ code: "DUPLICATE_MICROCHIP" });
+      const saved = await m.service.onsite(
+        m.published._id,
+        "31234567-89ab-4cde-8fab-0123456789ab",
+        m.published._rev,
+        {
+          ...onsiteData,
+          duplicateOverrideReason: "เจ้าหน้าที่ยืนยันรายการเพิ่มเติม",
+        },
+      );
+      expect(saved.level).toBe("จังหวัด");
+    },
+  );
+  it("keeps Royal whole-event duplicate warnings", async () => {
+    const m = await setup("royal");
+    add(m, "national-entry", "ประเทศ");
+    await expect(
+      m.service.onsite(
+        m.published._id,
+        "21234567-89ab-4cde-8fab-0123456789ab",
+        m.published._rev,
+        onsiteData,
+      ),
+    ).rejects.toMatchObject({ code: "DUPLICATE_MICROCHIP" });
   });
 });
