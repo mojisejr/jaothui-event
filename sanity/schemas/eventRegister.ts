@@ -6,6 +6,14 @@ export const eventRegisterType = defineType({
   type: "document",
   fields: [
     defineField({
+      name: "registrationRequestHash",
+      title: "Registration Request Hash",
+      type: "string",
+      hidden: true,
+      readOnly: true,
+      description: "Server-managed fingerprint for safe registration retries.",
+    }),
+    defineField({
       title: "Type",
       name: "type",
       type: "string",
