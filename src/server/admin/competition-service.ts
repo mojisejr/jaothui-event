@@ -1,3 +1,7 @@
+import {
+  normalizeCompetitionLevel,
+  requiresLevelDuplicateOverride,
+} from "~/lib/normal-competition-levels";
 import { createHash, randomUUID } from "node:crypto";
 import { type SanityClient } from "next-sanity";
 import { client } from "~/server/sanity/client";
@@ -863,7 +867,7 @@ export class CompetitionAdminService {
     await this.source(id);
     const microchip = z.string().trim().min(1).max(100).parse(rawMicrochip);
     const duplicates = await this.db.fetch<Doc[]>(
-      '*[_type=="eventRegister" && event._ref==$id && microchip==$microchip] | order(_createdAt desc,_id desc){_id,name,type,ownerName}',
+      '*[_type=="eventRegister" && event._ref==$id && microchip==$microchip] | order(_createdAt desc,_id desc){_id,name,type,ownerName,level}',
       { id, microchip },
     );
     const { getMetadataByMicrochipId } = await import(
@@ -921,6 +925,7 @@ export class CompetitionAdminService {
         name: stringValue(row.name),
         type: stringValue(row.type),
         ownerName: stringValue(row.ownerName),
+        level: normalizeCompetitionLevel(row.level),
       })),
     };
   }
@@ -996,11 +1001,14 @@ export class CompetitionAdminService {
         "REGISTRATION_INDEX_PENDING",
         "ข้อมูลผู้สมัครกำลังอัปเดต กรุณาลองลงทะเบียนอีกครั้ง",
       );
-    const duplicate = await this.db.fetch<number>(
-      'count(*[_type=="eventRegister" && event._ref==$id && microchip==$microchip])',
+    const duplicates = await this.db.fetch<Array<{ level?: unknown }>>(
+      '*[_type=="eventRegister" && event._ref==$id && microchip==$microchip]{level}',
       { id, microchip: data.microchip },
     );
-    if (duplicate && !data.duplicateOverrideReason)
+    if (
+      requiresLevelDuplicateOverride(doc.eventType, data.level, duplicates) &&
+      !data.duplicateOverrideReason
+    )
       return error(
         409,
         "DUPLICATE_MICROCHIP",

@@ -331,3 +331,78 @@ describe("idempotent public operations", () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 });
+
+describe("normal same-animal distinct-level registrations", () => {
+  it("persists two applications, retries the first once, and rejects changing its used operation", async () => {
+    const documents = new Map<string, Record<string, any>>([
+      ["event", { ...event, eventType: "normal" }],
+      [
+        "national-catalog",
+        {
+          _id: "national-catalog",
+          _type: "nationalEventType",
+          event: { _ref: "event" },
+          data: [data.type],
+        },
+      ],
+      [
+        "province-catalog",
+        {
+          _id: "province-catalog",
+          _type: "provinceEventType",
+          event: { _ref: "event" },
+          data: [data.type],
+        },
+      ],
+    ]);
+    mocks.getDocument.mockImplementation(
+      async (id) => documents.get(id) ?? null,
+    );
+    mocks.fetch.mockImplementation(async (_query, params) => [
+      {
+        _id:
+          params.catalogType === "provinceEventType"
+            ? "province-catalog"
+            : "national-catalog",
+      },
+    ]);
+    mocks.patch.mockImplementation((_id, callback) => {
+      callback({
+        ifRevisionId: () => ({
+          setIfMissing: () => ({ inc: () => undefined }),
+        }),
+      });
+      let pending: Record<string, any>;
+      const transaction = {
+        create: (doc: Record<string, any>) => {
+          pending = doc;
+          return transaction;
+        },
+        commit: async () => {
+          documents.set(pending._id, pending);
+          return [event, pending];
+        },
+      };
+      return transaction;
+    });
+    const first = await createNewRegister(data);
+    const second = await createNewRegister({
+      ...data,
+      operationId: "00000000-0000-4000-8000-000000000002",
+      level: "จังหวัด",
+    });
+    expect(first).toMatchObject({ microchip: data.microchip, level: "ประเทศ" });
+    expect(second).toMatchObject({
+      microchip: data.microchip,
+      level: "จังหวัด",
+    });
+    expect(first?._id).not.toBe(second?._id);
+    expect((await createNewRegister(data))?._id).toBe(first?._id);
+    await expect(
+      createNewRegister({ ...data, level: "จังหวัด" }),
+    ).rejects.toThrow("คำขอนี้ถูกใช้");
+    expect(
+      [...documents.values()].filter((doc) => doc._type === "eventRegister"),
+    ).toHaveLength(2);
+  });
+});

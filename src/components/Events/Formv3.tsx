@@ -1,11 +1,19 @@
 import { useLine } from "~/context/lineContext";
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import { api } from "~/utils/api";
 import { parseThaiDate } from "~/utils/parseThaiDate";
 import ThaiDatePicker from "~/components/ThaiDatePicker";
+import { NormalClassSelector } from "./NormalClassSelector";
+import {
+  emptyNormalClassOptions,
+  nextNormalLevel,
+  reconcileNormalSelection,
+  suggestNormalSelection,
+  withCurrentRegistrationAuthorization,
+  isSafeNormalRegistrationFailure,
+} from "~/lib/normal-competition-levels";
 
 type EventRegisterType = {
   firstName: string;
@@ -56,15 +64,18 @@ const FormV3 = ({
   const { liff } = useLine();
   const operationId = useRef("");
   const thaiDate = parseThaiDate(new Date(deadline).getTime());
-  const { replace } = useRouter();
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
-  const [autoAssignedClass, setAutoAssignedClass] = useState<{
-    competitionLevel: string | null;
-    competitionType: string | null;
-    message: string;
+  type NormalRequest = Parameters<typeof registerEvent>[0];
+  const [pendingRequest, setPendingRequest] = useState<NormalRequest | null>(
+    null,
+  );
+  const pendingRef = useRef<NormalRequest | null>(null);
+  const [requestProblem, setRequestProblem] = useState("");
+  const [confirmed, setConfirmed] = useState<{
+    id: string;
+    level: string;
+    type: string;
   } | null>(null);
-  const [isAutoAssigned, setIsAutoAssigned] = useState<boolean>(false);
-  const [isManualMode, setIsManualMode] = useState<boolean>(false);
 
   const {
     data: metadata,
@@ -75,25 +86,18 @@ const FormV3 = ({
 
   const {
     mutate: registerEvent,
+    data: registrationResult,
+    reset: resetRegistration,
     isLoading: registering,
     isSuccess: registered,
     isError: registerError,
     error: registerErrorObj,
   } = api.registerEvent.register.useMutation();
 
-  // Admin registration mutation
-  const {
-    mutate: registerAdminEvent,
-    isLoading: adminRegistering,
-    isSuccess: adminRegistered,
-    isError: adminRegisterError,
-    error: adminRegisterErrorObj,
-  } = api.admin.registerAdminEvent.useMutation();
-
-  // Determine current loading state
+  // An unconfirmed normal request remains immutable, including after a network error.
   const isLoading = isAdminMode
-    ? adminRegistering || isRegistering
-    : registering;
+    ? !!isRegistering
+    : registering || pendingRequest !== null;
 
   const { data: typesWithAutoAssignment, isLoading: typeLoading } =
     api.event.getTypesWithAutoAssignment.useQuery({
@@ -101,31 +105,32 @@ const FormV3 = ({
       age: calculatedAge,
     });
 
-  const { register, handleSubmit, watch, reset, setValue, getValues } =
+  const { register, handleSubmit, watch, setValue, getValues } =
     useForm<EventRegisterType>();
 
-  const handleToggleManualMode = useCallback(
-    (manual: boolean) => {
-      setIsManualMode(manual);
-      if (manual) {
-        // When entering manual mode, clear all auto-assignment states
-        setIsAutoAssigned(false);
-        setAutoAssignedClass(null);
-        setValue(
-          "competitionLevel",
-          (typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) === 0 &&
-            (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) > 0
-            ? "ประเทศ"
-            : "",
-        );
-        setValue("competitionType", "");
-      }
-    },
-    [setValue, typesWithAutoAssignment],
-  );
+  const selectionOptions = typesWithAutoAssignment ?? emptyNormalClassOptions;
+  const selectedLevel = watch("competitionLevel") ?? "";
+  const selectedType = watch("competitionType") ?? "";
+  const birthDate = watch("buffaloBirthDate") ?? "";
+
+  const beginAnotherRegistration = () => {
+    if (!confirmed || isAdminMode) return;
+    const level = nextNormalLevel(confirmed.level);
+    resetRegistration();
+    pendingRef.current = null;
+    setPendingRequest(null);
+    operationId.current = "";
+    setRequestProblem("");
+    setConfirmed(null);
+    setValue("competitionLevel", level);
+    setValue("competitionType", "");
+    for (const key of ["accept1", "accept2", "accept3", "accept4"] as const)
+      setValue(key, "");
+  };
 
   const onSubmit = handleSubmit(async (data) => {
-    operationId.current ||= crypto.randomUUID();
+    if (typeLoading || searching || (!isAdminMode && pendingRef.current))
+      return;
     if (!liff?.getIDToken() && !liff?.getAccessToken()) {
       alert(
         "กรุณาเข้าสู่ระบบ LINE ใหม่เพื่อยืนยันตัวตน หากยังสมัครไม่ได้ กรุณาติดต่อเจ้าหน้าที่",
@@ -141,6 +146,16 @@ const FormV3 = ({
       alert("ต้องยินยอมข้อตกลงทุกข้อก่อนยืนยันการลงทะเบียน");
       return;
     }
+
+    const choice = reconcileNormalSelection(
+      { level: data.competitionLevel, type: data.competitionType },
+      selectionOptions,
+    );
+    if (!choice.type || !choice.level) {
+      alert("กรุณาเลือกระดับและรุ่นแข่งขันที่เข้าเกณฑ์");
+      return;
+    }
+    operationId.current ||= crypto.randomUUID();
 
     if (isAdminMode && onAdminSubmit) {
       // Use admin registration endpoint with 'birthday' field
@@ -193,6 +208,9 @@ const FormV3 = ({
         userId,
         eventId,
       };
+      pendingRef.current = regularRegistrationData;
+      setPendingRequest(regularRegistrationData);
+      setRequestProblem("");
       registerEvent(regularRegistrationData);
     }
   });
@@ -215,7 +233,7 @@ const FormV3 = ({
 
   useEffect(() => {
     // Watch specific fields to prevent infinite loops when updating other fields
-    const subscription = watch((value, { name, type }) => {
+    const subscription = watch((value, { name }) => {
       // Only execute logic if the changed field is buffaloBirthDate or microchip
       if (name === "buffaloBirthDate" || name === "microchip") {
         const { buffaloBirthDate } = value;
@@ -232,12 +250,6 @@ const FormV3 = ({
         }
 
         setCalculatedAge(diff);
-
-        // Reset manual mode whenever birthday changes (to try auto-assign first)
-        // But ONLY if it was triggered by user input, not programmatic set
-        if (type === "change" || type === "blur") {
-          setIsManualMode(false);
-        }
       }
     });
     return () => subscription.unsubscribe();
@@ -264,582 +276,518 @@ const FormV3 = ({
   }, [metadata, searchingError]);
 
   useEffect(() => {
-    if (registered && !registerError) {
-      void replace("/success");
-    }
-    if (registerError) {
-      alert(registerErrorObj.message);
-      reset();
-      return;
-    }
-  }, [registered, registerError, registerErrorObj, replace, reset]);
-
-  // Auto-assignment effect
-  useEffect(() => {
-    // If Manual Mode is on, do NOT override with auto assignment
-    if (isManualMode) return;
-
-    if (typesWithAutoAssignment?.autoAssignment) {
-      const { success, competitionLevel, competitionType, message } =
-        typesWithAutoAssignment.autoAssignment;
-
-      if (success && competitionLevel && competitionType) {
-        // Auto-assign values
-        setValue("competitionLevel", competitionLevel);
-        setValue("competitionType", competitionType);
-        setAutoAssignedClass({ competitionLevel, competitionType, message });
-        setIsAutoAssigned(true);
+    if (isAdminMode) return;
+    if (registered && pendingRef.current) {
+      const id = (registrationResult as { _id?: unknown } | undefined)?._id;
+      if (typeof id === "string" && id) {
+        const saved = pendingRef.current;
+        setConfirmed({ id, level: saved.level, type: saved.type });
+        pendingRef.current = null;
+        setPendingRequest(null);
+        setRequestProblem("");
+        operationId.current = "";
       } else {
-        // Clear auto-assignment if not successful
-        setAutoAssignedClass({
-          competitionLevel: null,
-          competitionType: null,
-          message,
-        });
-        setIsAutoAssigned(false);
-        // Do not force manual mode here, let the user see the "not found" message and decide
+        setRequestProblem(
+          "ยังยืนยันรหัสใบสมัครไม่ได้ กรุณาลองคำขอเดิมอีกครั้ง",
+        );
       }
     }
-  }, [typesWithAutoAssignment, setValue, isManualMode]);
+    if (registerError && pendingRef.current) {
+      if (isSafeNormalRegistrationFailure(registerErrorObj)) {
+        pendingRef.current = null;
+        setPendingRequest(null);
+        operationId.current = "";
+        setRequestProblem(
+          `${registerErrorObj.message} — แก้ไขข้อมูลแล้วส่งใหม่ได้`,
+        );
+      } else {
+        setRequestProblem(
+          `${registerErrorObj.message} — ยังยืนยันผลไม่ได้ ข้อมูลคำขอเดิมถูกเก็บไว้ กรุณาลองอีกครั้งโดยไม่เปลี่ยนข้อมูล`,
+        );
+      }
+    }
+  }, [
+    registered,
+    registerError,
+    registerErrorObj,
+    registrationResult,
+    isAdminMode,
+  ]);
+
+  useEffect(() => {
+    if (typeLoading || pendingRequest !== null || confirmed !== null) return;
+    // Auto-select only once the age is known (microchip lookup or manual birthday).
+    const next = birthDate
+      ? suggestNormalSelection(
+          { level: selectedLevel, type: selectedType },
+          selectionOptions,
+        )
+      : reconcileNormalSelection(
+          { level: selectedLevel, type: selectedType },
+          selectionOptions,
+        );
+    if (next.level !== selectedLevel) setValue("competitionLevel", next.level);
+    if (next.type !== selectedType) setValue("competitionType", next.type);
+  }, [
+    typesWithAutoAssignment,
+    birthDate,
+    typeLoading,
+    selectedLevel,
+    selectedType,
+    pendingRequest,
+    confirmed,
+    setValue,
+  ]);
 
   return (
     <div className="flex justify-center">
       <div className="max-w-md text-secondary">
         <h2 className="fron-bold pb-4 text-xl text-primary">{name}</h2>
-        <form onSubmit={onSubmit} className="grid grid-cols-1 gap-2">
-          <div className="form-control">
-            <input
-              type="text"
-              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
-              placeholder="ชื่อ"
-              aria-label="ชื่อ"
-              aria-required="true"
-              autoComplete="given-name"
-              disabled={searching || isLoading}
-              {...register("firstName", { required: true })}
-            />
-          </div>
-          <div className="form-control">
-            <input
-              type="text"
-              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
-              placeholder="นามสกุล"
-              aria-label="นามสกุล"
-              aria-required="true"
-              autoComplete="family-name"
-              disabled={searching || isLoading}
-              {...register("lastName", { required: true })}
-            />
-          </div>
-          <div className="form-control">
-            <input
-              type="tel"
-              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
-              placeholder="เบอร์โทรติดต่อ"
-              aria-label="เบอร์โทรติดต่อ"
-              aria-required="true"
-              autoComplete="tel"
-              disabled={searching || isLoading}
-              {...register("tel", { required: true })}
-            />
-          </div>
-          <div className="form-control">
-            <input
-              type="text"
-              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
-              placeholder="ชื่อฟาร์ม"
-              aria-label="ชื่อฟาร์ม"
-              aria-required="true"
-              required
-              disabled={searching || isLoading}
-              {...register("farmName", { required: true })}
-            />
-          </div>
-
-          <div className="form-control">
-            <input
-              type="text"
-              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
-              placeholder="ฟาร์มอยู่จังหวัด"
-              aria-label="ฟาร์มอยู่จังหวัด"
-              aria-required="true"
-              required
-              disabled={searching || isLoading}
-              {...register("province", { required: true })}
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="label label-text">ข้อมูลกระบือ</label>
-            <div className="grid grid-cols-1 gap-2">
-              <div className="flex gap-2">
+        {confirmed && !isAdminMode ? (
+          <section aria-label="ผลการสมัคร" className="space-y-4 text-base">
+            <h3 role="status" className="text-xl font-semibold text-primary">
+              สมัครสำเร็จแล้ว
+            </h3>
+            <p>
+              ระดับ
+              {confirmed.level === "จังหวัด"
+                ? "จังหวัด / ท้องถิ่น"
+                : confirmed.level}{" "}
+              · {confirmed.type}
+            </p>
+            <p className="break-all text-sm">รหัสใบสมัคร: {confirmed.id}</p>
+            <p>ควายตัวเดิมสมัครเพิ่มได้ โดยส่งใบสมัครใหม่แยกแต่ละรายการ</p>
+            <button
+              type="button"
+              className="btn btn-primary h-auto min-h-12 w-full whitespace-normal py-3 text-base"
+              onClick={beginAnotherRegistration}
+            >
+              สมัครควายตัวนี้เพิ่มอีกระดับหรือรุ่นอื่น
+            </button>
+          </section>
+        ) : (
+          <>
+            {requestProblem && !pendingRequest ? (
+              <p role="alert" className="my-3 text-base">
+                {requestProblem}
+              </p>
+            ) : null}
+            <form onSubmit={onSubmit} className="grid grid-cols-1 gap-2">
+              <fieldset
+                disabled={isLoading}
+                className="grid min-w-0 grid-cols-1 gap-2"
+              >
                 <div className="form-control">
                   <input
                     type="text"
                     className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
-                    placeholder="เลขไมโครชิพ"
-                    aria-label="เลขไมโครชิพ"
-                    aria-describedby="microchip-help"
+                    placeholder="ชื่อ"
+                    aria-label="ชื่อ"
+                    aria-required="true"
+                    autoComplete="given-name"
                     disabled={searching || isLoading}
-                    {...register("microchip")}
+                    {...register("firstName", { required: true })}
                   />
-                  <label
-                    id="microchip-help"
-                    className="label label-text-alt text-xs text-primary"
-                  >
-                    หากไม่มี microchip ให้ใส่ชื่อควายของคุณลงในช่อง microchip
-                  </label>
                 </div>
-                <button
-                  type="button"
-                  disabled={searching || isLoading}
-                  onClick={() => handleSearchMetadata()}
-                  className="btn btn-primary btn-sm"
-                  aria-label="ค้นหาข้อมูลจากไมโครชิพ"
-                >
-                  {searching ? "กำลังค้น" : "ค้นหา"}
-                </button>
-              </div>
-              <div className="form-control">
-                <input
-                  type="text"
-                  className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
-                  placeholder="ชื่อกระบือ"
-                  aria-label="ชื่อกระบือ"
-                  aria-required="true"
-                  disabled={searching || isLoading}
-                  {...register("buffaloName", { required: true })}
-                />
-              </div>
+                <div className="form-control">
+                  <input
+                    type="text"
+                    className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                    placeholder="นามสกุล"
+                    aria-label="นามสกุล"
+                    aria-required="true"
+                    autoComplete="family-name"
+                    disabled={searching || isLoading}
+                    {...register("lastName", { required: true })}
+                  />
+                </div>
+                <div className="form-control">
+                  <input
+                    type="tel"
+                    className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                    placeholder="เบอร์โทรติดต่อ"
+                    aria-label="เบอร์โทรติดต่อ"
+                    aria-required="true"
+                    autoComplete="tel"
+                    disabled={searching || isLoading}
+                    {...register("tel", { required: true })}
+                  />
+                </div>
+                <div className="form-control">
+                  <input
+                    type="text"
+                    className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                    placeholder="ชื่อฟาร์ม"
+                    aria-label="ชื่อฟาร์ม"
+                    aria-required="true"
+                    required
+                    disabled={searching || isLoading}
+                    {...register("farmName", { required: true })}
+                  />
+                </div>
 
-              <div className="form-control">
-                <label className="label label-text">วันเดือนปีเกิดกระบือ</label>
-                <input
-                  type="hidden"
-                  {...register("buffaloBirthDate", {
-                    required: true,
-                    valueAsDate: false,
-                  })}
-                />
-                <ThaiDatePicker
-                  value={watch("buffaloBirthDate")}
-                  onChange={handleBirthDateChange}
-                  disabled={searching || isLoading}
-                  required={true}
-                  minYear={1900}
-                  maxYear={new Date().getFullYear()}
-                />
-              </div>
-              <div className="form-control">
-                <select
-                  className="select select-sm text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary disabled:text-base-300"
-                  aria-label="สีกระบือ"
-                  aria-required="true"
-                  disabled={searching || isLoading}
-                  required
-                  {...register("buffaloColor", { required: true })}
-                >
-                  <option value="black">ดำ</option>
-                  <option value="albino">เผือก</option>
-                </select>
-              </div>
-              <div className="form-control">
-                <select
-                  className="select select-sm text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary disabled:text-base-300"
-                  aria-label="เพศกระบือ"
-                  aria-required="true"
-                  disabled={searching || isLoading}
-                  required
-                  {...register("buffaloSex", { required: true })}
-                >
-                  <option value="male">เพศผู้</option>
-                  <option value="female">เพศเมีย</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div className="form-control">
-            <label className="label label-text">อายุกระบือ {"(เดือน)"}</label>
-            <input
-              type="text"
-              placeholder="อายุกระบือ (เดือน)"
-              className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
-              aria-label="อายุกระบือ (เดือน)"
-              aria-readonly="true"
-              disabled={searching || isLoading}
-              {...register("buffaloAge", { required: true })}
-              value={calculatedAge}
-              readOnly
-            />
-            <div className="form-control">
-              <input
-                type="text"
-                className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
-                placeholder="ชื่อพ่อ"
-                aria-label="ชื่อพ่อกระบือ"
-                aria-required="true"
-                required
-                disabled={searching || isLoading}
-                {...register("fatherName", { required: true })}
-              />
-            </div>
-            <div className="form-control">
-              <input
-                type="text"
-                className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
-                placeholder="ชื่อแม่"
-                aria-label="ชื่อแม่กระบือ"
-                aria-required="true"
-                required
-                disabled={searching || isLoading}
-                {...register("motherName", { required: true })}
-              />
-            </div>
-          </div>
-          {/* Auto-assignment display */}
-          {typeLoading ? (
-            <div className="rounded-md bg-blue-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700">
-                    กำลังคำนวณรุ่นที่เหมาะสม...
-                  </p>
+                <div className="form-control">
+                  <input
+                    type="text"
+                    className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                    placeholder="ฟาร์มอยู่จังหวัด"
+                    aria-label="ฟาร์มอยู่จังหวัด"
+                    aria-required="true"
+                    required
+                    disabled={searching || isLoading}
+                    {...register("province", { required: true })}
+                  />
                 </div>
-              </div>
-            </div>
-          ) : isManualMode ? (
-            <div className="rounded-md bg-orange-50 p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between border-b border-orange-200 pb-2">
-                <h3 className="text-sm font-bold text-orange-800">
-                  สมัครรุ่นพิเศษ (ระบุข้อมูลด้วยตนเอง)
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => handleToggleManualMode(false)}
-                  className="text-xs font-medium text-orange-600 hover:text-orange-800"
-                >
-                  ✕ ยกเลิกและใช้รุ่นแนะนำ
-                </button>
-              </div>
 
-              {watch("competitionType") && watch("competitionLevel") ? (
-                /* Display Selected Manual Class */
-                <div className="flex flex-col gap-3">
-                  <div className="rounded bg-white p-3 ring-1 ring-orange-200">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-orange-500">
-                      รุ่นพิเศษที่เลือก:
-                    </p>
-                    <p className="mt-1 text-sm font-bold text-orange-900">
-                      {watch("competitionType")?.replace(/^\[SP\]\s*/, "").trim()}
-                    </p>
-                    <p className="text-xs text-orange-700">
-                      ({watch("competitionLevel")})
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setValue("competitionType", "");
-                    }}
-                    className="text-center text-xs text-orange-600 underline"
-                  >
-                    เปลี่ยนรุ่นพิเศษอื่น
-                  </button>
-                </div>
-              ) : (
-                /* Selection Box */
-                <div className="space-y-3">
-                  <div className="form-control">
-                    <label className="label label-text pb-1 text-orange-900">
-                      1. เลือกระดับการประกวด
-                    </label>
-                    <select
-                      className="select select-bordered select-sm w-full border-orange-300 text-base-content focus:border-orange-500 focus:ring-orange-500"
-                      {...register("competitionLevel", { required: true })}
-                    >
-                      <option value="">-- กรุณาเลือก --</option>
-                      {(typesWithAutoAssignment?.specialProvinceTypes?.length ??
-                        0) > 0 && <option value="จังหวัด">ระดับจังหวัด</option>}
-                      {(typesWithAutoAssignment?.specialNationalTypes?.length ??
-                        0) > 0 && <option value="ประเทศ">ระดับประเทศ</option>}
-                    </select>
-                  </div>
-                  {watch("competitionLevel") && (
-                    <div className="form-control">
-                      <label className="label label-text pb-1 text-orange-900">
-                        2. เลือกรุ่นการประกวด
-                      </label>
-                      <select
-                        className="select select-bordered select-sm w-full border-orange-300 text-base-content focus:border-orange-500 focus:ring-orange-500"
-                        {...register("competitionType", { required: true })}
+                <div className="form-group">
+                  <label className="label label-text">ข้อมูลกระบือ</label>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex gap-2">
+                      <div className="form-control">
+                        <input
+                          type="text"
+                          className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                          placeholder="เลขไมโครชิพ"
+                          aria-label="เลขไมโครชิพ"
+                          aria-describedby="microchip-help"
+                          disabled={searching || isLoading}
+                          {...register("microchip")}
+                        />
+                        <label
+                          id="microchip-help"
+                          className="label label-text-alt text-xs text-primary"
+                        >
+                          หากไม่มี microchip ให้ใส่ชื่อควายของคุณลงในช่อง
+                          microchip
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={searching || isLoading}
+                        onClick={() => handleSearchMetadata()}
+                        className="btn btn-primary btn-sm"
+                        aria-label="ค้นหาข้อมูลจากไมโครชิพ"
                       >
-                        <option value="">-- กรุณาเลือกรุ่น --</option>
-                        {watch("competitionLevel") === "จังหวัด" && (
-                          <>
-                            {typesWithAutoAssignment?.specialProvinceTypes?.map(
-                              (type, idx) => (
-                                <option key={`prov-sp-${idx}`} value={type}>
-                                  {type.replace(/^\[SP\]\s*/, "").trim()}
-                                </option>
-                              ),
-                            )}
-                          </>
-                        )}
-                        {watch("competitionLevel") === "ประเทศ" && (
-                          <>
-                            {typesWithAutoAssignment?.specialNationalTypes?.map(
-                              (type, idx) => (
-                                <option key={`nat-sp-${idx}`} value={type}>
-                                  {type.replace(/^\[SP\]\s*/, "").trim()}
-                                </option>
-                              ),
-                            )}
-                          </>
-                        )}
+                        {searching ? "กำลังค้น" : "ค้นหา"}
+                      </button>
+                    </div>
+                    <div className="form-control">
+                      <input
+                        type="text"
+                        className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                        placeholder="ชื่อกระบือ"
+                        aria-label="ชื่อกระบือ"
+                        aria-required="true"
+                        disabled={searching || isLoading}
+                        {...register("buffaloName", { required: true })}
+                      />
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label label-text">
+                        วันเดือนปีเกิดกระบือ
+                      </label>
+                      <input
+                        type="hidden"
+                        {...register("buffaloBirthDate", {
+                          required: true,
+                          valueAsDate: false,
+                        })}
+                      />
+                      <ThaiDatePicker
+                        value={watch("buffaloBirthDate")}
+                        onChange={handleBirthDateChange}
+                        disabled={searching || isLoading}
+                        required={true}
+                        minYear={1900}
+                        maxYear={new Date().getFullYear()}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <select
+                        className="select select-sm text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary disabled:text-base-300"
+                        aria-label="สีกระบือ"
+                        aria-required="true"
+                        disabled={searching || isLoading}
+                        required
+                        {...register("buffaloColor", { required: true })}
+                      >
+                        <option value="black">ดำ</option>
+                        <option value="albino">เผือก</option>
                       </select>
                     </div>
-                  )}
-                  <p className="text-[10px] italic text-orange-700">
-                    * แสดงรุ่นพิเศษที่ผ่านเงื่อนไขอายุแล้ว
-                    คุณสมบัติอื่นให้เจ้าหน้าที่ตรวจสอบ
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : isAutoAssigned && autoAssignedClass?.competitionLevel ? (
-            <div className="rounded-md border border-green-100 bg-green-50 p-4 shadow-sm">
-              <div className="flex items-start justify-between">
-                <div className="ml-1">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-                    <h3 className="text-sm font-bold text-green-800">
-                      ตรวจสอบรุ่นประกวดอัตโนมัติสำเร็จ
-                    </h3>
-                  </div>
-                  <div className="mt-3 text-sm text-green-700">
-                    <p className="mb-1 text-lg font-semibold leading-tight">
-                      {autoAssignedClass.competitionType}
-                    </p>
-                    <p className="text-xs opacity-80">
-                      ระดับ{autoAssignedClass.competitionLevel} | คำนวณตามอายุ{" "}
-                      {calculatedAge} เดือน
-                    </p>
-                  </div>
-                </div>
-                {((typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) >
-                  0 ||
-                  (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) >
-                    0) && (
-                  <button
-                    type="button"
-                    onClick={() => handleToggleManualMode(true)}
-                    className="ml-4 rounded-full bg-white px-3 py-1 text-[10px] font-bold text-green-700 shadow-sm ring-1 ring-inset ring-green-300 transition-colors hover:bg-green-100"
-                  >
-                    สมัครรุ่นพิเศษ?
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : autoAssignedClass?.message && !isAutoAssigned ? (
-            <div className="rounded-md border border-yellow-100 bg-yellow-50 p-4">
-              <div className="flex flex-col gap-3">
-                <div className="flex items-start">
-                  <div className="ml-1">
-                    <h3 className="text-sm font-bold text-yellow-800">
-                      ไม่พบรุ่นที่ตรงตามอายุ ({calculatedAge} เดือน)
-                    </h3>
-                    <div className="mt-1 text-xs text-yellow-700">
-                      <p>
-                        ท่านสามารถลองแก้ไขวันเกิด
-                        หรือใช้ปุ่มด้านล่างเพื่อเลือกสมัครในรุ่นพิเศษด้วยตนเอง
-                      </p>
+                    <div className="form-control">
+                      <select
+                        className="select select-sm text-base-content focus:outline-2 focus:outline-offset-2 focus:outline-primary disabled:text-base-300"
+                        aria-label="เพศกระบือ"
+                        aria-required="true"
+                        disabled={searching || isLoading}
+                        required
+                        {...register("buffaloSex", { required: true })}
+                      >
+                        <option value="male">เพศผู้</option>
+                        <option value="female">เพศเมีย</option>
+                      </select>
                     </div>
                   </div>
                 </div>
-                {((typesWithAutoAssignment?.specialProvinceTypes?.length ?? 0) >
-                  0 ||
-                  (typesWithAutoAssignment?.specialNationalTypes?.length ?? 0) >
-                    0) && (
-                  <button
-                    type="button"
-                    onClick={() => handleToggleManualMode(true)}
-                    className="w-full rounded bg-yellow-600 px-3 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-yellow-700"
-                  >
-                    เลือกรุ่นแข่งขันด้วยตนเอง / รุ่นพิเศษ
-                  </button>
-                )}
+                <div className="form-control">
+                  <label className="label label-text">
+                    อายุกระบือ {"(เดือน)"}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="อายุกระบือ (เดือน)"
+                    className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                    aria-label="อายุกระบือ (เดือน)"
+                    aria-readonly="true"
+                    disabled={searching || isLoading}
+                    {...register("buffaloAge", { required: true })}
+                    value={calculatedAge}
+                    readOnly
+                  />
+                  <div className="form-control">
+                    <input
+                      type="text"
+                      className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                      placeholder="ชื่อพ่อ"
+                      aria-label="ชื่อพ่อกระบือ"
+                      aria-required="true"
+                      required
+                      disabled={searching || isLoading}
+                      {...register("fatherName", { required: true })}
+                    />
+                  </div>
+                  <div className="form-control">
+                    <input
+                      type="text"
+                      className="input input-sm input-bordered text-base-content placeholder:text-base-300 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+                      placeholder="ชื่อแม่"
+                      aria-label="ชื่อแม่กระบือ"
+                      aria-required="true"
+                      required
+                      disabled={searching || isLoading}
+                      {...register("motherName", { required: true })}
+                    />
+                  </div>
+                </div>
+                {/* Explicit level and eligible regular/special choices */}
+                <NormalClassSelector
+                  options={selectionOptions}
+                  level={selectedLevel}
+                  value={selectedType}
+                  loading={typeLoading}
+                  disabled={isLoading}
+                  onLevelChange={(level) => {
+                    const next = suggestNormalSelection(
+                      { level, type: selectedType },
+                      selectionOptions,
+                      selectedLevel,
+                    );
+                    setValue("competitionLevel", next.level);
+                    setValue("competitionType", next.type);
+                  }}
+                  onClassChange={(value) => setValue("competitionType", value)}
+                />
+                <input
+                  type="hidden"
+                  {...register("competitionLevel", { required: true })}
+                />
+                <input
+                  type="hidden"
+                  {...register("competitionType", { required: true })}
+                />
+                <div className="form-group">
+                  <label className="label label-text">เงื่อนไชข้อตกลง</label>
+                  <div className="grid grid-cols-1 gap-2">
+                    <fieldset className="form-control">
+                      <legend className="label label-text">
+                        1. หากกระบือของท่านยังไม่มีการฝังไมโครชิป
+                        จะต้องดำเนินการฝังหน้างาน ตัวละ 500 บาท
+                      </legend>
+                      <div className="grid grid-cols-2 place-items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            className="radio"
+                            value="y"
+                            id="accept1-yes"
+                            aria-label="ยินยอมข้อ 1"
+                            {...register("accept1", { required: true })}
+                          />
+                          <label htmlFor="accept1-yes" className="text-white">
+                            ยินยอม
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            className="radio"
+                            value="n"
+                            id="accept1-no"
+                            aria-label="ไม่ยินยอมข้อ 1"
+                            {...register("accept1", { required: true })}
+                          />
+                          <label htmlFor="accept1-no" className="text-white">
+                            ไม่ยินยอม
+                          </label>
+                        </div>
+                      </div>
+                    </fieldset>
+                    <fieldset className="form-control">
+                      <legend className="label label-text">
+                        2. กรณีแจ้งวันเดือนปีเกิดไม่ตรงตามความจริง
+                        ทางกองประกวดขอสงวนสิทธิ์ในการริบรางวัลคืน
+                        และประกาศผ่านสื่อของกองประกวด
+                      </legend>
+                      <div className="grid grid-cols-2 place-items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            className="radio"
+                            value="y"
+                            id="accept2-yes"
+                            aria-label="ยินยอมข้อ 2"
+                            {...register("accept2", { required: true })}
+                          />
+                          <label htmlFor="accept2-yes" className="text-white">
+                            ยินยอม
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            className="radio"
+                            value="n"
+                            id="accept2-no"
+                            aria-label="ไม่ยินยอมข้อ 2"
+                            {...register("accept2", { required: true })}
+                          />
+                          <label htmlFor="accept2-no" className="text-white">
+                            ไม่ยินยอม
+                          </label>
+                        </div>
+                      </div>
+                    </fieldset>
+                    <fieldset className="form-control">
+                      <legend className="label label-text">
+                        3. การเลือกรุ่นประกวด ให้นับอายุถึง{" "}
+                        {`วันที่ ${thaiDate.date} ${thaiDate.thaiMonth}  พ.ศ. ​${thaiDate.thaiYear}`}
+                      </legend>
+                      <div className="grid grid-cols-2 place-items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            className="radio"
+                            value="y"
+                            id="accept3-yes"
+                            aria-label="ยินยอมข้อ 3"
+                            {...register("accept3", { required: true })}
+                          />
+                          <label htmlFor="accept3-yes" className="text-white">
+                            ยินยอม
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            className="radio"
+                            value="n"
+                            id="accept3-no"
+                            aria-label="ไม่ยินยอมข้อ 3"
+                            {...register("accept3", { required: true })}
+                          />
+                          <label htmlFor="accept3-no" className="text-white">
+                            ไม่ยินยอม
+                          </label>
+                        </div>
+                      </div>
+                    </fieldset>
+                    <fieldset className="form-control">
+                      <legend className="label label-text">
+                        4. กรณีเลือกรุ่นประกวดไม่ตรงทางกองประกวด
+                        ขอสงวนสิทธิ์ในการรับรุ่น ณ จุดลงทะเบียน
+                      </legend>
+                      <div className="grid grid-cols-2 place-items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            className="radio"
+                            value="y"
+                            id="accept4-yes"
+                            aria-label="ยินยอมข้อ 4"
+                            {...register("accept4", { required: true })}
+                          />
+                          <label htmlFor="accept4-yes" className="text-white">
+                            ยินยอม
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            className="radio"
+                            value="n"
+                            id="accept4-no"
+                            aria-label="ไม่ยินยอมข้อ 4"
+                            {...register("accept4", { required: true })}
+                          />
+                          <label htmlFor="accept4-no" className="text-white">
+                            ไม่ยินยอม
+                          </label>
+                        </div>
+                      </div>
+                    </fieldset>
+                  </div>
+                </div>
+                <button
+                  disabled={isLoading || typeLoading || searching}
+                  type="submit"
+                  className="btn btn-primary my-2 min-h-12 text-base"
+                  aria-label="ยืนยันการลงทะเบียนเข้าร่วมงาน"
+                >
+                  {isLoading
+                    ? isAdminMode
+                      ? "กำลังลงทะเบียน (Admin)"
+                      : "กำลังยืนยัน"
+                    : "ยืนยันการลงทะเบียน"}
+                </button>
+              </fieldset>
+            </form>
+            {pendingRequest && !registering ? (
+              <div className="mt-4 space-y-3 text-base">
+                <p role="alert">
+                  {requestProblem ||
+                    "ยังยืนยันผลคำขอไม่ได้ ข้อมูลถูกล็อกไว้เพื่อป้องกันการสมัครซ้ำ"}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-primary h-auto min-h-12 w-full whitespace-normal py-3 text-base"
+                  onClick={() => {
+                    if (!pendingRef.current || registering) return;
+                    const idToken = liff?.getIDToken() ?? undefined;
+                    const lineAccessToken = !idToken
+                      ? (liff?.getAccessToken() ?? undefined)
+                      : undefined;
+                    if (!idToken && !lineAccessToken) {
+                      setRequestProblem(
+                        "กรุณาเข้าสู่ระบบ LINE ใหม่ แล้วลองคำขอเดิมอีกครั้ง ข้อมูลคำขอถูกเก็บไว้",
+                      );
+                      return;
+                    }
+                    registerEvent(
+                      withCurrentRegistrationAuthorization(pendingRef.current, {
+                        idToken,
+                        lineAccessToken,
+                      }),
+                    );
+                  }}
+                >
+                  ลองส่งคำขอเดิมอีกครั้ง
+                </button>
               </div>
-            </div>
-          ) : null}
-
-          {/* Hidden inputs to hold auto-assigned values when NOT in manual mode */}
-          {!isManualMode && (
-            <>
-              <input
-                type="hidden"
-                {...register("competitionLevel", { required: true })}
-              />
-              <input
-                type="hidden"
-                {...register("competitionType", { required: true })}
-              />
-            </>
-          )}
-          <div className="form-group">
-            <label className="label label-text">เงื่อนไชข้อตกลง</label>
-            <div className="grid grid-cols-1 gap-2">
-              <fieldset className="form-control">
-                <legend className="label label-text">
-                  1. หากกระบือของท่านยังไม่มีการฝังไมโครชิป
-                  จะต้องดำเนินการฝังหน้างาน ตัวละ 500 บาท
-                </legend>
-                <div className="grid grid-cols-2 place-items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      className="radio"
-                      value="y"
-                      id="accept1-yes"
-                      aria-label="ยินยอมข้อ 1"
-                      {...register("accept1", { required: true })}
-                    />
-                    <label htmlFor="accept1-yes" className="text-white">
-                      ยินยอม
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      className="radio"
-                      value="n"
-                      id="accept1-no"
-                      aria-label="ไม่ยินยอมข้อ 1"
-                      {...register("accept1", { required: true })}
-                    />
-                    <label htmlFor="accept1-no" className="text-white">
-                      ไม่ยินยอม
-                    </label>
-                  </div>
-                </div>
-              </fieldset>
-              <fieldset className="form-control">
-                <legend className="label label-text">
-                  2. กรณีแจ้งวันเดือนปีเกิดไม่ตรงตามความจริง
-                  ทางกองประกวดขอสงวนสิทธิ์ในการริบรางวัลคืน
-                  และประกาศผ่านสื่อของกองประกวด
-                </legend>
-                <div className="grid grid-cols-2 place-items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      className="radio"
-                      value="y"
-                      id="accept2-yes"
-                      aria-label="ยินยอมข้อ 2"
-                      {...register("accept2", { required: true })}
-                    />
-                    <label htmlFor="accept2-yes" className="text-white">
-                      ยินยอม
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      className="radio"
-                      value="n"
-                      id="accept2-no"
-                      aria-label="ไม่ยินยอมข้อ 2"
-                      {...register("accept2", { required: true })}
-                    />
-                    <label htmlFor="accept2-no" className="text-white">
-                      ไม่ยินยอม
-                    </label>
-                  </div>
-                </div>
-              </fieldset>
-              <fieldset className="form-control">
-                <legend className="label label-text">
-                  3. การเลือกรุ่นประกวด ให้นับอายุถึง{" "}
-                  {`วันที่ ${thaiDate.date} ${thaiDate.thaiMonth}  พ.ศ. ​${thaiDate.thaiYear}`}
-                </legend>
-                <div className="grid grid-cols-2 place-items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      className="radio"
-                      value="y"
-                      id="accept3-yes"
-                      aria-label="ยินยอมข้อ 3"
-                      {...register("accept3", { required: true })}
-                    />
-                    <label htmlFor="accept3-yes" className="text-white">
-                      ยินยอม
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      className="radio"
-                      value="n"
-                      id="accept3-no"
-                      aria-label="ไม่ยินยอมข้อ 3"
-                      {...register("accept3", { required: true })}
-                    />
-                    <label htmlFor="accept3-no" className="text-white">
-                      ไม่ยินยอม
-                    </label>
-                  </div>
-                </div>
-              </fieldset>
-              <fieldset className="form-control">
-                <legend className="label label-text">
-                  4. กรณีเลือกรุ่นประกวดไม่ตรงทางกองประกวด
-                  ขอสงวนสิทธิ์ในการรับรุ่น ณ จุดลงทะเบียน
-                </legend>
-                <div className="grid grid-cols-2 place-items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      className="radio"
-                      value="y"
-                      id="accept4-yes"
-                      aria-label="ยินยอมข้อ 4"
-                      {...register("accept4", { required: true })}
-                    />
-                    <label htmlFor="accept4-yes" className="text-white">
-                      ยินยอม
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      className="radio"
-                      value="n"
-                      id="accept4-no"
-                      aria-label="ไม่ยินยอมข้อ 4"
-                      {...register("accept4", { required: true })}
-                    />
-                    <label htmlFor="accept4-no" className="text-white">
-                      ไม่ยินยอม
-                    </label>
-                  </div>
-                </div>
-              </fieldset>
-            </div>
-          </div>
-          <button
-            disabled={isLoading}
-            type="submit"
-            className="btn btn-primary btn-sm my-2"
-            aria-label="ยืนยันการลงทะเบียนเข้าร่วมงาน"
-          >
-            {isLoading
-              ? isAdminMode
-                ? "กำลังลงทะเบียน (Admin)"
-                : "กำลังยืนยัน"
-              : "ยืนยันการลงทะเบียน"}
-          </button>
-        </form>
+            ) : null}
+          </>
+        )}
       </div>
     </div>
   );

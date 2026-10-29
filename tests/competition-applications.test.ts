@@ -262,13 +262,14 @@ describe("authoritative export age", () => {
 });
 
 describe("event-scoped metadata authority", () => {
-  const setup = () => {
+  const setup = (level?: unknown) => {
     const fetch = vi.fn(
       async (_query: string, params: { id: string; microchip: string }) => {
         expect(params).toEqual({ id: "event", microchip: "synthetic-chip" });
         return [
           entry("duplicate", {
             name: "ควายทดสอบ",
+            level,
             type: "รุ่นทดสอบ",
             ownerName: "ทีมทดสอบ",
           }),
@@ -312,6 +313,21 @@ describe("event-scoped metadata authority", () => {
       throwOnError: true,
     });
   });
+  it.each([
+    ["ประเทศ", "national"],
+    ["จังหวัด", "province"],
+    ["province", "province"],
+    [undefined, null],
+    ["unknown", null],
+  ])(
+    "adds normalized duplicate metadata level %s without changing total count",
+    async (level, normalized) => {
+      metadata.lookup.mockResolvedValue(null);
+      const result = await setup(level).metadata("event", "synthetic-chip");
+      expect(result.duplicateCount).toBe(1);
+      expect(result.duplicateRegistrations[0]?.level).toBe(normalized);
+    },
+  );
   it("bounds a hung registry lookup at eight seconds while preserving duplicate authority", async () => {
     vi.useFakeTimers();
     metadata.lookup.mockImplementation(() => new Promise(() => {}));
