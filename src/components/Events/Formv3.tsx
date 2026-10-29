@@ -315,7 +315,7 @@ const FormV3 = ({
   ]);
 
   useEffect(() => {
-    if (typeLoading || pendingRequest || confirmed) return;
+    if (typeLoading || pendingRequest !== null || confirmed !== null) return;
     // Auto-select only once the age is known (microchip lookup or manual birthday).
     const next = birthDate
       ? suggestNormalSelection(
