@@ -71,6 +71,14 @@ const thaiProposalLabel = (raw: string): string | null => {
   const display = (classDisplayName(raw) || raw)
     .replace(/^\[SP\]\s*/i, "")
     .replace(/\((?:Calf|Intermediate|Junior|Senior) division\)/gi, "")
+    .replace(
+      /(รองควายยอดเยี่ยม)\s*(?:[—–-]\s*)?(?:\(\s*Reserve Grand Champion\s*\)|Reserve Grand Champion)/gi,
+      "$1",
+    )
+    .replace(
+      /(ควายยอดเยี่ยม)\s*(?:[—–-]\s*)?(?:\(\s*Grand Champion\s*\)|Grand Champion)/gi,
+      "$1",
+    )
     .replace(/Reserve Grand Champion/gi, "รองควายยอดเยี่ยม")
     .replace(/Grand Champion/gi, "ควายยอดเยี่ยม")
     .replace(/\s+/g, " ")
@@ -341,18 +349,16 @@ export class CompetitionExportAdmin {
         "รูปแบบไฟล์ยังไม่ครบ กรุณาแก้รายการที่ระบุก่อนบันทึก",
         plan.diagnostics,
       );
-    let tx = this.db
-      .transaction()
-      .patch(id, (patch) =>
-        patch
-          .ifRevisionId(input.expectedRevision)
-          .set({
-            exportLayout: input.layout,
-            competitionActor: "dashboard-shared",
-          })
-          .setIfMissing({ competitionWriteFence: 0 })
-          .inc({ competitionWriteFence: 1 }),
-      );
+    let tx = this.db.transaction().patch(id, (patch) =>
+      patch
+        .ifRevisionId(input.expectedRevision)
+        .set({
+          exportLayout: input.layout,
+          competitionActor: "dashboard-shared",
+        })
+        .setIfMissing({ competitionWriteFence: 0 })
+        .inc({ competitionWriteFence: 1 }),
+    );
     // Fence catalog-only concurrent edits; the semantic fingerprint ignores these revision-only writes.
     for (const catalog of snapshot.source.catalogDocuments as Doc[])
       tx = tx.patch(catalog._id, (patch) =>

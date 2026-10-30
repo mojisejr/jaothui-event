@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { encodeCompetitionClass } from "~/lib/competition-classes";
 import {
+  exportPlanSchema,
   type ExportLayout,
   type ExportRegistrationIdentity,
 } from "~/lib/competition-export-layout";
@@ -71,6 +72,199 @@ const compile = (registrations = [row()], proposed: unknown = layout()) =>
   compileCompetitionExport({ event, registrations, layout: proposed });
 
 describe("source-owned competition export compiler", () => {
+  it("blocks blank-only exact class aliases and raw class values without rewriting meaningful surrounding whitespace", () => {
+    const proposed = layout();
+    proposed.categories = [
+      {
+        ...proposed.categories[0]!,
+        catalogValue: undefined,
+        historical: true,
+        registrationTypeValues: [" "],
+      },
+    ];
+    const blocked = compile([row({ rawType: " " })], proposed);
+    expect(blocked.state).toBe("needs-review");
+    expect(blocked.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "MISSING_CLASS_VALUE",
+        registrationIds: ["r1"],
+      }),
+    );
+    expect(compile([], proposed).state).toBe("needs-review");
+    proposed.categories[0]!.registrationTypeValues = [" ลูกควายเดิม "];
+    const exact = compile([row({ rawType: " ลูกควายเดิม " })], proposed);
+    expect(exact.state).toBe("ready");
+    expect(proposed.categories[0]!.registrationTypeValues).toEqual([
+      " ลูกควายเดิม ",
+    ]);
+    expect(compile([row({ rawType: "ลูกควายเดิม" })], proposed).state).toBe(
+      "needs-review",
+    );
+  });
+  it("preserves readable level/poster and complete known color/sex suffixes under truncation and collisions", () => {
+    const proposed = layout();
+    const subgroups = [
+      { color: "black", sex: "male" },
+      { color: "black", sex: "female" },
+      { color: "albino", sex: "male" },
+      { color: "albino", sex: "female" },
+    ];
+    proposed.categories = ["ลูกควาย", "รุ่นพิเศษ"].map((type, index) => ({
+      ...proposed.categories[0]!,
+      id: `collision-${index}`,
+      catalogValue: type,
+      registrationTypeValues: [type],
+      posterNumber: "01",
+      shortLabelTh: "รุ่น'ชื่อยาวสำหรับทดสอบการชนกันของชื่อชีต".repeat(2),
+      groups: subgroups,
+    }));
+    const registrations = proposed.categories.flatMap((category) =>
+      subgroups.map((group, index) =>
+        row({
+          _id: `${category.id}-${index}`,
+          rawType: category.catalogValue!,
+          ...group,
+        }),
+      ),
+    );
+    const result = compile(registrations, proposed);
+    expect(result.state).toBe("ready");
+    expect(result.groups).toHaveLength(8);
+    const byKey = new Map(
+      result.groups.map((group) => [group.key, group.sheetName]),
+    );
+    for (const group of result.groups) {
+      expect(group.sheetName.startsWith("ป01-")).toBe(true);
+      expect(
+        group.sheetName.endsWith(`-${group.colorLabel}-${group.sexLabel}`),
+      ).toBe(true);
+      expect(group.sheetName.length).toBeLessThanOrEqual(31);
+    }
+    expect(
+      new Set(result.groups.map((group) => group.sheetName.toLowerCase())).size,
+    ).toBe(8);
+    expect(
+      compile([...registrations].reverse(), proposed).groups.map(
+        (group) => group.sheetName,
+      ),
+    ).toEqual(result.groups.map((group) => group.sheetName));
+    for (const group of compile(registrations.slice(0, 1), proposed).groups)
+      expect(group.sheetName).toBe(byKey.get(group.key));
+  });
+  it("budgets long custom controlled labels deterministically while retaining full labels in the plan", () => {
+    const proposed = layout();
+    const color = "สีด่างลวดลายสำหรับการทดสอบชื่อที่ยาวมาก";
+    const sex = "เพศตามข้อมูลประวัติเดิมที่เจ้าหน้าที่ตรวจแล้ว";
+    proposed.aliases = [
+      {
+        field: "color",
+        rawValue: "old-spotted",
+        canonicalValue: "custom-spotted",
+        labelTh: color,
+      },
+      {
+        field: "sex",
+        rawValue: "old-sex",
+        canonicalValue: "custom-sex",
+        labelTh: sex,
+      },
+    ];
+    proposed.categories[0]!.shortLabelTh =
+      "ชื่อย่อรุ่นที่ยังยาวมากสำหรับตรวจงบประมาณชื่อชีต";
+    proposed.categories[0]!.groups = [
+      { color: "custom-spotted", sex: "custom-sex" },
+    ];
+    const result = compile(
+      [row({ color: "old-spotted", sex: "old-sex" })],
+      proposed,
+    );
+    expect(result.state).toBe("ready");
+    expect(result.groups[0]).toMatchObject({
+      colorLabel: color,
+      sexLabel: sex,
+    });
+    expect(result.groups[0]!.sheetName).toMatch(
+      new RegExp(`-${color.slice(0, 8)}-${sex.slice(0, 6)}$`),
+    );
+    expect(result.groups[0]!.sheetName.length).toBeLessThanOrEqual(31);
+  });
+  it("keeps the full reviewed missing-sex label rather than truncating it as custom text", () => {
+    const proposed = layout();
+    proposed.aliases = [
+      {
+        field: "sex",
+        rawValue: "",
+        canonicalValue: "unspecified",
+        labelTh: "ไม่ระบุ",
+      },
+    ];
+    proposed.categories[0]!.shortLabelTh =
+      "ชื่อรุ่นยาวสำหรับตรวจค่าข้อมูลที่ขาดอย่างชัดเจน";
+    proposed.categories[0]!.groups = [{ color: "black", sex: "unspecified" }];
+    const result = compile([row({ sex: "" })], proposed);
+    expect(result.state).toBe("ready");
+    expect(result.groups[0]!.sheetName.endsWith("-ดำ-ไม่ระบุ")).toBe(true);
+  });
+  it("accepts the exact essential-parts boundary and diagnoses oversized poster numbers with a valid blocked plan", () => {
+    const proposed = layout();
+    proposed.categories = [proposed.categories[0]!];
+    proposed.categories[0]!.groups = [{ color: "black", sex: "male" }];
+    const posterLength = 31 - 3 - "-ดำ-ผู้".length;
+    proposed.categories[0]!.posterNumber = "1".repeat(posterLength);
+    const boundary = compile([row()], proposed);
+    expect(boundary.state).toBe("ready");
+    expect(boundary.groups[0]!.sheetName.length).toBe(31);
+    proposed.categories[0]!.posterNumber += "1";
+    const blocked = compile([row()], proposed);
+    expect(blocked.state).toBe("needs-review");
+    expect(blocked.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "POSTER_NUMBER_TOO_LONG" }),
+    );
+    expect(exportPlanSchema.safeParse(blocked).success).toBe(true);
+  });
+  it("reserves collision-marker space before accepting a long poster prefix", () => {
+    const proposed = layout();
+    const poster = "1".repeat(31 - 3 - "-ดำ-ผู้".length);
+    proposed.categories = ["ลูกควาย", "รุ่นพิเศษ"].map((type, index) => ({
+      ...proposed.categories[0]!,
+      id: `boundary-${index}`,
+      posterNumber: poster,
+      catalogValue: type,
+      registrationTypeValues: [type],
+      shortLabelTh: "รุ่นชื่อเดียวกัน",
+      groups: [{ color: "black", sex: "male" }],
+    }));
+    const result = compile(
+      [row(), row({ _id: "second", rawType: "รุ่นพิเศษ" })],
+      proposed,
+    );
+    expect(result.state).toBe("needs-review");
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "POSTER_NUMBER_TOO_LONG" }),
+    );
+    expect(exportPlanSchema.safeParse(result).success).toBe(true);
+  });
+  it("terminates duplicate-key oversized candidates with distinct schema-valid blocked placeholders", () => {
+    const proposed = layout();
+    proposed.categories = ["ลูกควาย", "รุ่นพิเศษ"].map((type) => ({
+      ...proposed.categories[0]!,
+      id: "duplicate-category",
+      posterNumber: "1".repeat(40),
+      catalogValue: type,
+      registrationTypeValues: [type],
+      groups: [{ color: "black", sex: "male" }],
+    }));
+    const result = compile(
+      [row(), row({ _id: "second", rawType: "รุ่นพิเศษ" })],
+      proposed,
+    );
+    expect(result.state).toBe("needs-review");
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "DUPLICATE_CATEGORY_ID" }),
+    );
+    expect(exportPlanSchema.safeParse(result).success).toBe(true);
+    expect(new Set(result.groups.map((group) => group.sheetName)).size).toBe(2);
+  });
   it("uses configured category and subgroup order, translates exact aliases, preserves row order and never mutates input", () => {
     const registrations = [
       row({ _id: "albino", color: "albino" }),

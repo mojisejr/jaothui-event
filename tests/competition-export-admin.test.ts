@@ -360,6 +360,33 @@ describe("source export metadata and coherent snapshots", () => {
     expect(preview.plan.state).toBe("needs-review");
     expect(JSON.stringify(detail.bindings)).not.toContain("PRIVATE");
   });
+  it("proposes concise Thai Champion labels from known bilingual names without duplicating their meaning", async () => {
+    const m = fixture();
+    const names = [
+      "ควายยอดเยี่ยม — Grand Champion รวมสี",
+      "รองควายยอดเยี่ยม — Reserve Grand Champion รวมสี",
+      "Grand Champion รวมสี",
+      "Reserve Grand Champion รวมสี",
+      "รุ่นควายยอดเยี่ยม (Grand Champion) รวมสี",
+      "รุ่นรองควายยอดเยี่ยม (Reserve Grand Champion) รวมสี",
+    ];
+    m.docs.get("catalog")!.data = names;
+    m.docs.get("row1")!.type = names[0];
+    const detail = await m.service.exportLayout("event");
+    expect(
+      detail.proposedLayout.categories.map((category) => category.fullLabelTh),
+    ).toEqual([
+      "ควายยอดเยี่ยม รวมสี",
+      "รองควายยอดเยี่ยม รวมสี",
+      "ควายยอดเยี่ยม รวมสี",
+      "รองควายยอดเยี่ยม รวมสี",
+      "รุ่นควายยอดเยี่ยม รวมสี",
+      "รุ่นรองควายยอดเยี่ยม รวมสี",
+    ]);
+    expect(
+      detail.proposedLayout.categories.map((category) => category.catalogValue),
+    ).toEqual(names);
+  });
   it("does not infer a binding by matching empty normalized values of unsupported encodings", async () => {
     const m = fixture();
     m.docs.get("catalog")!.data = ["@jaothui/class:v2:one"];

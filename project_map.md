@@ -24,6 +24,7 @@
 - [src/pages/api/admin/competitions/[[...path]].ts](src/pages/api/admin/competitions/[[...path]].ts): authenticated REST bridge called by dashboard; write kill switch retains read/export.
 - [src/server/services/competition-policy.ts](src/server/services/competition-policy.ts), [competition-registration.service.ts](src/server/services/competition-registration.service.ts): inclusive Bangkok dates, independent signup/event closure and public/onsite eligibility.
 - [src/lib/competition-classes.ts](src/lib/competition-classes.ts): versioned class codec and legacy reader; preserve during rollback.
+- Universal competition export (#123): [source admin](src/server/admin/competition-export-admin.ts) owns independent per-event layout persistence, coherent source snapshots, strict preflight and paginated redacted readiness; [compiler](src/server/services/competition-export-presentation.ts) owns exact raw-class bindings, Thai controlled labels and ordered groups. Dashboard consumes its versioned plan; layout edits never rewrite signup catalogs or registrations. [API/release/operator guide](docs/competition-export.md), [synthetic contract](tests/competition-export-contract.test.ts).
 - [src/server/admin/legacy-competition-cutover.ts](src/server/admin/legacy-competition-cutover.ts), [src/server/api/legacy-competition-procedure.ts](src/server/api/legacy-competition-procedure.ts): opt-in competition-only SSR redirects and old API guard before caller-userId authorization. `/admin/roll`, exact `tab=votes` and public signup/status/history are outside cutover.
 - [docs/competition-admin-api.md](docs/competition-admin-api.md), [.env.example](.env.example): source-first release/configuration/recovery; production and real LINE/operator acceptance remain separate gates.
 - [src/server/api/routers/](src/server/api/routers/): แหล่งรวม tRPC Routers (Admin, Event, Register, User)
@@ -82,4 +83,4 @@ erDiagram
 - **Folder Integrity**: เก็บไฟล์ทดสอบไว้ใน `tests/` ที่ Root เท่านั้น
 
 ---
-*Last Updated: 2026-03-10*
+*Last Updated: 2026-10-31 (#123 universal export authority and operator guide)*

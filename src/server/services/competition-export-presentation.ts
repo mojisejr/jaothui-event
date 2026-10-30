@@ -149,11 +149,49 @@ export const sanitizeExportSheetName = (value: string) =>
     .trim()
     .replace(/^'+|'+$/g, "")
     .trim();
-function allocateSheetNames(candidates: Array<{ key: string; name: string }>) {
-  const bases = candidates.map(
-    ({ name }) =>
-      truncate(sanitizeExportSheetName(name), 31).replace(/'+$/g, "") || "รุ่น",
-  );
+type SheetCandidate = {
+  key: string;
+  prefix: string;
+  label: string;
+  color: string;
+  sex: string;
+  categoryId: string;
+  path: string;
+};
+function allocateSheetNames(
+  candidates: SheetCandidate[],
+  diagnostics: ExportDiagnostic[],
+) {
+  const nameFor = (candidate: SheetCandidate, marker = "") => {
+    const prefix = sanitizeExportSheetName(candidate.prefix);
+    const label = sanitizeExportSheetName(candidate.label) || "รุ่น";
+    // Known labels, including explicitly reviewed missing data, remain complete.
+    const color = truncate(sanitizeExportSheetName(candidate.color) || "สี", 8);
+    const sexLabel = sanitizeExportSheetName(candidate.sex) || "เพศ";
+    const sex = sexLabel === "ไม่ระบุ" ? sexLabel : truncate(sexLabel, 6);
+    const tail = `-${color}-${sex}`;
+    const classBudget = 31 - prefix.length - 1 - marker.length - tail.length;
+    if (classBudget < 1) {
+      if (
+        !diagnostics.some(
+          (item) =>
+            item.code === "POSTER_NUMBER_TOO_LONG" &&
+            item.categoryId === candidate.categoryId,
+        )
+      )
+        diagnostics.push({
+          code: "POSTER_NUMBER_TOO_LONG",
+          message:
+            "เลขรุ่นยาวเกินกว่าจะคงระดับ สี และเพศในชื่อชีต กรุณาย่อเลขรุ่นก่อนส่งออก",
+          categoryId: candidate.categoryId,
+          path: `${candidate.path}.posterNumber`,
+        });
+      // Keep the blocked preview schema-valid, without pretending to shorten a poster number.
+      return `เลขรุ่นยาวเกิน-${digest([candidate.key, marker]).slice(0, 8)}`;
+    }
+    return `${prefix}-${truncate(label, classBudget)}${marker}${tail}`;
+  };
+  const bases = candidates.map((candidate) => nameFor(candidate));
   const counts = new Map<string, number>();
   for (const base of bases)
     counts.set(
@@ -172,13 +210,13 @@ function allocateSheetNames(candidates: Array<{ key: string; name: string }>) {
       used.has(base.toLocaleLowerCase())
     ) {
       // All collisions get a stable suffix, rather than privileging the first row encountered.
-      const suffix = `-${digest(candidate.key).slice(0, 10)}`;
-      name = truncate(base, 31 - suffix.length) + suffix;
+      const marker = `-${digest(candidate.key).slice(0, 8)}`;
+      name = nameFor(candidate, marker);
     }
     let attempt = 0;
     while (used.has(name.toLocaleLowerCase())) {
-      const suffix = `-${digest([candidate.key, ++attempt]).slice(0, 16)}`;
-      name = truncate(base, 31 - suffix.length) + suffix;
+      const marker = `-${digest([candidate.key, ++attempt]).slice(0, 8)}`;
+      name = nameFor(candidate, marker);
     }
     used.add(name.toLocaleLowerCase());
     return name;
@@ -235,7 +273,7 @@ export function compileCompetitionExport(input: {
   const groups: ExportGroup[] = [];
   const categories = new Set<string>();
   const bindings = new Map<string, ExportGroup[]>();
-  const candidates: Array<{ key: string; name: string }> = [];
+  const candidates: SheetCandidate[] = [];
   for (const [categoryIndex, category] of layout.categories.entries()) {
     const path = `categories.${categoryIndex}`;
     if (categories.has(category.id))
@@ -290,6 +328,13 @@ export function compileCompetitionExport(input: {
         categoryId: category.id,
         path,
       });
+    if (category.registrationTypeValues.some((value) => !value.trim()))
+      diagnostics.push({
+        code: "MISSING_CLASS_VALUE",
+        message: "ค่ารุ่นต้นทางมีแต่ช่องว่าง กรุณาผูกรุ่นที่มีข้อมูลจริง",
+        categoryId: category.id,
+        path: `${path}.registrationTypeValues`,
+      });
     const subgroups = new Set<string>();
     for (const subgroup of category.groups) {
       const subkey = JSON.stringify([subgroup.color, subgroup.sex]);
@@ -342,7 +387,12 @@ export function compileCompetitionExport(input: {
             : "ร";
       candidates.push({
         key,
-        name: `${prefix}${category.posterNumber}-${category.shortLabelTh}-${colorLabel ?? ""}-${sexLabel ?? ""}`,
+        prefix: `${prefix}${category.posterNumber}`,
+        label: category.shortLabelTh,
+        color: colorLabel ?? "",
+        sex: sexLabel ?? "",
+        categoryId: category.id,
+        path,
       });
       for (const rawType of new Set(category.registrationTypeValues)) {
         const tuple = tupleKey(
@@ -377,6 +427,18 @@ export function compileCompetitionExport(input: {
       continue;
     }
     ids.add(registration._id);
+    if (
+      typeof registration.rawType !== "string" ||
+      !registration.rawType.trim()
+    ) {
+      diagnostics.push({
+        code: "MISSING_CLASS_VALUE",
+        message: "ใบสมัครไม่มีค่ารุ่นต้นทาง กรุณาตรวจข้อมูลก่อนส่งออก",
+        registrationIds: [registration._id],
+        path: "rawType",
+      });
+      continue;
+    }
     if (
       registration.event !== undefined &&
       (!registration.event ||
@@ -443,7 +505,7 @@ export function compileCompetitionExport(input: {
       });
     else matches[0]!.registrationIds.push(registration._id);
   }
-  const names = allocateSheetNames(candidates);
+  const names = allocateSheetNames(candidates, diagnostics);
   for (const [index, group] of groups.entries())
     group.sheetName = names[index]!;
   const populated = groups
