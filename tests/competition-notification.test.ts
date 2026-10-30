@@ -21,7 +21,14 @@ function fixture({
   recipient = "server-resolved-line-user",
   key = retryKey,
   failCommit = 0,
+  changeTypeBeforeClaim = false,
 } = {}) {
+  const event: Record<string, any> = {
+    _id: "event",
+    _rev: "event-1",
+    _type: "event",
+    eventType: "royal",
+  };
   const approval: Record<string, any> = {
     _id: "approval",
     _rev: "approval-1",
@@ -82,6 +89,46 @@ function fixture({
     patch,
     service: new CompetitionAdminService({
       fetch,
+      getDocument: async (id: string) =>
+        id === "event" ? structuredClone(event) : null,
+      transaction: () => {
+        let eventRevision: string | undefined;
+        let approvalBuilder: ReturnType<typeof patch>;
+        const tx = {
+          patch(id: string, build: (p: any) => unknown) {
+            if (id === "event") {
+              const p = {
+                ifRevisionId: (rev: string) => {
+                  eventRevision = rev;
+                  return p;
+                },
+                setIfMissing: () => p,
+                inc: () => p,
+              };
+              build(p);
+            } else {
+              approvalBuilder = patch(id);
+              build(approvalBuilder);
+            }
+            return tx;
+          },
+          async commit() {
+            if (changeTypeBeforeClaim) {
+              event.eventType = "normal";
+              event._rev = "event-policy-changed";
+            }
+            if (event._rev !== eventRevision)
+              throw Object.assign(
+                new Error("Synthetic event revision conflict"),
+                { statusCode: 409 },
+              );
+            const claimed = await approvalBuilder.commit();
+            event._rev += "-next";
+            return [structuredClone(event), claimed];
+          },
+        };
+        return tx;
+      },
       patch,
     } as unknown as SanityClient),
   };
@@ -107,6 +154,16 @@ afterEach(() => {
 });
 
 describe("competition notification provider outcomes", () => {
+  it("does not persist a claim or send when event policy changes after its authoritative read", async () => {
+    const m = fixture({ changeTypeBeforeClaim: true });
+    await expect(m.service.retryNotification("event", "entry")).rejects.toThrow(
+      "event revision conflict",
+    );
+    expect(m.approval.notificationAttemptAt).toBeUndefined();
+    expect(m.approval.approvementResult).toBe(false);
+    expect(provider.push).not.toHaveBeenCalled();
+  });
+
   it("refuses a stale viewed approval revision before contacting LINE", async () => {
     const m = fixture();
     await expect(

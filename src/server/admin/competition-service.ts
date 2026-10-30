@@ -20,6 +20,11 @@ import {
   calculateRegistrationAge,
   getCompetitionPolicy,
 } from "~/server/services/competition-policy";
+import {
+  registrationPolicy,
+  registrationStatuses,
+  type ApprovalPolicyEvent,
+} from "~/server/services/competition-approval-policy";
 import { z } from "zod";
 import dayjs from "dayjs";
 import {
@@ -185,7 +190,7 @@ const validAge = (value: unknown): value is number =>
 // Keep approval identity and precedence identical for application screens and exports.
 const approvalProjection = `"approval":*[_type=="approvment" && event._ref==$id && eventRegister._ref==^._id] | order(coalesce(approvementDate,_updatedAt,_createdAt) desc,_id desc)[0]`;
 const applicationProjection = `{...,"sex":coalesce(sex,gender),"applicant":user->{_id,lineId},${approvalProjection},"images":*[_type=="eventImage" && event._ref==$id && eventRegister._ref==^._id] | order(_createdAt asc,_id asc){_id,"images":imageArray[]{imageTitle,"url":imageAsset.asset->url}},"address":*[_type=="eventAddress" && event._ref==$id && eventRegister._ref==^._id] | order(_updatedAt desc,_id desc)[0]}`;
-export function normalizeApplication(doc: Doc) {
+export function normalizeApplication(doc: Doc, event?: ApprovalPolicyEvent) {
   const approval =
     doc.approval && typeof doc.approval === "object"
       ? {
@@ -237,6 +242,7 @@ export function normalizeApplication(doc: Doc) {
     sex: stringValue(doc.sex) || stringValue(doc.gender),
     buffaloAge: validAge(doc.buffaloAge) ? doc.buffaloAge : null,
     approval,
+    ...registrationPolicy(event, approval),
     approvalStatus:
       approval?.approvementResult === true
         ? ("accepted" as const)
@@ -279,6 +285,7 @@ export function normalizeApplication(doc: Doc) {
 export const applicationListSchema = z.object({
   search: z.string().trim().max(300).default(""),
   status: z.enum(["pending", "accepted", "rejected"]).optional(),
+  registrationStatus: z.enum(registrationStatuses).optional(),
   type: z.string().max(2000).optional(),
   level: z.enum(["national", "province"]).optional(),
   sex: z.string().max(100).optional(),
@@ -286,9 +293,13 @@ export const applicationListSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
-export function applicationList(records: Doc[], raw: unknown) {
+export function applicationList(
+  records: Doc[],
+  raw: unknown,
+  event?: ApprovalPolicyEvent,
+) {
   const input = applicationListSchema.parse(raw);
-  const all = records.map(normalizeApplication);
+  const all = records.map((record) => normalizeApplication(record, event));
   const term = input.search.toLocaleLowerCase();
   const filtered = all.filter(
     (row) =>
@@ -317,8 +328,20 @@ export function applicationList(records: Doc[], raw: unknown) {
     rejected: 0,
   };
   for (const row of filtered) counts[row.approvalStatus]++;
+  const registrationCounts = {
+    total: filtered.length,
+    registered: 0,
+    pending: 0,
+    accepted: 0,
+    rejected: 0,
+    needs_type_review: 0,
+  };
+  for (const row of filtered) registrationCounts[row.registrationStatus]++;
   const selected = filtered.filter(
-    (row) => !input.status || row.approvalStatus === input.status,
+    (row) =>
+      (!input.status || row.approvalStatus === input.status) &&
+      (!input.registrationStatus ||
+        row.registrationStatus === input.registrationStatus),
   );
   const unique = (key: "type" | "level" | "sex" | "color") =>
     [...new Set(all.map((row) => stringValue(row[key])).filter(Boolean))].sort(
@@ -333,6 +356,9 @@ export function applicationList(records: Doc[], raw: unknown) {
     page: input.page,
     pageSize: input.pageSize,
     counts,
+    registrationPolicyVersion: 1 as const,
+    approvalRequirement: registrationPolicy(event).approvalRequirement,
+    registrationCounts,
     facets: {
       types: unique("type"),
       levels: unique("level"),
@@ -360,7 +386,7 @@ export function exportRegistration(row: Doc, event: CompetitionDTO) {
     }
   }
   return {
-    ...normalizeApplication(row),
+    ...normalizeApplication(row, event),
     type: normalizeClassName(stringValue(row.type)),
     exportAge,
     ageSource,
@@ -855,13 +881,13 @@ export class CompetitionAdminService {
     };
   }
   async applications(id: string, raw: unknown) {
-    await this.source(id);
+    const event = await this.source(id);
     const records = await this.db.fetch<Doc[]>(
       '*[_type=="eventRegister" && event._ref==$id] | order(_createdAt desc,_id desc)' +
         applicationProjection,
       { id },
     );
-    return applicationList(records, raw);
+    return applicationList(records, raw, { eventType: event.eventType });
   }
   async application(id: string, registrationId: string) {
     const registration = await this.db.fetch<Doc | null>(
@@ -871,7 +897,8 @@ export class CompetitionAdminService {
     );
     if (!registration)
       return error(404, "APPLICATION_NOT_FOUND", "ไม่พบใบสมัครในงานนี้");
-    return normalizeApplication(registration);
+    const event = await this.source(id);
+    return normalizeApplication(registration, { eventType: event.eventType });
   }
   async metadata(id: string, rawMicrochip: unknown) {
     await this.source(id);
@@ -946,7 +973,12 @@ export class CompetitionAdminService {
       { id },
     );
     const registrations = records.map((row) => exportRegistration(row, event));
-    return { event, registrations, rowCount: registrations.length };
+    return {
+      event,
+      registrations,
+      rowCount: registrations.length,
+      registrationPolicyVersion: 1 as const,
+    };
   }
   async onsite(
     id: string,
@@ -1067,6 +1099,23 @@ export class CompetitionAdminService {
       .commit({ visibility: "sync" });
     return this.application(id, registrationId);
   }
+  private async approvalEvent(id: string) {
+    const event = await this.source(id);
+    const policy = registrationPolicy({ eventType: event.eventType });
+    if (policy.approvalRequirement === "not_required")
+      return error(
+        409,
+        "APPROVAL_NOT_REQUIRED",
+        "งานประเภท Normal ไม่ต้องอนุมัติใบสมัคร",
+      );
+    if (policy.approvalRequirement === "unknown")
+      return error(
+        422,
+        "EVENT_TYPE_REQUIRED",
+        "ข้อมูลย้อนหลังไม่ระบุประเภทงาน จึงดูผลเดิมได้อย่างเดียว",
+      );
+    return event;
+  }
   async approval(
     id: string,
     registrationId: string,
@@ -1075,6 +1124,7 @@ export class CompetitionAdminService {
     result: boolean,
     comment: string,
   ) {
+    const event = await this.approvalEvent(id);
     if (!result && !comment.trim())
       return error(
         422,
@@ -1115,6 +1165,12 @@ export class CompetitionAdminService {
     };
     let tx = this.db
       .transaction()
+      .patch(id, (p) =>
+        p
+          .ifRevisionId(event._rev)
+          .setIfMissing({ competitionWriteFence: 0 })
+          .inc({ competitionWriteFence: 1 }),
+      )
       .patch(registrationId, (p) =>
         p
           .ifRevisionId(revision)
@@ -1143,6 +1199,7 @@ export class CompetitionAdminService {
     registrationId: string,
     expectedApprovalRevision?: string,
   ) {
+    const event = await this.approvalEvent(id);
     const entry = await this.application(id, registrationId);
     const approval = entry.approval as Doc | undefined;
     if (expectedApprovalRevision && approval?._rev !== expectedApprovalRevision)
@@ -1224,16 +1281,30 @@ export class CompetitionAdminService {
         "ข้อมูลส่ง LINE เดิมไม่ครบ กรุณาตรวจผลการส่งก่อนดำเนินการอีกครั้ง",
       );
     // Persist the immutable request before contacting LINE; stale claims fail before any send.
-    const claimed = await this.db
-      .patch(approval._id)
-      .ifRevisionId(approval._rev)
-      .set({
-        notificationFirstAttemptAt: new Date(firstAttemptAt).toISOString(),
-        notificationPayload: payload.data,
-        notificationAttemptId: randomUUID(),
-        notificationAttemptAt: new Date().toISOString(),
-      })
-      .commit({ visibility: "sync" });
+    const claims = await this.db
+      .transaction()
+      .patch(id, (p) =>
+        p
+          .ifRevisionId(event._rev)
+          .setIfMissing({ competitionWriteFence: 0 })
+          .inc({ competitionWriteFence: 1 }),
+      )
+      .patch(approval._id, (p) =>
+        p.ifRevisionId(approval._rev).set({
+          notificationFirstAttemptAt: new Date(firstAttemptAt).toISOString(),
+          notificationPayload: payload.data,
+          notificationAttemptId: randomUUID(),
+          notificationAttemptAt: new Date().toISOString(),
+        }),
+      )
+      .commit({ visibility: "sync", returnDocuments: true });
+    const claimed = claims.find((doc) => doc._id === approval._id);
+    if (!claimed)
+      return error(
+        409,
+        "NOTIFICATION_REVIEW_REQUIRED",
+        "ไม่พบหลักฐานการบันทึกคำขอส่ง LINE",
+      );
     let notificationState: "sent" | "failed" = "sent";
     try {
       const line = new messagingApi.MessagingApiClient({
