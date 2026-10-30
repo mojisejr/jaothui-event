@@ -9,6 +9,8 @@ const stubs = vi.hoisted(() => ({
   export: vi.fn(),
   remove: vi.fn(),
   recount: vi.fn(),
+  checkIn: vi.fn(),
+  resolveCheckIn: vi.fn(),
 }));
 vi.mock("~/server/sanity/client", () => ({
   client: { assets: { upload: stubs.upload } },
@@ -21,6 +23,8 @@ vi.mock("~/server/admin/competition-service", () => ({
     export = stubs.export;
     deleteApplication = stubs.remove;
     recountRegistrations = stubs.recount;
+    checkIn = stubs.checkIn;
+    resolveCheckIn = stubs.resolveCheckIn;
   },
 }));
 import handler from "~/pages/api/admin/competitions/[[...path]]";
@@ -62,8 +66,88 @@ beforeEach(() => {
   stubs.export.mockReset();
   stubs.remove.mockReset();
   stubs.recount.mockReset();
+  stubs.checkIn.mockReset();
+  stubs.resolveCheckIn.mockReset();
 });
 describe("source competition HTTP boundary", () => {
+  it("authenticates both arrival writes and read-only token resolution", async () => {
+    for (const path of [
+      ["event", "applications", "entry", "check-in"],
+      ["check-in", "resolve"],
+    ]) {
+      const x = exchange(path, "POST", Buffer.from("{}"), {
+        authorization: "Bearer forged",
+      });
+      await handler(x.req, x.res);
+      expect(x.result.status).toBe(401);
+      expect(x.result.headers["Cache-Control"]).toBe("no-store");
+    }
+    expect(stubs.checkIn).not.toHaveBeenCalled();
+    expect(stubs.resolveCheckIn).not.toHaveBeenCalled();
+  });
+  it("allows only read-only token resolution when writes are disabled", async () => {
+    vi.stubEnv("JAOTHUI_COMPETITION_ADMIN_WRITES_ENABLED", "false");
+    const token = "v1." + "a".repeat(43);
+    stubs.resolveCheckIn.mockResolvedValue({
+      checkInVersion: 1,
+      eventId: "event",
+      registrationId: "entry",
+    });
+    const read = exchange(
+      ["check-in", "resolve"],
+      "POST",
+      Buffer.from(JSON.stringify({ token })),
+    );
+    await handler(read.req, read.res);
+    expect(read.result.status).toBe(200);
+    expect(stubs.resolveCheckIn).toHaveBeenCalledWith(token);
+    for (const action of ["check-in", "undo-check-in"]) {
+      const x = exchange(
+        ["event", "applications", "entry", action],
+        "POST",
+        Buffer.from("{}"),
+      );
+      await handler(x.req, x.res);
+      expect(x.result.status).toBe(503);
+    }
+    expect(stubs.checkIn).not.toHaveBeenCalled();
+  });
+  it("requires operation and viewed registration revision and routes explicit confirm/undo", async () => {
+    const path = ["event", "applications", "entry", "check-in"];
+    const missing = exchange(path, "POST", Buffer.from("{}"));
+    await handler(missing.req, missing.res);
+    expect(missing.result.status).toBe(422);
+    expect(stubs.checkIn).not.toHaveBeenCalled();
+    const operationId = "11111111-1111-4111-8111-111111111111";
+    stubs.checkIn.mockResolvedValue({
+      _id: "entry",
+      checkInStatus: "checked_in",
+    });
+    for (const action of ["check-in", "undo-check-in"]) {
+      const x = exchange(
+        ["event", "applications", "entry", action],
+        "POST",
+        Buffer.from(
+          JSON.stringify({
+            operationId,
+            expectedRevision: "r1",
+            reason: "ยืนยันผิดรุ่น จึงยกเลิกรายการ",
+          }),
+        ),
+      );
+      await handler(x.req, x.res);
+      expect(x.result.status).toBe(200);
+      expect(stubs.checkIn).toHaveBeenLastCalledWith(
+        "event",
+        "entry",
+        operationId,
+        "r1",
+        action === "check-in" ? "confirm" : "undo",
+        "ยืนยันผิดรุ่น จึงยกเลิกรายการ",
+      );
+    }
+  });
+
   it("rejects unauthenticated callers and never invokes read service", async () => {
     const x = exchange([], "GET", undefined, { authorization: "Bearer bad" });
     await handler(x.req, x.res);

@@ -33,6 +33,71 @@ afterEach(() => {
 });
 
 describe("application list and nullable detail contract", () => {
+  it("composes arrival filter/counts with registration filters without changing existing approval counters", () => {
+    const at = "2026-10-30T06:00:00Z";
+    const records = [
+      entry("a", {
+        name: "QA",
+        type: "รุ่น A",
+        approval: { approvementResult: true },
+        checkInStatus: "checked_in",
+        checkedInAt: at,
+      }),
+      entry("b", {
+        name: "QA",
+        type: "รุ่น A",
+        approval: { approvementResult: true },
+      }),
+      entry("c", {
+        name: "QA",
+        type: "รุ่น A",
+        approval: { approvementResult: null },
+        checkInStatus: "checked_in",
+        checkedInAt: at,
+      }),
+      entry("d", {
+        name: "other",
+        type: "รุ่น B",
+        approval: { approvementResult: true },
+        checkInStatus: "checked_in",
+        checkedInAt: at,
+      }),
+    ];
+    const result = applicationList(
+      records,
+      {
+        search: "QA",
+        type: "รุ่น A",
+        registrationStatus: "accepted",
+        checkInStatus: "checked_in",
+        pageSize: 1,
+      },
+      { eventType: "royal" },
+    );
+    expect(result.items.map((row) => row._id)).toEqual(["a"]);
+    expect(result.total).toBe(1);
+    expect(result.checkInCounts).toEqual({
+      total: 2,
+      not_checked_in: 1,
+      checked_in: 1,
+    });
+    expect(result.registrationCounts).toEqual({
+      total: 3,
+      registered: 0,
+      pending: 1,
+      accepted: 2,
+      rejected: 0,
+      needs_type_review: 0,
+    });
+    expect(result.counts).toEqual({
+      total: 3,
+      pending: 1,
+      accepted: 2,
+      rejected: 0,
+    });
+    expect(() => applicationList([], { checkInStatus: "arrived" })).toThrow();
+  });
+
   it("keeps absent and null approval pending, never rejected, and normalizes nullable supplements", () => {
     for (const approval of [
       undefined,

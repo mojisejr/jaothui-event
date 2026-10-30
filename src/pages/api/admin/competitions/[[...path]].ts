@@ -40,8 +40,14 @@ export default async function handler(
     const path = Array.isArray(req.query.path) ? req.query.path : [];
     const method = req.method ?? "GET";
     const write = method !== "GET";
+    const readOnlyResolve =
+      method === "POST" &&
+      path.length === 2 &&
+      path[0] === "check-in" &&
+      path[1] === "resolve";
     if (
       write &&
+      !readOnlyResolve &&
       process.env.JAOTHUI_COMPETITION_ADMIN_WRITES_ENABLED !== "true"
     )
       throw new CompetitionAdminError(
@@ -107,7 +113,13 @@ export default async function handler(
     }
     const service = new CompetitionAdminService();
     let data: unknown;
-    if (path.length === 0 && method === "GET")
+    if (readOnlyResolve)
+      data = await service.resolveCheckIn(
+        z
+          .object({ token: z.string().regex(/^v1\.[A-Za-z0-9_-]{43}$/) })
+          .parse(body).token,
+      );
+    else if (path.length === 0 && method === "GET")
       data = await service.list(req.query);
     else if (path.length === 0 && method === "POST") {
       const input = createSchema.parse(body);
@@ -191,6 +203,23 @@ export default async function handler(
       )
         data = await service.application(id, documentId.parse(path[2]));
       else if (
+        action === "applications" &&
+        path.length === 4 &&
+        ["check-in", "undo-check-in"].includes(path[3] ?? "") &&
+        method === "POST"
+      ) {
+        const input = mutationSchema
+          .extend({ reason: z.string().trim().max(3000).default("") })
+          .parse(body);
+        data = await service.checkIn(
+          id,
+          documentId.parse(path[2]),
+          input.operationId,
+          input.expectedRevision,
+          path[3] === "check-in" ? "confirm" : "undo",
+          input.reason,
+        );
+      } else if (
         action === "applications" &&
         path.length === 4 &&
         path[3] === "approval" &&
