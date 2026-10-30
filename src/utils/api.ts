@@ -4,12 +4,29 @@
  *
  * We also create a few inference helpers for input and output types.
  */
-import { httpBatchLink, loggerLink } from "@trpc/client";
+import { httpBatchLink, loggerLink, type TRPCLink } from "@trpc/client";
 import { createTRPCNext } from "@trpc/next";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
 
 import { type AppRouter } from "~/server/api/root";
+
+// v10 loggerLink's downstream `enabled` callback has no operation path.
+// Bypass the whole logger for private operations, including their error response.
+const privateApplicantPaths = new Set([
+  "registerEvent.ownedHistory",
+  "registerEvent.ownedStatus",
+  "registerEvent.applicantPass",
+]);
+export const safeLogger: TRPCLink<AppRouter> = (runtime) => {
+  const log = loggerLink<AppRouter>({
+    enabled: (opts) =>
+      process.env.NODE_ENV === "development" ||
+      (opts.direction === "down" && opts.result instanceof Error),
+  })(runtime);
+  return (opts) =>
+    privateApplicantPaths.has(opts.op.path) ? opts.next(opts.op) : log(opts);
+};
 
 const getBaseUrl = () => {
   if (typeof window !== "undefined") return ""; // browser should use relative url
@@ -34,11 +51,7 @@ export const api = createTRPCNext<AppRouter>({
        * @see https://trpc.io/docs/links
        */
       links: [
-        loggerLink({
-          enabled: (opts) =>
-            process.env.NODE_ENV === "development" ||
-            (opts.direction === "down" && opts.result instanceof Error),
-        }),
+        safeLogger,
         httpBatchLink({
           url: `${getBaseUrl()}/api/trpc`,
         }),

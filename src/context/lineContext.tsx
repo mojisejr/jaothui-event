@@ -57,7 +57,8 @@ export function LineProvider({ children }: { children: ReactNode }) {
 
     if (loggedIn) {
       void getProfile();
-      if (!pathname.includes("/public")) void replace("/profile");
+      if (!pathname.includes("/public") && pathname !== "/profile/my-events")
+        void replace("/profile");
     }
   }, [init, loggedIn]);
 
