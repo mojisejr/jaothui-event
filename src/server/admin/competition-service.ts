@@ -1,4 +1,9 @@
 import { changeCheckIn } from "./competition-checkin";
+import type { ExportLayout } from "~/lib/competition-export-layout";
+import {
+  CompetitionExportAdmin,
+  remapExportLayoutDraft,
+} from "./competition-export-admin";
 import { resolveCheckInToken } from "~/server/services/competition-checkin-token";
 import {
   checkInEligibility,
@@ -409,6 +414,8 @@ export function exportRegistration(row: Doc, event: CompetitionDTO) {
   return {
     ...normalizeApplication(row, event),
     rawType: stringValue(row.type),
+    level: stringValue(row.level),
+    color: stringValue(row.color),
     type: normalizeClassName(stringValue(row.type)),
     exportAge,
     ageSource,
@@ -536,6 +543,7 @@ export class CompetitionAdminService {
     operationId: string,
     raw: CompetitionInput,
     sourcePayload?: unknown,
+    exportLayoutDraft?: ExportLayout,
   ) {
     const input = competitionInputSchema.parse(raw);
     const payload = sourcePayload ?? { action: "create", input };
@@ -553,6 +561,7 @@ export class CompetitionAdminService {
       competitionWriteFence: 0,
       competitionRegistrationCount: 0,
       competitionActor: "dashboard-shared",
+      ...(exportLayoutDraft ? { exportLayoutDraft } : {}),
     });
     for (const [level, labels] of Object.entries(input.catalogs))
       if (labels.length)
@@ -706,6 +715,11 @@ export class CompetitionAdminService {
         operationId,
         { ...config(doc), title: `${doc.title} (สำเนา)` },
         payload,
+        remapExportLayoutDraft(
+          doc.exportLayout ?? doc.exportLayoutDraft,
+          `competition-${operationId}`,
+          config(doc).catalogs,
+        ),
       );
     let change: Record<string, unknown> = {};
     if (action === "publish") {
@@ -1010,19 +1024,28 @@ export class CompetitionAdminService {
       })),
     };
   }
-  async export(id: string) {
-    const event = await this.detail(id);
-    const records = await this.db.fetch<Doc[]>(
-      `*[_type=="eventRegister" && event._ref==$id] | order(_createdAt asc,_id asc){...,"sex":coalesce(sex,gender),${approvalProjection}}`,
-      { id },
-    );
-    const registrations = records.map((row) => exportRegistration(row, event));
-    return {
-      event,
-      registrations,
-      rowCount: registrations.length,
-      registrationPolicyVersion: 1 as const,
-    };
+  private exportAdmin() {
+    return new CompetitionExportAdmin(this.db, {
+      source: (id) => this.source(id),
+      toEvent: toCompetitionDTO,
+      registration: exportRegistration,
+      approvalProjection,
+    });
+  }
+  export(id: string) {
+    return this.exportAdmin().export(id);
+  }
+  exportLayout(id: string) {
+    return this.exportAdmin().detail(id);
+  }
+  previewExportLayout(id: string, layout: unknown) {
+    return this.exportAdmin().preview(id, layout);
+  }
+  saveExportLayout(id: string, input: unknown) {
+    return this.exportAdmin().save(id, input);
+  }
+  exportReadiness(input: unknown) {
+    return this.exportAdmin().inventory(input);
   }
   async onsite(
     id: string,

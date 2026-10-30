@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const EXPORT_PRESENTATION_VERSION = 1 as const;
+export const EXPORT_PRESENTATION_VERSION: 1 = 1;
 export const EXPORT_INFORMATION_SHEET = "ข้อมูลงาน";
 export const EXPORT_UPGRADE_MESSAGE =
   "ระบบต้นทางยังไม่รองรับรูปแบบไฟล์ส่งออก กรุณาอัปเดตระบบต้นทางก่อนดาวน์โหลด";
