@@ -408,6 +408,7 @@ export function exportRegistration(row: Doc, event: CompetitionDTO) {
   }
   return {
     ...normalizeApplication(row, event),
+    rawType: stringValue(row.type),
     type: normalizeClassName(stringValue(row.type)),
     exportAge,
     ageSource,
