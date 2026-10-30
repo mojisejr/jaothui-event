@@ -1,3 +1,10 @@
+import { changeCheckIn } from "./competition-checkin";
+import { resolveCheckInToken } from "~/server/services/competition-checkin-token";
+import {
+  checkInEligibility,
+  checkInState,
+  type CheckInEvent,
+} from "~/server/services/competition-checkin-policy";
 import {
   normalizeCompetitionLevel,
   requiresLevelDuplicateOverride,
@@ -23,7 +30,6 @@ import {
 import {
   registrationPolicy,
   registrationStatuses,
-  type ApprovalPolicyEvent,
 } from "~/server/services/competition-approval-policy";
 import { z } from "zod";
 import dayjs from "dayjs";
@@ -189,8 +195,8 @@ const validAge = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0;
 // Keep approval identity and precedence identical for application screens and exports.
 const approvalProjection = `"approval":*[_type=="approvment" && event._ref==$id && eventRegister._ref==^._id] | order(coalesce(approvementDate,_updatedAt,_createdAt) desc,_id desc)[0]`;
-const applicationProjection = `{...,"sex":coalesce(sex,gender),"applicant":user->{_id,lineId},${approvalProjection},"images":*[_type=="eventImage" && event._ref==$id && eventRegister._ref==^._id] | order(_createdAt asc,_id asc){_id,"images":imageArray[]{imageTitle,"url":imageAsset.asset->url}},"address":*[_type=="eventAddress" && event._ref==$id && eventRegister._ref==^._id] | order(_updatedAt desc,_id desc)[0]}`;
-export function normalizeApplication(doc: Doc, event?: ApprovalPolicyEvent) {
+const applicationProjection = `{...,"checkInHistory":*[_type=="competitionAdminOperation" && eventId==$id && registrationId==^._id && checkInAction in ["confirm","undo"]] | order(at asc,_id asc){"action":checkInAction,at,actor,reason},"sex":coalesce(sex,gender),"applicant":user->{_id,lineId},${approvalProjection},"images":*[_type=="eventImage" && event._ref==$id && eventRegister._ref==^._id] | order(_createdAt asc,_id asc){_id,"images":imageArray[]{imageTitle,"url":imageAsset.asset->url}},"address":*[_type=="eventAddress" && event._ref==$id && eventRegister._ref==^._id] | order(_updatedAt desc,_id desc)[0]}`;
+export function normalizeApplication(doc: Doc, event?: CheckInEvent) {
   const approval =
     doc.approval && typeof doc.approval === "object"
       ? {
@@ -243,6 +249,9 @@ export function normalizeApplication(doc: Doc, event?: ApprovalPolicyEvent) {
     buffaloAge: validAge(doc.buffaloAge) ? doc.buffaloAge : null,
     approval,
     ...registrationPolicy(event, approval),
+    ...checkInState(doc),
+    ...checkInEligibility(event, approval),
+    checkInHistory: Array.isArray(doc.checkInHistory) ? doc.checkInHistory : [],
     approvalStatus:
       approval?.approvementResult === true
         ? ("accepted" as const)
@@ -286,6 +295,7 @@ export const applicationListSchema = z.object({
   search: z.string().trim().max(300).default(""),
   status: z.enum(["pending", "accepted", "rejected"]).optional(),
   registrationStatus: z.enum(registrationStatuses).optional(),
+  checkInStatus: z.enum(["not_checked_in", "checked_in"]).optional(),
   type: z.string().max(2000).optional(),
   level: z.enum(["national", "province"]).optional(),
   sex: z.string().max(100).optional(),
@@ -296,7 +306,7 @@ export const applicationListSchema = z.object({
 export function applicationList(
   records: Doc[],
   raw: unknown,
-  event?: ApprovalPolicyEvent,
+  event?: CheckInEvent,
 ) {
   const input = applicationListSchema.parse(raw);
   const all = records.map((record) => normalizeApplication(record, event));
@@ -337,11 +347,20 @@ export function applicationList(
     needs_type_review: 0,
   };
   for (const row of filtered) registrationCounts[row.registrationStatus]++;
-  const selected = filtered.filter(
+  const registrationSelected = filtered.filter(
     (row) =>
       (!input.status || row.approvalStatus === input.status) &&
       (!input.registrationStatus ||
         row.registrationStatus === input.registrationStatus),
+  );
+  const checkInCounts = {
+    total: registrationSelected.length,
+    not_checked_in: 0,
+    checked_in: 0,
+  };
+  for (const row of registrationSelected) checkInCounts[row.checkInStatus]++;
+  const selected = registrationSelected.filter(
+    (row) => !input.checkInStatus || row.checkInStatus === input.checkInStatus,
   );
   const unique = (key: "type" | "level" | "sex" | "color") =>
     [...new Set(all.map((row) => stringValue(row[key])).filter(Boolean))].sort(
@@ -359,6 +378,8 @@ export function applicationList(
     registrationPolicyVersion: 1 as const,
     approvalRequirement: registrationPolicy(event).approvalRequirement,
     registrationCounts,
+    checkInVersion: 1 as const,
+    checkInCounts,
     facets: {
       types: unique("type"),
       levels: unique("level"),
@@ -887,7 +908,7 @@ export class CompetitionAdminService {
         applicationProjection,
       { id },
     );
-    return applicationList(records, raw, { eventType: event.eventType });
+    return applicationList(records, raw, event);
   }
   async application(id: string, registrationId: string) {
     const registration = await this.db.fetch<Doc | null>(
@@ -898,7 +919,29 @@ export class CompetitionAdminService {
     if (!registration)
       return error(404, "APPLICATION_NOT_FOUND", "ไม่พบใบสมัครในงานนี้");
     const event = await this.source(id);
-    return normalizeApplication(registration, { eventType: event.eventType });
+    return normalizeApplication(registration, event);
+  }
+  async checkIn(
+    id: string,
+    registrationId: string,
+    operationId: string,
+    expectedRevision: string,
+    action: "confirm" | "undo",
+    reason = "",
+  ) {
+    await changeCheckIn(
+      this.db,
+      id,
+      registrationId,
+      operationId,
+      expectedRevision,
+      action,
+      reason,
+    );
+    return this.application(id, registrationId);
+  }
+  async resolveCheckIn(token: string) {
+    return resolveCheckInToken(this.db, token);
   }
   async metadata(id: string, rawMicrochip: unknown) {
     await this.source(id);

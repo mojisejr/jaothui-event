@@ -45,7 +45,8 @@
     "superjson": "^2.2.1",
     "uuid": "^9.0.1",
     "viem": "^2.19.4",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "qrcode.react": "4.2.0"
   },
   "devDependencies": {
     "@types/eslint": "^8.44.7",
@@ -66,7 +67,9 @@
     "tailwindcss": "^3.3.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.1.6",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "jsqr": "1.4.0",
+    "jsdom": "^23.0.1"
   },
   "ct3aMetadata": {
     "initVersion": "7.26.0"

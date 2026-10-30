@@ -193,3 +193,52 @@ events use national-backed catalogs while province legacy reads stay supported.
 Phase4 adds application review/onsite/export UI. Phase5 supplies opt-in cutover
 and integration proof; actual LINE receipt and operator acceptance are separate
 pending gates. No Sanity schema or vote behavior changes are included.
+
+## Mobile QR and per-class arrival (#120)
+
+Arrival is additive, separate from signup approval. New application DTOs include
+`checkInVersion:1`, `checkInStatus:not_checked_in|checked_in`, nullable
+`checkedInAt` / `checkedInBy`, `checkInEligibility:{eligible,reason}` and
+`checkInHistory:[{action,at,actor,reason}]`. Existing raw approval fields,
+registration counts and exports retain their meaning. List requests additionally
+accept `checkInStatus`; response `checkInCounts` is scoped by search and other
+application filters (including selected registration status), before the arrival
+filter/pagination. Existing `registrationCounts` remain unchanged.
+
+Authenticated server bridge endpoints:
+
+- `POST /api/admin/competitions/:event/applications/:registration/check-in`
+- `POST /api/admin/competitions/:event/applications/:registration/undo-check-in`
+  accept `{operationId,expectedRevision,reason?}`; revision is the registration
+  revision. Undo requires a trimmed reason of at least10 characters. Both return
+  the full current application. Event/approval fences are enforced internally.
+- `POST /api/admin/competitions/check-in/resolve` with `{token}` returns only
+  `{checkInVersion:1,eventId,registrationId}`. This is read-only, requires bridge
+  authentication and remains available with admin writes disabled. It never
+  creates arrival state. Tokens stay in POST bodies on this server-to-server hop.
+
+Normal registered and Royal accepted applications may confirm arrival only from
+start through end calendar days inclusive in Asia/Bangkok. Signup closure does
+not close arrival. Unknown types, missing dates, draft/closed events and other
+Royal results fail closed. Undo can correct an earlier mistake after the event.
+Original and corrective operations remain auditable with scalar IDs and the
+truthful `dashboard-shared` actor. No new strong references impede hard deletion.
+
+Applicant `registerEvent.ownedHistory`, `ownedStatus` and `applicantPass` use
+POST mutations: the first two are semantically read-only, the last issues a
+retry-safe QR registry. Input carries exactly one verified LINE ID/access token;
+record operations also require registrationId. Owner comes from verified LINE
+subject, never a client userId. Responses use an explicit safe allowlist and
+no-store; legacy public history is unchanged and never includes QR secrets.
+History returns past rows for actual all/past filtering, and the entire final
+Bangkok event day remains active.
+
+Configure `CHECKIN_QR_SECRET` with at least32 unpredictable server-only characters
+and optional `CHECKIN_DASHBOARD_URL` HTTPS origin. Links use an opaque versioned
+HMAC token; Sanity stores only a SHA256 lookup digest and scalar binding. Rotating
+the secret invalidates all previously issued links; applicants open a fresh pass.
+A registration's `checkInQrGeneration` can be advanced by a deliberate operator
+repair to invalidate only that pass. Deleting/recreating or moving a registration
+invalidates its old binding. Never log/copy token URLs into tickets or analytics;
+no phone, address, LINE identity or credential appears in the QR. See
+[deployment, rollback and owner phone UAT](competition-mobile-checkin.md).

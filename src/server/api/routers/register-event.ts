@@ -1,3 +1,8 @@
+import {
+  CompetitionApplicantCheckInService,
+  applicantCheckInError,
+} from "~/server/services/competition-applicant-checkin";
+import { documentId } from "~/server/admin/competition-contract";
 import { verifyApplicantAuthorization } from "~/server/services/line-auth.service";
 import { createRoyalCompetitionRegistration } from "~/server/services/competition-registration.service";
 import { createTRPCRouter, publicProcedure } from "../trpc";
@@ -15,7 +20,46 @@ import {
 import { royalMessageParser } from "~/server/messaging/message-parser";
 import { notify } from "~/server/messaging/notification";
 
+const applicantAuthSchema = z
+  .object({
+    idToken: z.string().min(1).max(10000).optional(),
+    lineAccessToken: z.string().min(1).max(10000).optional(),
+  })
+  .strict();
+const applicantRecordSchema = applicantAuthSchema.extend({
+  registrationId: documentId,
+});
+const applicantCheckIn = new CompetitionApplicantCheckInService();
+
 export const registerEventRouter = createTRPCRouter({
+  // These are reads over POST so LINE credentials never enter GET query strings.
+  ownedHistory: publicProcedure
+    .input(applicantAuthSchema)
+    .mutation(async ({ input }) => {
+      try {
+        return await applicantCheckIn.history(input);
+      } catch (cause) {
+        return applicantCheckInError(cause);
+      }
+    }),
+  ownedStatus: publicProcedure
+    .input(applicantRecordSchema)
+    .mutation(async ({ input }) => {
+      try {
+        return await applicantCheckIn.status(input, input.registrationId);
+      } catch (cause) {
+        return applicantCheckInError(cause);
+      }
+    }),
+  applicantPass: publicProcedure
+    .input(applicantRecordSchema)
+    .mutation(async ({ input }) => {
+      try {
+        return await applicantCheckIn.pass(input, input.registrationId);
+      } catch (cause) {
+        return applicantCheckInError(cause);
+      }
+    }),
   registerRoyalEvent: publicProcedure
     .input(
       z.object({
