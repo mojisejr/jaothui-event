@@ -194,6 +194,12 @@ describe("application list and nullable detail contract", () => {
     const service = new CompetitionAdminService({
       fetch,
     } as unknown as SanityClient);
+    vi.spyOn(service, "source").mockResolvedValue({
+      _id: "event",
+      _rev: "event-1",
+      _type: "event",
+      eventType: "normal",
+    });
     expect((await service.application("event", "entry")).approvalStatus).toBe(
       "pending",
     );

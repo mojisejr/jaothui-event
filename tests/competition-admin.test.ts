@@ -188,6 +188,12 @@ describe("competition admin protected authority", () => {
         delete process.env.COMPETITION_LINE_NOTIFICATIONS_ENABLED;
       else process.env.COMPETITION_LINE_NOTIFICATIONS_ENABLED = enabled;
       const m = memory();
+      vi.spyOn(m.service, "source").mockResolvedValue({
+        _id: "event",
+        _rev: "e1",
+        _type: "event",
+        eventType: "royal",
+      });
       vi.spyOn(m.service, "application").mockResolvedValue(
         normalizeApplication({
           _id: "entry",
@@ -465,6 +471,12 @@ describe("competition admin protected authority", () => {
   });
   it("resets the immutable notification attempt when a new approval decision is recorded", async () => {
     const m = memory();
+    m.docs.set("event", {
+      _id: "event",
+      _rev: "e1",
+      _type: "event",
+      eventType: "royal",
+    });
     const approval = {
       _id: "approval",
       _rev: "approval-1",
