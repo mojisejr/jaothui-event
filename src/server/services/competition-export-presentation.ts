@@ -112,10 +112,10 @@ function validateAliases(
     const labelKey = JSON.stringify([alias.field, alias.canonicalValue]);
     if (
       values.has(key) ||
-      (known &&
+      (known !== null &&
         (known.key !== alias.canonicalValue ||
           known.label !== alias.labelTh)) ||
-      (expected && expected !== alias.labelTh) ||
+      (expected !== undefined && expected !== alias.labelTh) ||
       (missing &&
         (alias.canonicalValue !== "unspecified" ||
           alias.labelTh !== "ไม่ระบุ")) ||
