@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { encodeCompetitionClass } from "~/lib/competition-classes";
+import { exportCatalogFingerprint } from "~/server/services/competition-export-presentation";
 import { type SanityClient } from "next-sanity";
 vi.mock("~/server/sanity/client", () => ({ client: {} }));
 import {
@@ -322,6 +323,24 @@ describe("competition admin protected authority", () => {
   it("copies only configuration with new catalog references and idempotent replay", async () => {
     const m = memory();
     const original = await m.service.create(operation, input);
+    const savedLayout = {
+      version: 1,
+      reviewedCatalogFingerprint: exportCatalogFingerprint(input.catalogs),
+      aliases: [],
+      categories: [
+        {
+          id: "source-category",
+          level: "national",
+          catalogValue: input.catalogs.national[0],
+          registrationTypeValues: [input.catalogs.national[0]],
+          posterNumber: "01",
+          fullLabelTh: "รุ่นลูกควาย",
+          shortLabelTh: "ลูกควาย",
+          groups: [{ color: "black", sex: "male" }],
+        },
+      ],
+    };
+    m.docs.get(original._id)!.exportLayout = savedLayout;
     m.docs.set("entrant", {
       _id: "entrant",
       _rev: "1",
@@ -341,10 +360,32 @@ describe("competition admin protected authority", () => {
       (d) => d.event?._ref === copy._id && d._type === "nationalEventType",
     );
     expect(catalog).toBeTruthy();
+    expect(m.docs.get(copy._id)!.exportLayout).toBeUndefined();
+    expect(m.docs.get(copy._id)!.exportLayoutDraft).toMatchObject({
+      reviewedCatalogFingerprint: exportCatalogFingerprint(copy.catalogs),
+      categories: [{ id: expect.not.stringMatching(/^source-category$/) }],
+    });
+    expect(m.docs.get(original._id)!.exportLayout).toEqual(savedLayout);
     expect(
       (await m.service.action(original._id, second, original._rev, "clone"))
         ._id,
     ).toBe(copy._id);
+  });
+  it("preserves export metadata during old-client ordinary event saves", async () => {
+    const m = memory();
+    const original = await m.service.create(operation, input);
+    const metadata = {
+      version: 1,
+      categories: [],
+      aliases: [],
+      reviewedCatalogFingerprint: exportCatalogFingerprint(input.catalogs),
+    };
+    m.docs.get(original._id)!.exportLayout = metadata;
+    await m.service.update(original._id, second, original._rev, {
+      ...input,
+      description: "แก้คำอธิบายเท่านั้น",
+    });
+    expect(m.docs.get(original._id)!.exportLayout).toEqual(metadata);
   });
   it("locks age/catalog after first application and rejects stale revision", async () => {
     const m = memory();

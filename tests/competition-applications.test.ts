@@ -12,6 +12,7 @@ import {
   normalizeApplication,
   toCompetitionDTO,
 } from "~/server/admin/competition-service";
+import { exportCatalogFingerprint } from "~/server/services/competition-export-presentation";
 
 const event = toCompetitionDTO({
   _id: "event",
@@ -457,18 +458,37 @@ describe("export reads the same event-fenced latest approval as application read
     // Execute the actual service GROQ against an isolated document dataset.
     const { parse, evaluate } = await import("groq-js");
     const documents = [
+      { ...event, _type: "event" },
       {
-        ...entry("accepted", { buffaloAge: 0, birthday: "2025-10-16" }),
+        ...entry("accepted", {
+          type: "รุ่นทดสอบ",
+          level: "national",
+          color: "black",
+          sex: "male",
+          buffaloAge: 0,
+          birthday: "2025-10-16",
+        }),
         _type: "eventRegister",
         _createdAt: "2026-10-20T00:00:00Z",
       },
       {
-        ...entry("rejected", { birthday: "2025-10-15" }),
+        ...entry("rejected", {
+          type: "รุ่นทดสอบ",
+          level: "national",
+          color: "black",
+          sex: "male",
+          birthday: "2025-10-15",
+        }),
         _type: "eventRegister",
         _createdAt: "2026-10-21T00:00:00Z",
       },
       {
-        ...entry("pending"),
+        ...entry("pending", {
+          type: "รุ่นทดสอบ",
+          level: "national",
+          color: "black",
+          sex: "male",
+        }),
         _type: "eventRegister",
         _createdAt: "2026-10-22T00:00:00Z",
       },
@@ -542,6 +562,30 @@ describe("export reads the same event-fenced latest approval as application read
     vi.spyOn(service, "source").mockResolvedValue({
       _id: "event",
       _rev: "event-1",
+      eventType: "normal",
+      buffaloAgeDeadline: "2026-10-16",
+      catalogDocuments: [],
+      competitionIndexedRevision: "event-1",
+      exportLayout: {
+        version: 1,
+        reviewedCatalogFingerprint: exportCatalogFingerprint({
+          national: [],
+          province: [],
+        }),
+        aliases: [],
+        categories: [
+          {
+            id: "historical",
+            level: "national",
+            historical: true,
+            registrationTypeValues: ["รุ่นทดสอบ"],
+            posterNumber: "01",
+            fullLabelTh: "รุ่นทดสอบ",
+            shortLabelTh: "ทดสอบ",
+            groups: [{ color: "black", sex: "male" }],
+          },
+        ],
+      },
     });
     const exported = await service.export("event");
     expect(exported.rowCount).toBe(3);

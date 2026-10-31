@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ExportDiagnostic } from "~/lib/competition-export-layout";
 import { validateCompetitionCatalog } from "~/lib/competition-classes";
 
 export const documentId = z
@@ -134,6 +135,9 @@ export class CompetitionAdminError extends Error {
     public status: number,
     public code: string,
     message: string,
+    public details?: {
+      diagnostics: ExportDiagnostic[];
+    },
   ) {
     super(message);
   }
