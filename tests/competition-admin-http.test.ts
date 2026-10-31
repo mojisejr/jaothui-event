@@ -11,6 +11,10 @@ const stubs = vi.hoisted(() => ({
   recount: vi.fn(),
   checkIn: vi.fn(),
   resolveCheckIn: vi.fn(),
+  exportLayout: vi.fn(),
+  previewExportLayout: vi.fn(),
+  saveExportLayout: vi.fn(),
+  exportReadiness: vi.fn(),
 }));
 vi.mock("~/server/sanity/client", () => ({
   client: { assets: { upload: stubs.upload } },
@@ -25,9 +29,14 @@ vi.mock("~/server/admin/competition-service", () => ({
     recountRegistrations = stubs.recount;
     checkIn = stubs.checkIn;
     resolveCheckIn = stubs.resolveCheckIn;
+    exportLayout = stubs.exportLayout;
+    previewExportLayout = stubs.previewExportLayout;
+    saveExportLayout = stubs.saveExportLayout;
+    exportReadiness = stubs.exportReadiness;
   },
 }));
 import handler from "~/pages/api/admin/competitions/[[...path]]";
+import { CompetitionAdminError } from "~/server/admin/competition-contract";
 function exchange(
   path: string[],
   method: string,
@@ -68,8 +77,114 @@ beforeEach(() => {
   stubs.recount.mockReset();
   stubs.checkIn.mockReset();
   stubs.resolveCheckIn.mockReset();
+  stubs.exportLayout.mockReset();
+  stubs.previewExportLayout.mockReset();
+  stubs.saveExportLayout.mockReset();
+  stubs.exportReadiness.mockReset();
 });
 describe("source competition HTTP boundary", () => {
+  it("authenticates layout detail, preview, save, inventory and export before invoking services", async () => {
+    for (const [path, method] of [
+      [["event", "export-layout"], "GET"],
+      [["event", "export-layout", "preview"], "POST"],
+      [["event", "export-layout"], "PATCH"],
+      [["export-readiness"], "GET"],
+      [["event", "export"], "GET"],
+    ] as const) {
+      const x = exchange([...path], method, Buffer.from("{}"), {
+        authorization: "Bearer bad",
+      });
+      await handler(x.req, x.res);
+      expect(x.result.status).toBe(401);
+    }
+    expect(stubs.exportLayout).not.toHaveBeenCalled();
+    expect(stubs.previewExportLayout).not.toHaveBeenCalled();
+    expect(stubs.saveExportLayout).not.toHaveBeenCalled();
+    expect(stubs.exportReadiness).not.toHaveBeenCalled();
+    expect(stubs.export).not.toHaveBeenCalled();
+  });
+  it("allows exact read-only layout preview while write-disabled neighboring routes remain closed", async () => {
+    vi.stubEnv("JAOTHUI_COMPETITION_ADMIN_WRITES_ENABLED", "false");
+    stubs.previewExportLayout.mockResolvedValue({
+      persisted: false,
+      plan: { state: "needs-review" },
+    });
+    const read = exchange(
+      ["event", "export-layout", "preview"],
+      "POST",
+      Buffer.from(JSON.stringify({ layout: { version: 1 } })),
+    );
+    await handler(read.req, read.res);
+    expect(read.result.status).toBe(200);
+    expect(read.result.headers["Cache-Control"]).toBe("no-store");
+    expect(stubs.previewExportLayout).toHaveBeenCalledWith("event", {
+      version: 1,
+    });
+    for (const [path, method] of [
+      [["event", "export-layout"], "PATCH"],
+      [["event", "export-layout", "preview", "extra"], "POST"],
+      [["event", "export-layout", "preview"], "PATCH"],
+      [["event", "other", "preview"], "POST"],
+    ] as const) {
+      const x = exchange([...path], method, Buffer.from("{}"));
+      await handler(x.req, x.res);
+      expect(x.result.status).toBe(503);
+    }
+    expect(stubs.saveExportLayout).not.toHaveBeenCalled();
+    expect(stubs.previewExportLayout).toHaveBeenCalledTimes(1);
+  });
+  it("returns actionable preflight diagnostic details and routes setup and inventory reads", async () => {
+    const diagnostics = [
+      {
+        code: "UNKNOWN_CONTROLLED_VALUE",
+        message: "กรุณากำหนดคำไทย",
+        path: "color",
+        value: "legacy-color",
+      },
+    ];
+    stubs.saveExportLayout.mockRejectedValue(
+      new CompetitionAdminError(
+        409,
+        "EXPORT_LAYOUT_NOT_READY",
+        "กรุณาตรวจรูปแบบ",
+        { diagnostics },
+      ),
+    );
+    const save = exchange(
+      ["event", "export-layout"],
+      "PATCH",
+      Buffer.from(JSON.stringify({ layout: {} })),
+    );
+    await handler(save.req, save.res);
+    expect(save.result.status).toBe(409);
+    expect(save.result.body.error.details.diagnostics).toEqual(diagnostics);
+    stubs.exportLayout.mockResolvedValue({ layout: null });
+    const detail = exchange(["event", "export-layout"], "GET");
+    await handler(detail.req, detail.res);
+    expect(detail.result.status).toBe(200);
+    expect(stubs.exportLayout).toHaveBeenCalledWith("event");
+    stubs.exportReadiness.mockResolvedValue({ items: [], total: 0 });
+    const inventory = exchange(["export-readiness"], "GET");
+    await handler(inventory.req, inventory.res);
+    expect(inventory.result.status).toBe(200);
+    expect(stubs.exportReadiness).toHaveBeenCalledWith({
+      path: ["export-readiness"],
+    });
+  });
+  it("refuses old or unsupported export consumers without invoking the exporter", async () => {
+    for (const version of [undefined, "0", "2", "01"]) {
+      const x = exchange(
+        ["event", "export"],
+        "GET",
+        undefined,
+        version ? { "x-export-presentation-version": version } : {},
+      );
+      await handler(x.req, x.res);
+      expect(x.result.status).toBe(503);
+      expect(x.result.body.error.code).toBe("SOURCE_UPGRADE_REQUIRED");
+    }
+    expect(stubs.export).not.toHaveBeenCalled();
+  });
   it("authenticates both arrival writes and read-only token resolution", async () => {
     for (const path of [
       ["event", "applications", "entry", "check-in"],
@@ -173,7 +288,9 @@ describe("source competition HTTP boundary", () => {
     const list = exchange([], "GET");
     await handler(list.req, list.res);
     expect(list.result.status).toBe(200);
-    const exported = exchange(["ended-event", "export"], "GET");
+    const exported = exchange(["ended-event", "export"], "GET", undefined, {
+      "x-export-presentation-version": "1",
+    });
     await handler(exported.req, exported.res);
     expect(exported.result.status).toBe(200);
     expect(stubs.export).toHaveBeenCalledWith("ended-event");

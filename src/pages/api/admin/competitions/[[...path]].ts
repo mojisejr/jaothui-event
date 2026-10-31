@@ -45,9 +45,16 @@ export default async function handler(
       path.length === 2 &&
       path[0] === "check-in" &&
       path[1] === "resolve";
+    const readOnlyExportPreview =
+      method === "POST" &&
+      path.length === 3 &&
+      !!path[0] &&
+      path[1] === "export-layout" &&
+      path[2] === "preview";
     if (
       write &&
       !readOnlyResolve &&
+      !readOnlyExportPreview &&
       process.env.JAOTHUI_COMPETITION_ADMIN_WRITES_ENABLED !== "true"
     )
       throw new CompetitionAdminError(
@@ -121,13 +128,30 @@ export default async function handler(
       );
     else if (path.length === 0 && method === "GET")
       data = await service.list(req.query);
+    else if (
+      path.length === 1 &&
+      path[0] === "export-readiness" &&
+      method === "GET"
+    )
+      data = await service.exportReadiness(req.query);
     else if (path.length === 0 && method === "POST") {
       const input = createSchema.parse(body);
       data = await service.create(input.operationId, input.input);
     } else if (path[0]) {
       const id = documentId.parse(path[0]);
       const action = path[1];
-      if (path.length === 1 && method === "GET")
+      if (path.length === 2 && action === "export-layout" && method === "GET")
+        data = await service.exportLayout(id);
+      else if (readOnlyExportPreview) {
+        const input = z.object({ layout: z.unknown() }).strict().parse(body);
+        data = await service.previewExportLayout(id, input.layout);
+      } else if (
+        path.length === 2 &&
+        action === "export-layout" &&
+        method === "PATCH"
+      )
+        data = await service.saveExportLayout(id, body);
+      else if (path.length === 1 && method === "GET")
         data = await service.detail(id);
       else if (path.length === 1 && method === "PATCH") {
         const input = updateSchema.parse(body);
@@ -298,9 +322,15 @@ export default async function handler(
           input.expectedRevision,
           input.registration,
         );
-      } else if (action === "export" && path.length === 2 && method === "GET")
+      } else if (action === "export" && path.length === 2 && method === "GET") {
+        if (req.headers["x-export-presentation-version"] !== "1")
+          throw new CompetitionAdminError(
+            503,
+            "SOURCE_UPGRADE_REQUIRED",
+            "กรุณาอัปเดตหน้าจอส่งออกให้รองรับรูปแบบไฟล์รุ่นใหม่ก่อนดาวน์โหลด",
+          );
         data = await service.export(id);
-      else
+      } else
         throw new CompetitionAdminError(
           405,
           "METHOD_NOT_ALLOWED",
@@ -317,7 +347,13 @@ export default async function handler(
     if (cause instanceof CompetitionAdminError)
       return res
         .status(cause.status)
-        .json({ error: { code: cause.code, message: cause.message } });
+        .json({
+          error: {
+            code: cause.code,
+            message: cause.message,
+            ...(cause.details ? { details: cause.details } : {}),
+          },
+        });
     if (cause instanceof z.ZodError)
       return res.status(422).json({
         error: {

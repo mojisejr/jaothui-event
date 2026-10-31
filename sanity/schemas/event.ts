@@ -1,10 +1,77 @@
-import { defineDocumentFieldAction, defineField, defineType } from "sanity";
+import { defineField, defineType } from "sanity";
+
+/** Presentation metadata is written only by the revision-checked source admin API. */
+const exportLayoutStorageField = (name: string) =>
+  defineField({
+    name,
+    title: "Competition Export Layout",
+    type: "object",
+    hidden: true,
+    readOnly: true,
+    fields: [
+      { name: "version", type: "number" },
+      { name: "reviewedCatalogFingerprint", type: "string" },
+      {
+        name: "aliases",
+        type: "array",
+        of: [
+          {
+            type: "object",
+            fields: [
+              { name: "field", type: "string" },
+              { name: "rawValue", type: "string" },
+              { name: "canonicalValue", type: "string" },
+              { name: "labelTh", type: "string" },
+            ],
+          },
+        ],
+      },
+      {
+        name: "categories",
+        type: "array",
+        of: [
+          {
+            type: "object",
+            fields: [
+              { name: "id", type: "string" },
+              { name: "level", type: "string" },
+              { name: "catalogValue", type: "text" },
+              {
+                name: "registrationTypeValues",
+                type: "array",
+                of: [{ type: "string" }],
+              },
+              { name: "posterNumber", type: "string" },
+              { name: "fullLabelTh", type: "text" },
+              { name: "shortLabelTh", type: "string" },
+              { name: "historical", type: "boolean" },
+              {
+                name: "groups",
+                type: "array",
+                of: [
+                  {
+                    type: "object",
+                    fields: [
+                      { name: "color", type: "string" },
+                      { name: "sex", type: "string" },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
 
 export const eventType = defineType({
   title: "Event",
   name: "event",
   type: "document",
   fields: [
+    exportLayoutStorageField("exportLayout"),
+    exportLayoutStorageField("exportLayoutDraft"),
     defineField({
       name: "competitionRegistrationCount",
       title: "Competition Registration Count",
