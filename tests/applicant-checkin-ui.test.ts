@@ -33,6 +33,7 @@ vi.mock("~/utils/api", () => ({
 
 const application: ApplicantApplication = {
   _id: "application-a",
+  _createdAt: "2026-10-30T00:00:00Z",
   _rev: "r1",
   name: "เจ้าทดสอบ",
   microchip: "000123456789012",
