@@ -103,3 +103,24 @@ Rotating `CHECKIN_QR_SECRET` invalidates old QR signatures. After deploying the
 new key, applicants must reopen/request their pass to display a fresh QR. This
 must not erase recorded arrivals. A deleted application must never resolve as
 an eligible application from a retained lookup/audit record.
+
+## Native mobile applicant bridge (#126)
+
+`POST /api/competitions/mobile-applicant` is server-to-server only, authenticated
+by `JAOTHUI_COMPETITION_APPLICANT_BRIDGE_KEY` (at least32 characters). Configure
+the same dedicated secret on the Event and Front BFF servers. It is not the admin
+bridge key and must never be a public/native environment variable. Keep the
+existing `CHECKIN_QR_SECRET` only on Event; do not rotate it for this rollout.
+
+Strict JSON actions are `history` (owner, limit1–20, period active/past/all, literal
+q and cursor), `status` and `pass` (owner and registrationId). The BFF must derive
+owner from its verified active account/linked LINE identity; phones cannot choose
+it. All responses are no-store and version1. History is filtered before paging
+and uses the same latest event-scoped approval as LIFF. Status/pass recheck
+ownership against current records. A pass can initialize QR metadata, never
+arrival; only authenticated Dashboard staff can confirm/undo arrival.
+
+Deploy this source capability first, then consolidate the Front BFF into current
+main, then verify route/auth behavior. Missing/invalid bridge config is an
+unavailable service, not an invalid customer session. Existing LIFF signup and
+QR credentials/behavior are retained. No native EAS build is part of this release.

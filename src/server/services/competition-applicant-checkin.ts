@@ -27,6 +27,7 @@ export function applicantApplication(
   return {
     _id: registration._id,
     _rev: registration._rev,
+    _createdAt: text(registration._createdAt),
     name: text(registration.name),
     microchip: text(registration.microchip),
     type: text(registration.type),
@@ -66,9 +67,13 @@ export class CompetitionApplicantCheckInService {
   constructor(private db: SanityClient = client) {}
 
   async history(auth: ApplicantAuthorization): Promise<ApplicantApplication[]> {
-    const owner = await verifyApplicantAuthorization(auth);
+    return this.historyForOwner(await verifyApplicantAuthorization(auth));
+  }
+
+  /** Server-only internals: callers must authenticate before deriving this owner. */
+  async historyForOwner(owner: string): Promise<ApplicantApplication[]> {
     const rows = await this.db.fetch<CheckInDocument[]>(
-      '*[_type=="eventRegister" && user._ref==$owner && event->competitionState != "draft" && !(event._ref in path("drafts.**"))] | order(_createdAt desc,_id desc){_id,_rev,name,microchip,type,level,ownerName,farmName,birthday,sex,gender,color,buffaloAge,checkInStatus,checkedInAt,checkedInBy,"event":event->{_id,_rev,title,startAt,eventAt,endAt,eventType,competitionState,isActive},"approval":*[_type=="approvment" && eventRegister._ref==^._id && event._ref==^.event._ref] | order(coalesce(approvementDate,_updatedAt,_createdAt) desc,_id desc)[0]{approvementResult,comment}}',
+      '*[_type=="eventRegister" && user._ref==$owner && event->competitionState != "draft" && !(event._ref in path("drafts.**"))] | order(_createdAt desc,_id desc){_id,_rev,_createdAt,name,microchip,type,level,ownerName,farmName,birthday,sex,gender,color,buffaloAge,checkInStatus,checkedInAt,checkedInBy,"event":event->{_id,_rev,title,startAt,eventAt,endAt,eventType,competitionState,isActive},"approval":*[_type=="approvment" && eventRegister._ref==^._id && event._ref==^.event._ref] | order(coalesce(approvementDate,_updatedAt,_createdAt) desc,_id desc)[0]{approvementResult,comment}}',
       { owner },
     );
     // Past entries remain available for the page's existing all/past filters; no date truncation here.
@@ -77,8 +82,83 @@ export class CompetitionApplicantCheckInService {
       .map((row) => applicantApplication(row, row.event, row.approval));
   }
 
-  private async owned(auth: ApplicantAuthorization, registrationId: string) {
-    const owner = await verifyApplicantAuthorization(auth);
+  async historyPageForOwner(
+    owner: string,
+    input: {
+      limit: number;
+      period: "active" | "past" | "all";
+      q: string;
+      cursor?: string;
+    },
+  ) {
+    let stamp = "9999",
+      id = "~";
+    if (input.cursor) {
+      try {
+        const pair: unknown = JSON.parse(
+          Buffer.from(input.cursor, "base64url").toString(),
+        );
+        if (
+          !Array.isArray(pair) ||
+          pair.length !== 2 ||
+          typeof pair[0] !== "string" ||
+          !/^\d{4}-\d{2}-\d{2}T/.test(pair[0]) ||
+          !Number.isFinite(Date.parse(pair[0])) ||
+          typeof pair[1] !== "string" ||
+          !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,199}$/.test(pair[1])
+        )
+          throw new Error();
+        [stamp, id] = pair as [string, string];
+      } catch {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "ตัวแบ่งหน้าไม่ถูกต้อง",
+        });
+      }
+    }
+    const base =
+      '*[_type=="eventRegister" && !(_id in path("drafts.**")) && !(_id in path("versions.**")) && user._ref==$owner && defined(event->_id) && coalesce(event->competitionState,"published")!="draft" && !(event._ref in path("drafts.**")) && !(event._ref in path("versions.**"))';
+    const projection =
+      '{_id,_rev,_createdAt,name,microchip,type,level,ownerName,farmName,birthday,sex,gender,color,buffaloAge,checkInStatus,checkedInAt,checkedInBy,"event":event->{_id,_rev,title,startAt,eventAt,endAt,eventType,competitionState,isActive},"approval":*[_type=="approvment" && eventRegister._ref==^._id && event._ref==^.event._ref] | order(coalesce(approvementDate,_updatedAt,_createdAt) desc,_id desc)[0]{approvementResult,comment}}';
+    const rows = await this.db.fetch<CheckInDocument[]>(
+      base +
+        ' && ($period=="all" || ($period=="active" && event->endAt >= $today) || ($period=="past" && event->endAt < $today)) && ($q=="" || event->title==$q) && (_createdAt<$stamp || (_createdAt==$stamp && _id<$id))] | order(_createdAt desc,_id desc)[0...$take]' +
+        projection,
+      {
+        owner,
+        period: input.period,
+        q: input.q,
+        stamp,
+        id,
+        take: input.limit + 1,
+        today: new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10),
+      },
+    );
+    const names = await this.db.fetch<string[]>(
+      "array::unique(" + base + "].event->title)",
+      { owner },
+    );
+    const items = rows.slice(0, input.limit),
+      last = items[items.length - 1];
+    return {
+      items: items.map((row) =>
+        applicantApplication(row, row.event, row.approval),
+      ),
+      eventNames: names
+        .filter((name): name is string => typeof name === "string")
+        .sort(),
+      nextCursor:
+        rows.length > items.length && last
+          ? Buffer.from(JSON.stringify([last._createdAt, last._id])).toString(
+              "base64url",
+            )
+          : null,
+    };
+  }
+
+  private async owned(owner: string, registrationId: string) {
+    if (/^(drafts|versions)\./.test(registrationId))
+      throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบใบสมัครของคุณ" });
     const registration =
       await this.db.getDocument<CheckInDocument>(registrationId);
     if (
@@ -104,15 +184,29 @@ export class CompetitionApplicantCheckInService {
   }
 
   async status(auth: ApplicantAuthorization, registrationId: string) {
+    return this.statusForOwner(
+      await verifyApplicantAuthorization(auth),
+      registrationId,
+    );
+  }
+
+  async statusForOwner(owner: string, registrationId: string) {
     const { event, registration, approval } = await this.owned(
-      auth,
+      owner,
       registrationId,
     );
     return applicantApplication(registration, event, approval);
   }
 
   async pass(auth: ApplicantAuthorization, registrationId: string) {
-    const context = await this.owned(auth, registrationId);
+    return this.passForOwner(
+      await verifyApplicantAuthorization(auth),
+      registrationId,
+    );
+  }
+
+  async passForOwner(owner: string, registrationId: string) {
+    const context = await this.owned(owner, registrationId);
     const application = applicantApplication(
       context.registration,
       context.event,
