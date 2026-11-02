@@ -41,8 +41,6 @@ export async function getAllRegisteredBy(userId: string) {
 
     const found = await client.fetch<EventRegister[]>(query);
 
-    console.log(found);
-
     const filter = found.filter((e) =>
       dayjs(new Date()).isBefore(dayjs(e.event.endAt)),
     );

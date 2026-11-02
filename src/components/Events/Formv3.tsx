@@ -61,7 +61,7 @@ const FormV3 = ({
   onAdminSubmit?: (data: any) => void;
   isRegistering?: boolean;
 }) => {
-  const { liff } = useLine();
+  const { liff, authMode } = useLine();
   const operationId = useRef("");
   const thaiDate = parseThaiDate(new Date(deadline).getTime());
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
@@ -131,7 +131,7 @@ const FormV3 = ({
   const onSubmit = handleSubmit(async (data) => {
     if (typeLoading || searching || (!isAdminMode && pendingRef.current))
       return;
-    if (!liff?.getIDToken() && !liff?.getAccessToken()) {
+    if (authMode !== "sso" && !liff?.getIDToken() && !liff?.getAccessToken()) {
       alert(
         "กรุณาเข้าสู่ระบบ LINE ใหม่เพื่อยืนยันตัวตน หากยังสมัครไม่ได้ กรุณาติดต่อเจ้าหน้าที่",
       );
@@ -768,7 +768,7 @@ const FormV3 = ({
                     const lineAccessToken = !idToken
                       ? (liff?.getAccessToken() ?? undefined)
                       : undefined;
-                    if (!idToken && !lineAccessToken) {
+                    if (authMode !== "sso" && !idToken && !lineAccessToken) {
                       setRequestProblem(
                         "กรุณาเข้าสู่ระบบ LINE ใหม่ แล้วลองคำขอเดิมอีกครั้ง ข้อมูลคำขอถูกเก็บไว้",
                       );

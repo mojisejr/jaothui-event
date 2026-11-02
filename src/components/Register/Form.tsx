@@ -6,6 +6,7 @@ import { api } from "~/utils/api";
 
 interface RegisterFormProp {
   profile: Profile;
+  onSuccess?: () => void;
 }
 
 type RegisterInput = {
@@ -14,7 +15,7 @@ type RegisterInput = {
   tel: string;
 };
 
-export default function RegisterForm({ profile }: RegisterFormProp) {
+export default function RegisterForm({ profile, onSuccess }: RegisterFormProp) {
   const { register, handleSubmit, formState } = useForm<RegisterInput>();
 
   const {
@@ -28,13 +29,10 @@ export default function RegisterForm({ profile }: RegisterFormProp) {
 
   useEffect(() => {
     if (isSuccess) {
-      void replace("/success");
+      if (onSuccess) onSuccess();
+      else void replace("/success");
     }
-
-    if (isError) {
-      void replace("/error");
-    }
-  }, [isSuccess, isError]);
+  }, [isSuccess, onSuccess, replace]);
 
   const onSubmit = handleSubmit((data) => {
     const preparedData = {
@@ -49,13 +47,16 @@ export default function RegisterForm({ profile }: RegisterFormProp) {
   });
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-1">
+      {isError ? (
+        <p role="alert">บันทึกไม่สำเร็จ กรุณาลองใหม่ ข้อมูลที่กรอกยังอยู่</p>
+      ) : null}
       <div className="form-control">
         <label className="label label-text text-primary">ชื่อ</label>
         <input
           type="text"
           disabled={isLoading}
           required
-          className="input input-bordered input-primary input-sm rounded-full"
+          className="input input-sm input-bordered input-primary rounded-full"
           {...register("firstname", { required: true })}
         ></input>
       </div>
@@ -65,7 +66,7 @@ export default function RegisterForm({ profile }: RegisterFormProp) {
           type="text"
           disabled={isLoading}
           required
-          className="input input-bordered input-primary input-sm rounded-full"
+          className="input input-sm input-bordered input-primary rounded-full"
           {...register("lastname", { required: true })}
         ></input>
       </div>
@@ -76,7 +77,7 @@ export default function RegisterForm({ profile }: RegisterFormProp) {
           disabled={isLoading}
           required
           placeholder="0921234235"
-          className="input input-bordered input-primary input-sm rounded-full"
+          className="input input-sm input-bordered input-primary rounded-full"
           {...register("tel", { required: true })}
         ></input>
       </div>

@@ -1,3 +1,4 @@
+import { applicantHeaders } from "./applicant-auth";
 /**
  * This is the client-side entrypoint for your tRPC API. It is used to create the `api` object which
  * contains the Next.js App-wrapper, as well as your type-safe React Query hooks.
@@ -17,6 +18,13 @@ const privateApplicantPaths = new Set([
   "registerEvent.ownedHistory",
   "registerEvent.ownedStatus",
   "registerEvent.applicantPass",
+  "registerEvent.register",
+  "registerEvent.registerRoyalEvent",
+  "registerEvent.getAllRegisteredBy",
+  "registerEvent.getById",
+  "user.getById",
+  "user.getProfileStats",
+  "user.create",
 ]);
 export const safeLogger: TRPCLink<AppRouter> = (runtime) => {
   const log = loggerLink<AppRouter>({
@@ -54,6 +62,10 @@ export const api = createTRPCNext<AppRouter>({
         safeLogger,
         httpBatchLink({
           url: `${getBaseUrl()}/api/trpc`,
+          headers: ({ opList }) =>
+            applicantHeaders(
+              opList.some((op) => privateApplicantPaths.has(op.path)),
+            ),
         }),
       ],
     };

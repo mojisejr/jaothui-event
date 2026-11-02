@@ -1,9 +1,11 @@
+import { isAdmin } from "~/server/services/admin.service";
+import { hasFrontApplicantIdentity } from "~/server/services/front-sso.service";
 import {
   CompetitionApplicantCheckInService,
   applicantCheckInError,
 } from "~/server/services/competition-applicant-checkin";
 import { documentId } from "~/server/admin/competition-contract";
-import { verifyApplicantAuthorization } from "~/server/services/line-auth.service";
+import { resolveApplicantOwner } from "~/server/services/applicant-auth.service";
 import { createRoyalCompetitionRegistration } from "~/server/services/competition-registration.service";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import z from "zod";
@@ -35,27 +37,35 @@ export const registerEventRouter = createTRPCRouter({
   // These are reads over POST so LINE credentials never enter GET query strings.
   ownedHistory: publicProcedure
     .input(applicantAuthSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
-        return await applicantCheckIn.history(input);
+        return await applicantCheckIn.historyForOwner(
+          await resolveApplicantOwner(ctx.req, input),
+        );
       } catch (cause) {
         return applicantCheckInError(cause);
       }
     }),
   ownedStatus: publicProcedure
     .input(applicantRecordSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
-        return await applicantCheckIn.status(input, input.registrationId);
+        return await applicantCheckIn.statusForOwner(
+          await resolveApplicantOwner(ctx.req, input),
+          input.registrationId,
+        );
       } catch (cause) {
         return applicantCheckInError(cause);
       }
     }),
   applicantPass: publicProcedure
     .input(applicantRecordSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
-        return await applicantCheckIn.pass(input, input.registrationId);
+        return await applicantCheckIn.passForOwner(
+          await resolveApplicantOwner(ctx.req, input),
+          input.registrationId,
+        );
       } catch (cause) {
         return applicantCheckInError(cause);
       }
@@ -95,11 +105,12 @@ export const registerEventRouter = createTRPCRouter({
         backImage: z.string(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
-        await verifyApplicantAuthorization(input, input.userId);
+        const owner = await resolveApplicantOwner(ctx.req, input, input.userId);
         const result = await createRoyalCompetitionRegistration({
           ...input,
+          userId: owner,
           birthday: input.birthdate,
           level: input.level ?? "ประเทศ",
           imageIds: [
@@ -158,17 +169,17 @@ export const registerEventRouter = createTRPCRouter({
         province: z.string(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       // if (!(await canRgister(input.eventId, input.microchip)))
       //   throw new TRPCError({
       //     code: "CONFLICT",
       //     message: "ควายตัวนี้สมัครไปแล้ว",
       //   });
       try {
-        await verifyApplicantAuthorization(input, input.userId);
+        const owner = await resolveApplicantOwner(ctx.req, input, input.userId);
         const dto: CreateNewEventRegisterDTO & { operationId: string } = {
           operationId: input.operationId,
-          userId: input.userId,
+          userId: owner,
           eventId: input.eventId,
           type: input.type,
           name: input.name,
@@ -202,13 +213,23 @@ export const registerEventRouter = createTRPCRouter({
     }),
   getAllRegisteredBy: publicProcedure
     .input(z.object({ userId: z.string() }))
-    .query(async ({ input }) => {
-      return await getAllRegisteredBy(input.userId);
+    .query(async ({ input, ctx }) => {
+      return await getAllRegisteredBy(
+        await resolveApplicantOwner(ctx.req, {}, input.userId),
+      );
     }),
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
-      return await getById(input.id);
+    .query(async ({ input, ctx }) => {
+      const owner = await resolveApplicantOwner(ctx.req);
+      const registration = await getById(input.id);
+      if (
+        !registration ||
+        (registration.user?._id !== owner &&
+          (hasFrontApplicantIdentity(ctx.req) || !(await isAdmin(owner))))
+      )
+        throw new TRPCError({ code: "NOT_FOUND" });
+      return registration;
     }),
   getAllRegisterByEvent: legacyCompetitionAdminProcedure
     .input(z.object({ userId: z.string(), eventId: z.string() }))

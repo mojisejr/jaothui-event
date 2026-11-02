@@ -1,6 +1,7 @@
+import { FrontSsoError } from "~/server/services/front-sso.service";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { client } from "~/server/sanity/client";
-import { verifyApplicantAuthorization } from "~/server/services/line-auth.service";
+import { resolveApplicantOwner } from "~/server/services/applicant-auth.service";
 import {
   assertCompetitionRegistration,
   type CompetitionPolicyEvent,
@@ -16,7 +17,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   try {
     const token = req.headers.authorization?.replace(/^Bearer /, "") ?? "";
-    const userId = await verifyApplicantAuthorization(
+    const userId = await resolveApplicantOwner(
+      req,
       req.headers["x-line-token-type"] === "access"
         ? { lineAccessToken: token }
         : { idToken: token },
@@ -63,10 +65,21 @@ export default async function handler(
       error instanceof Error &&
       "code" in error &&
       error.code === "UNAUTHORIZED";
-    return res.status(unauthorized ? 401 : 400).json({
-      error: unauthorized
-        ? "กรุณาเข้าสู่ระบบ LINE ใหม่"
-        : "ไม่สามารถอัพโหลดรูปได้ กรุณาตรวจสถานะรับสมัคร",
-    });
+    return res
+      .status(
+        unauthorized
+          ? 401
+          : (error as { cause?: unknown })?.cause instanceof FrontSsoError &&
+              (error as { cause: FrontSsoError }).cause.status === 503
+            ? 503
+            : (error as { code?: string })?.code === "FORBIDDEN"
+              ? 403
+              : 400,
+      )
+      .json({
+        error: unauthorized
+          ? "กรุณาเข้าสู่ระบบ LINE ใหม่"
+          : "ไม่สามารถอัพโหลดรูปได้ กรุณาตรวจสถานะรับสมัคร",
+      });
   }
 }

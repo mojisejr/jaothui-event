@@ -10,7 +10,7 @@ import { useRouter } from "next/router";
 
 export default function ProfilePage() {
   const { replace } = useRouter();
-  const { loggedIn, profile } = useLine();
+  const { loggedIn, profile, authReady } = useLine();
   const profileUserId = profile?.userId ?? "";
 
   const {
@@ -29,13 +29,13 @@ export default function ProfilePage() {
     );
 
   useEffect(() => {
-    if (!loggedIn) {
+    if (authReady && !loggedIn) {
       void replace("/");
     }
     if (profileUserId && !user) {
       refetch();
     }
-  }, [loggedIn, profileUserId, refetch, replace, user]);
+  }, [authReady, loggedIn, profileUserId, refetch, replace, user]);
 
   const reveal = {
     hidden: { opacity: 0, y: 10 },

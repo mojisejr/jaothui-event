@@ -18,7 +18,7 @@ export function useApplicantHistory(liff: Liff | undefined, userId?: string) {
     pending.current = false;
   }, []);
   const refresh = useCallback(async () => {
-    if (!userId || !liff || pending.current) return;
+    if (!userId || pending.current) return;
     if (!navigator.onLine) {
       setError(
         "ออฟไลน์ ข้อมูลที่แสดงอาจยังไม่ใช่ข้อมูลล่าสุด กรุณาเชื่อมต่อแล้วโหลดใหม่",

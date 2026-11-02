@@ -1,3 +1,4 @@
+import { hasFrontApplicantIdentity } from "../services/front-sso.service";
 /**
  * YOU PROBABLY DON'T NEED TO EDIT THIS FILE, UNLESS:
  * 1. You want to modify request context (see Part 1).
@@ -47,23 +48,32 @@ type CreateContextOptions = Record<string, never>;
  *
  * @see https://trpc.io/docs/context
  */
-export const createTRPCContext = (_opts: CreateNextContextOptions) => {
+export const createTRPCContext = (
+  _opts: CreateNextContextOptions,
+): {
+  userId: string | null | undefined;
+  db: typeof db;
+  req?: CreateNextContextOptions["req"];
+} => {
   if (_opts.req.query.input != undefined) {
     const data = contextParser(_opts.req.query.input as string);
     return {
-      userId: data?.userId,
+      userId: hasFrontApplicantIdentity(_opts.req) ? null : data?.userId,
       db,
+      req: _opts.req,
     };
   } else if (_opts.req.body != undefined) {
     const data = contextParser(JSON.stringify(_opts.req.body) as string);
     return {
-      userId: data?.userId,
+      userId: hasFrontApplicantIdentity(_opts.req) ? null : data?.userId,
       db,
+      req: _opts.req,
     };
   } else {
     return {
       userId: null,
       db,
+      req: _opts.req,
     };
   }
 };
@@ -114,7 +124,8 @@ export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;
 
 export const royalAdmin = t.procedure.use(async (_opts) => {
-  if (!_opts.ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+  if (hasFrontApplicantIdentity(_opts.ctx.req) || !_opts.ctx.userId)
+    throw new TRPCError({ code: "UNAUTHORIZED" });
   const admin = await isAdmin(_opts.ctx.userId);
 
   if (!admin) throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -123,7 +134,8 @@ export const royalAdmin = t.procedure.use(async (_opts) => {
 });
 
 export const admin = t.procedure.use(async (_opts) => {
-  if (!_opts.ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+  if (hasFrontApplicantIdentity(_opts.ctx.req) || !_opts.ctx.userId)
+    throw new TRPCError({ code: "UNAUTHORIZED" });
   const admin = await isAdmin(_opts.ctx.userId);
 
   if (!admin) throw new TRPCError({ code: "UNAUTHORIZED" });

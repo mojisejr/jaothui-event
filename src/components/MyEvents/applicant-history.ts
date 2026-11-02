@@ -1,9 +1,11 @@
+import { isSsoApplicant } from "~/utils/applicant-auth";
 import type { Liff } from "@line/liff";
 
 /** Pass reads use POST bodies: LINE credentials must never become URL parameters. */
 export function applicantAuthorization(
   liff: Pick<Liff, "getIDToken" | "getAccessToken"> | undefined,
 ): { idToken?: string; lineAccessToken?: string } {
+  if (isSsoApplicant()) return {};
   const idToken = liff?.getIDToken();
   if (idToken) return { idToken };
   const lineAccessToken = liff?.getAccessToken();
