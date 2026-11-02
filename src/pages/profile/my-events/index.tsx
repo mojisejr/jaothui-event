@@ -133,7 +133,7 @@ export default function MyEventPage() {
               </>
             )
           ) : null}
-          {selected && liff ? (
+          {selected ? (
             <ApplicantQrDialog
               key={selected._id}
               application={selected}

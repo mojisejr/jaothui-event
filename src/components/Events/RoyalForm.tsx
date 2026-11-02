@@ -65,7 +65,7 @@ const RoyalForm = ({
   _startAt: string;
   deadline: string;
 }) => {
-  const { liff } = useLine();
+  const { liff, authMode } = useLine();
   const operationId = useRef("");
   const [province, setProvince] = useState<string>();
   const [amphoe, setAmphoe] = useState<string>();
@@ -113,7 +113,7 @@ const RoyalForm = ({
 
   const onSubmit = handleSubmit(async (data) => {
     operationId.current ||= crypto.randomUUID();
-    if (!liff?.getIDToken() && !liff?.getAccessToken()) {
+    if (authMode !== "sso" && !liff?.getIDToken() && !liff?.getAccessToken()) {
       alert(
         "กรุณาเข้าสู่ระบบ LINE ใหม่เพื่อยืนยันตัวตน หากยังสมัครไม่ได้ กรุณาติดต่อเจ้าหน้าที่",
       );
@@ -290,7 +290,17 @@ const RoyalForm = ({
     if (registerError) {
       alert(registerErrorObj?.message);
       setSubmiting(false);
-      reset();
+      // Authentication/outage errors must preserve fields and the existing operation ID.
+      if (
+        ![
+          "UNAUTHORIZED",
+          "FORBIDDEN",
+          "CONFLICT",
+          "INTERNAL_SERVER_ERROR",
+          "TIMEOUT",
+        ].includes(registerErrorObj?.data?.code ?? "")
+      )
+        reset();
       return;
     }
   }, [registered, registerError, registerErrorObj, reset, replace]);

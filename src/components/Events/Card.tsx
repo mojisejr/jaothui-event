@@ -1,3 +1,4 @@
+import { useRouter } from "next/router";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { useLine } from "~/context/lineContext";
@@ -37,10 +38,11 @@ export default function EventCard({
   registrationDeadline,
   eventType,
 }: EventCardProps) {
-  const { loggedIn, login } = useLine();
+  const { loggedIn } = useLine();
+  const router = useRouter();
   const national = metadata != null ? metadata?.includes("national") : true;
   const inhouse = metadata != null ? metadata?.includes("inhouse") : true;
-  
+
   // Use deadline (buffaloAgeDeadline) as first priority, fall back to registrationDeadline
   const effectiveDeadline = deadline ?? registrationDeadline;
 
@@ -83,7 +85,11 @@ export default function EventCard({
         //   สมัครเข้าร่วมประกวด
         // </Link>
         <button
-          onClick={() => login()}
+          onClick={() => {
+            void router.push(
+              `/events/${eventId}?national=${national}&inhouse=${inhouse}`,
+            );
+          }}
           className="btn btn-primary rounded-full"
         >
           เข้าสู่ระบบเพื่อสมัคร
