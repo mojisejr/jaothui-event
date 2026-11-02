@@ -1,3 +1,5 @@
+export const FRONT_RETURN_PATH = "/api/auth/front/return" as const;
+
 /** Frozen v1 event intent; only a validated document ID can become a local route. */
 export function isApplicantEventId(value: unknown): value is string {
   return (

@@ -78,6 +78,7 @@ describe("SSO-first bootstrap preserves applicant intent", () => {
         ok: true,
         json: async () => ({
           mode: "sso",
+          returnToFront: "/api/auth/front/return",
           profile: { userId: "line-a", displayName: "SSO" },
         }),
       }),
@@ -88,6 +89,12 @@ describe("SSO-first bootstrap preserves applicant intent", () => {
     expect(mocks.profile).not.toHaveBeenCalled();
     expect(mocks.replace).not.toHaveBeenCalled();
     expect(mocks.setTransport).toHaveBeenCalledWith("sso");
+    const link = host.querySelector<HTMLAnchorElement>(
+      'a[href="/api/auth/front/return"]',
+    );
+    expect(link?.textContent).toBe("กลับเว็บไซต์เจ้าทุย");
+    expect(link?.getAttribute("target")).toBeNull();
+    expect(link?.className).toContain("min-h-[44px]");
   });
   it.each([401, 409, 503])(
     "invalid/revoked/unavailable SSO %s never starts old LIFF identity",
@@ -110,18 +117,53 @@ describe("SSO-first bootstrap preserves applicant intent", () => {
   it("natural session expiry signalled by the retained mode marker blocks cached LIFF", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: false,
-          status: 401,
-          json: async () => ({ mode: "blocked" }),
-        }),
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({ mode: "blocked" }),
+      }),
     );
     await render();
     expect(host.textContent).toContain("blocked:true:false:none:false");
     expect(mocks.init).not.toHaveBeenCalled();
     expect(mocks.profile).not.toHaveBeenCalled();
+  });
+  it("shows a same-tab way back for blocked Front mode without initializing LIFF", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue({
+          ok: false,
+          status: 401,
+          json: async () => ({
+            mode: "blocked",
+            returnToFront: "/api/auth/front/return",
+          }),
+        }),
+    );
+    await render();
+    expect(
+      host.querySelector('a[href="/api/auth/front/return"]')?.textContent,
+    ).toBe("กลับเว็บไซต์เจ้าทุย");
+    expect(mocks.init).not.toHaveBeenCalled();
+  });
+  it("never accepts an arbitrary return URL from bootstrap", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue({
+          ok: false,
+          status: 401,
+          json: async () => ({
+            mode: "blocked",
+            returnToFront: "https://evil.example",
+          }),
+        }),
+    );
+    await render();
+    expect(host.querySelector("a")).toBeNull();
   });
   it("missing SSO cookie initializes real LIFF and preserves event deep link", async () => {
     vi.stubGlobal(
@@ -134,6 +176,7 @@ describe("SSO-first bootstrap preserves applicant intent", () => {
     await render();
     expect(mocks.init).toHaveBeenCalledTimes(1);
     expect(host.textContent).toContain("liff:true:true:line-legacy:true");
+    expect(host.querySelector("a")).toBeNull();
     expect(mocks.replace).not.toHaveBeenCalled();
   });
   it("retains legacy home-to-profile navigation after auth is ready", async () => {

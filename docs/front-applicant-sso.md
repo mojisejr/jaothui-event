@@ -24,3 +24,7 @@ POST cookie-authenticated operations require the exact Event Origin, same-origin
 ## Verification limits
 
 Deterministic Vitest, mounted React contracts, typecheck, lint and build are the gates. Tests use synthetic identities and mocked backchannels; no production applicant data is written. Actual same-browser cookie/provider login, first LINE attachment, account switch and linked logout remain owner acceptance after rollout configuration. No browser automation/provider console change is included.
+
+## Same-tab return to the Front website
+
+For SSO or retained Front-mode sessions, bootstrap exposes only the relative `/api/auth/front/return` endpoint. The persistent “กลับเว็บไซต์เจ้าทุย” link opens in the same tab and never logs out. The GET endpoint ignores caller destinations and redirects to the exact configured `JAOTHUI_FRONT_ORIGIN` plus `/v2`; it needs no client/state secret and remains available while the SSO flag is OFF. Direct LIFF entry has no extra return link.

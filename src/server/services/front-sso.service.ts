@@ -56,6 +56,10 @@ function exactOrigin(value: string | undefined) {
     throw new FrontSsoError(503);
   return url.origin;
 }
+/** Public navigation uses only the configured exact origin, including during flag-off rollback. */
+export function frontReturnDestination() {
+  return `${exactOrigin(process.env.JAOTHUI_FRONT_ORIGIN)}/v2`;
+}
 export function ssoConfig() {
   if (process.env.JAOTHUI_EVENT_SSO_ENABLED !== "true") return null;
   try {

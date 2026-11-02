@@ -1,4 +1,4 @@
-import { isApplicantEventId } from "~/lib/applicant-intent";
+import { isApplicantEventId, FRONT_RETURN_PATH } from "~/lib/applicant-intent";
 import liff, { type Liff } from "@line/liff";
 import { useRouter } from "next/router";
 import {
@@ -18,6 +18,7 @@ type ContextType = {
   authReady: boolean;
   authMode: "liff" | "sso" | "blocked";
   authError: string;
+  returnToFront?: typeof FRONT_RETURN_PATH;
   login: () => void;
   logout: () => void;
 };
@@ -39,6 +40,8 @@ export function LineProvider({ children }: { children: ReactNode }) {
   const [authMode, setAuthMode] = useState<ContextType["authMode"]>("blocked");
   const [authError, setAuthError] = useState("");
   const [sdk, setSdk] = useState<Liff>();
+  const [returnToFront, setReturnToFront] =
+    useState<ContextType["returnToFront"]>();
   useEffect(() => {
     let alive = true;
     async function initialize() {
@@ -50,8 +53,11 @@ export function LineProvider({ children }: { children: ReactNode }) {
         const session = (await response.json()) as {
           mode?: string;
           profile?: Profile;
+          returnToFront?: unknown;
         };
         if (!alive) return;
+        if (session.returnToFront === FRONT_RETURN_PATH)
+          setReturnToFront(FRONT_RETURN_PATH);
         if (!response.ok || session.mode === "blocked") {
           setApplicantTransport("blocked");
           setAuthError(
@@ -148,12 +154,23 @@ export function LineProvider({ children }: { children: ReactNode }) {
         authReady,
         authMode,
         authError,
+        returnToFront,
         login,
         logout: () => {
           void logout();
         },
       }}
     >
+      {returnToFront ? (
+        <div className="mx-auto flex w-full max-w-7xl justify-end px-2 sm:px-4">
+          <a
+            href={returnToFront}
+            className="btn btn-ghost min-h-[44px] text-primary"
+          >
+            กลับเว็บไซต์เจ้าทุย
+          </a>
+        </div>
+      ) : null}
       {authError ? (
         <p role="alert" className="p-4 text-secondary">
           {authError}

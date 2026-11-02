@@ -13,6 +13,8 @@ import {
 } from "~/server/services/front-sso.service";
 import { resolveApplicantOwner } from "~/server/services/applicant-auth.service";
 import start from "~/pages/api/auth/front/start";
+import returnToFront from "~/pages/api/auth/front/return";
+import { FRONT_RETURN_PATH } from "~/lib/applicant-intent";
 import callback from "~/pages/api/auth/front/callback";
 import session from "~/pages/api/auth/front/session";
 import logout from "~/pages/api/auth/front/logout";
@@ -88,6 +90,53 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+});
+describe("fixed same-tab Front return", () => {
+  it("ignores caller destinations and works flag-off without client/state secrets or auth mutation", () => {
+    vi.stubEnv("JAOTHUI_EVENT_SSO_ENABLED", "false");
+    vi.stubEnv("JAOTHUI_EVENT_SSO_CLIENT_SECRET", "");
+    vi.stubEnv("JAOTHUI_EVENT_SSO_STATE_SECRET", "");
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const res = response();
+    returnToFront(
+      request({
+        query: { returnTo: "https://evil.example", next: "//evil.example" },
+      }),
+      res,
+    );
+    expect(res.redirect).toHaveBeenCalledWith(303, "http://127.0.0.1:3000/v2");
+    expect(res.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
+    expect(res.setHeader).not.toHaveBeenCalledWith(
+      "Set-Cookie",
+      expect.anything(),
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it.each([
+    "",
+    "https://front.example/path",
+    "https://front.example?next=evil",
+    "http://evil.example",
+    "https://user:pass@front.example",
+    "//evil.example",
+  ])("rejects invalid configured origins %s without a redirect", (origin) => {
+    vi.stubEnv("JAOTHUI_FRONT_ORIGIN", origin);
+    const res = response();
+    returnToFront(request(), res);
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.redirect).not.toHaveBeenCalled();
+  });
+  it("accepts configured HTTPS origin in production and rejects other methods", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("JAOTHUI_FRONT_ORIGIN", "https://jaothui.com");
+    const res = response();
+    returnToFront(request(), res);
+    expect(res.redirect).toHaveBeenCalledWith(303, "https://jaothui.com/v2");
+    const post = response();
+    returnToFront(request({ method: "POST" }), post);
+    expect(post.status).toHaveBeenCalledWith(405);
+  });
 });
 describe("Event signed transaction and callback v1", () => {
   it("shares the dotted published event ID contract without traversal or draft IDs", () => {
@@ -361,12 +410,26 @@ describe("fresh applicant owner and session bootstrap", () => {
     const res = response();
     await session(req, res);
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ mode: "blocked" });
+    expect(res.json).toHaveBeenCalledWith({
+      mode: "blocked",
+      returnToFront: FRONT_RETURN_PATH,
+    });
     await expect(
       resolveApplicantOwner(req, { idToken: "cached-other-identity" }),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     expect(mocks.line).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
+  });
+  it("exposes only a safe relative Front return for retained mode even while flag-off", async () => {
+    vi.stubEnv("JAOTHUI_EVENT_SSO_ENABLED", "false");
+    vi.stubEnv("JAOTHUI_EVENT_SSO_CLIENT_SECRET", "");
+    const res = response();
+    await session(request({ cookies: { [SSO_MODE_COOKIE]: "front" } }), res);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({
+      mode: "blocked",
+      returnToFront: FRONT_RETURN_PATH,
+    });
   });
   it("returns only applicant profile fields and marks responses private", async () => {
     vi.stubGlobal(
@@ -377,6 +440,7 @@ describe("fresh applicant owner and session bootstrap", () => {
     await session(request({ cookies: { [SSO_COOKIE]: sessionToken } }), res);
     expect(res.json).toHaveBeenCalledWith({
       mode: "sso",
+      returnToFront: FRONT_RETURN_PATH,
       profile: {
         userId: "line-a",
         displayName: "Fixture",
