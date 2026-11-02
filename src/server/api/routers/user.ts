@@ -1,3 +1,5 @@
+import { hasFrontApplicantIdentity } from "~/server/services/front-sso.service";
+import { resolveApplicantOwner } from "~/server/services/applicant-auth.service";
 import { getUserByUserId } from "~/server/services/user.service";
 import { getProfileStatsByUserId } from "~/server/services/user.service";
 
@@ -12,8 +14,10 @@ export const userRouter = createTRPCRouter({
         userId: z.string().min(1),
       }),
     )
-    .query(async ({ input }) => {
-      return await getProfileStatsByUserId(input.userId);
+    .query(async ({ input, ctx }) => {
+      return await getProfileStatsByUserId(
+        await resolveApplicantOwner(ctx.req, {}, input.userId),
+      );
     }),
 
   getById: publicProcedure
@@ -22,8 +26,13 @@ export const userRouter = createTRPCRouter({
         userId: z.string(),
       }),
     )
-    .query(async ({ input }) => {
-      return await getUserByUserId(input.userId);
+    .query(async ({ input, ctx }) => {
+      const user = await getUserByUserId(
+        await resolveApplicantOwner(ctx.req, {}, input.userId),
+      );
+      return hasFrontApplicantIdentity(ctx.req) && user
+        ? { ...user, role: "USER" }
+        : user;
     }),
 
   create: publicProcedure
@@ -35,7 +44,8 @@ export const userRouter = createTRPCRouter({
         tel: z.string(),
       }),
     )
-    .mutation(async ({ input }) => {
-      return await createNewUser(input);
+    .mutation(async ({ input, ctx }) => {
+      const userId = await resolveApplicantOwner(ctx.req, {}, input.userId);
+      return await createNewUser({ ...input, userId });
     }),
 });

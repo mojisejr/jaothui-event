@@ -12,7 +12,7 @@ import {
 
 interface Props {
   application: ApplicantApplication;
-  liff: Liff;
+  liff: Liff | undefined;
   onClose: () => void;
   onUpdated: () => void;
 }

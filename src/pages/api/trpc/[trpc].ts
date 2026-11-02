@@ -1,3 +1,4 @@
+import { FrontSsoError } from "~/server/services/front-sso.service";
 import { type NextApiRequest, type NextApiResponse } from "next";
 import { createNextApiHandler } from "@trpc/server/adapters/next";
 
@@ -9,6 +10,13 @@ import { createTRPCContext } from "~/server/api/trpc";
 const handler = createNextApiHandler({
   router: appRouter,
   createContext: createTRPCContext,
+  responseMeta: ({ errors }) =>
+    errors.some(
+      (error) =>
+        error.cause instanceof FrontSsoError && error.cause.status === 503,
+    )
+      ? { status: 503 }
+      : {},
   onError:
     env.NODE_ENV === "development"
       ? ({ path, error }) => {

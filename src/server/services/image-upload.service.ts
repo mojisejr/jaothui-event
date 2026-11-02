@@ -1,3 +1,4 @@
+import { applicantHeaders, isSsoApplicant } from "~/utils/applicant-auth";
 /** Browser transport only: credentials and Sanity writer stay behind the authenticated API. */
 export interface ImagesObject {
   title: string;
@@ -10,7 +11,7 @@ export const imagesUpload = async (
   idToken: string,
   lineAccessToken?: string,
 ): Promise<Array<{ _id: string }>> => {
-  if (!idToken && !lineAccessToken)
+  if (!isSsoApplicant() && !idToken && !lineAccessToken)
     throw new Error("กรุณาเข้าสู่ระบบ LINE ใหม่");
   return Promise.all(
     images.map(async ({ image }) => {
@@ -20,7 +21,10 @@ export const imagesUpload = async (
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${idToken || lineAccessToken}`,
+            ...applicantHeaders(false),
+            ...(idToken || lineAccessToken
+              ? { Authorization: `Bearer ${idToken || lineAccessToken}` }
+              : {}),
             "X-Line-Token-Type": idToken ? "id" : "access",
             "Content-Type": image.type,
           },

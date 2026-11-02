@@ -12,7 +12,7 @@ const defaultContext: contextType = { admin: false };
 const AdminContext = createContext(defaultContext);
 
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const { profile } = useLine();
+  const { profile, authMode } = useLine();
   const userId = profile?.userId ?? "";
   const { data: user } = api.user.getById.useQuery(
     { userId },
@@ -20,7 +20,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   );
 
   const value = {
-    admin: Boolean(userId && user?.role === "ADMIN"),
+    admin: Boolean(authMode !== "sso" && userId && user?.role === "ADMIN"),
     adminUser: user,
   };
   return (

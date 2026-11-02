@@ -20,11 +20,12 @@ const event = {
   registrationDeadline: "2026-10-16",
   endAt: "2026-10-18",
 };
-async function request(body: Buffer) {
+async function request(body: Buffer, overrides: Partial<NextApiRequest> = {}) {
   const req = Object.assign(Readable.from([body]), {
     method: "POST",
     headers: { authorization: "Bearer token" },
     query: { eventId: "event" },
+    ...overrides,
   }) as unknown as NextApiRequest;
   const res = {
     setHeader: vi.fn(),
@@ -42,8 +43,66 @@ beforeEach(() => {
   mocks.fetch.mockResolvedValue(event);
   mocks.upload.mockResolvedValue({ _id: "asset" });
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 describe("production applicant image API", () => {
+  it("SSO image ownership, CSRF and upstream503 are enforced before upload", async () => {
+    vi.stubEnv("JAOTHUI_EVENT_SSO_ENABLED", "true");
+    vi.stubEnv("JAOTHUI_FRONT_ORIGIN", "http://127.0.0.1:3000");
+    vi.stubEnv("JAOTHUI_EVENT_ORIGIN", "http://127.0.0.1:3001");
+    vi.stubEnv("JAOTHUI_EVENT_SSO_CLIENT_SECRET", "s".repeat(32));
+    vi.stubEnv("JAOTHUI_EVENT_SSO_STATE_SECRET", "s".repeat(32));
+    const fetch = vi
+      .fn()
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ok: true,
+          data: {
+            expiresAt: new Date(Date.now() + 60000).toISOString(),
+            account: {
+              accountId: "account",
+              lineId: "sso-owner",
+              displayName: "Fixture",
+              avatarUrl: null,
+              email: null,
+            },
+          },
+        }),
+      });
+    vi.stubGlobal("fetch", fetch);
+    const overrides = {
+      cookies: { jaothui_event_sso: "s".repeat(43) },
+      headers: { origin: "http://127.0.0.1:3001", "x-jaothui-csrf": "1" },
+    };
+    const accepted = await request(Buffer.from([255, 216, 255, 0]), overrides);
+    expect(accepted.status).toHaveBeenCalledWith(201);
+    expect(mocks.upload).toHaveBeenCalledWith(
+      "image",
+      expect.any(Buffer),
+      expect.objectContaining({
+        source: {
+          id: "competition:event:sso-owner",
+          name: "competition-applicant",
+        },
+      }),
+    );
+    expect(mocks.verify).not.toHaveBeenCalled();
+    mocks.upload.mockClear();
+    fetch.mockResolvedValue({ ok: false, status: 503 });
+    const failed = await request(Buffer.from([255, 216, 255, 0]), overrides);
+    expect(failed.status).toHaveBeenCalledWith(503);
+    expect(mocks.upload).not.toHaveBeenCalled();
+    const crossSite = await request(Buffer.from([255, 216, 255, 0]), {
+      ...overrides,
+      headers: { ...overrides.headers, origin: "https://evil.example" },
+    });
+    expect(crossSite.status).toHaveBeenCalledWith(403);
+    expect(mocks.upload).not.toHaveBeenCalled();
+  });
   it("fails closed before upload for closed event", async () => {
     mocks.fetch.mockResolvedValue({ ...event, registrationActive: false });
     const res = await request(Buffer.from([255, 216, 255]));
