@@ -6,6 +6,7 @@ import { api } from "~/utils/api";
 import { parseThaiDate } from "~/utils/parseThaiDate";
 import ThaiDatePicker from "~/components/ThaiDatePicker";
 import { NormalClassSelector } from "./NormalClassSelector";
+import { PushInvitation } from "~/components/MyEvents/PushInvitation";
 import {
   emptyNormalClassOptions,
   nextNormalLevel,
@@ -61,7 +62,7 @@ const FormV3 = ({
   onAdminSubmit?: (data: any) => void;
   isRegistering?: boolean;
 }) => {
-  const { liff, authMode } = useLine();
+  const { liff, authMode, loggedIn, profile } = useLine();
   const operationId = useRef("");
   const thaiDate = parseThaiDate(new Date(deadline).getTime());
   const [calculatedAge, setCalculatedAge] = useState<number>(0);
@@ -364,6 +365,12 @@ const FormV3 = ({
             >
               สมัครควายตัวนี้เพิ่มอีกระดับหรือรุ่นอื่น
             </button>
+            <PushInvitation
+              ownerKey={
+                loggedIn && profile?.userId === userId ? userId : undefined
+              }
+              eligible={loggedIn && profile?.userId === userId}
+            />
           </section>
         ) : (
           <>

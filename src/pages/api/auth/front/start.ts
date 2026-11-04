@@ -1,4 +1,8 @@
-import { isApplicantEventId } from "~/lib/applicant-intent";
+import {
+  isApplicantEventId,
+  applicantIntent,
+  applicantDestination,
+} from "~/lib/applicant-intent";
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
   cookie,
@@ -11,9 +15,19 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   privateResponse(res);
   if (req.method !== "GET") return res.status(405).end();
   try {
-    if (!isApplicantEventId(req.query.eventId))
+    const intent = applicantIntent(req.query.intent);
+    if (
+      !isApplicantEventId(req.query.eventId) ||
+      !intent ||
+      Object.keys(req.query).some((key) => !["eventId", "intent"].includes(key))
+    )
       return res.status(400).json({ error: "งานไม่ถูกต้อง" });
-    const transaction = createTransaction(req.query.eventId);
+    if (
+      intent === "history" &&
+      process.env.JAOTHUI_EVENT_SSO_ENABLED !== "true"
+    )
+      return res.redirect(302, applicantDestination(req.query.eventId, intent));
+    const transaction = createTransaction(req.query.eventId, intent);
     res.setHeader(
       "Set-Cookie",
       cookie(

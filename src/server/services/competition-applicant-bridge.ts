@@ -5,6 +5,7 @@ import { z } from "zod";
 import { documentId } from "~/server/admin/competition-contract";
 import { CompetitionAdminError } from "~/server/admin/competition-contract";
 import { CompetitionApplicantCheckInService } from "./competition-applicant-checkin";
+import { isApplicantEventId } from "~/lib/applicant-intent";
 
 const owner = z.string().min(1).max(300);
 const input = z.discriminatedUnion("action", [
@@ -15,6 +16,7 @@ const input = z.discriminatedUnion("action", [
       limit: z.number().int().min(1).max(20).default(20),
       period: z.enum(["active", "past", "all"]).default("all"),
       q: z.string().max(2000).default(""),
+      eventId: z.string().refine(isApplicantEventId).optional(),
       cursor: z.string().max(500).optional(),
     })
     .strict(),
@@ -56,15 +58,13 @@ export function applicantBridgeHandler(
     try {
       if (req.method !== "POST") {
         res.setHeader("Allow", "POST");
-        return res
-          .status(405)
-          .json({
-            ok: false,
-            error: {
-              code: "METHOD_NOT_ALLOWED",
-              message: "Method not allowed",
-            },
-          });
+        return res.status(405).json({
+          ok: false,
+          error: {
+            code: "METHOD_NOT_ALLOWED",
+            message: "Method not allowed",
+          },
+        });
       }
       assertApplicantBridge(req.headers.authorization);
       const chunks: Buffer[] = [];
@@ -107,12 +107,10 @@ export function applicantBridgeHandler(
       return res.status(200).json({ ok: true, version: 1, data });
     } catch (cause) {
       if (cause instanceof CompetitionAdminError)
-        return res
-          .status(cause.status)
-          .json({
-            ok: false,
-            error: { code: cause.code, message: cause.message },
-          });
+        return res.status(cause.status).json({
+          ok: false,
+          error: { code: cause.code, message: cause.message },
+        });
       if (cause instanceof TRPCError) {
         const status =
           cause.code === "NOT_FOUND"
@@ -124,26 +122,22 @@ export function applicantBridgeHandler(
                 : cause.code === "BAD_REQUEST"
                   ? 422
                   : 503;
-        return res
-          .status(status)
-          .json({
-            ok: false,
-            error: {
-              code: cause.code,
-              message:
-                status === 503 ? "ระบบใบสมัครยังไม่พร้อมใช้งาน" : cause.message,
-            },
-          });
-      }
-      return res
-        .status(503)
-        .json({
+        return res.status(status).json({
           ok: false,
           error: {
-            code: "SERVICE_UNAVAILABLE",
-            message: "ระบบใบสมัครยังไม่พร้อมใช้งาน กรุณาลองใหม่",
+            code: cause.code,
+            message:
+              status === 503 ? "ระบบใบสมัครยังไม่พร้อมใช้งาน" : cause.message,
           },
         });
+      }
+      return res.status(503).json({
+        ok: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "ระบบใบสมัครยังไม่พร้อมใช้งาน กรุณาลองใหม่",
+        },
+      });
     }
   };
 }

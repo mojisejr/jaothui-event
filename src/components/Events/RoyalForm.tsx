@@ -285,7 +285,7 @@ const RoyalForm = ({
   useEffect(() => {
     if (registered && !registerError) {
       setSubmiting(false);
-      void replace("/success");
+      void replace("/success?registration=royal");
     }
     if (registerError) {
       alert(registerErrorObj?.message);
