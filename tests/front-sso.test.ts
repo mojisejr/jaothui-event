@@ -139,6 +139,71 @@ describe("fixed same-tab Front return", () => {
   });
 });
 describe("Event signed transaction and callback v1", () => {
+  it("signs history intent and returns to owned history after signup has closed, without a signup availability read", async () => {
+    const transaction = createTransaction("signup-closed-event", "history");
+    const url = new URL(transaction.url);
+    expect(url.searchParams.get("intent")).toBe("history");
+    const state = readTransaction(
+      transaction.signed,
+      url.searchParams.get("state"),
+    );
+    expect(state.intent).toBe("history");
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(
+        reply({
+          ok: true,
+          data: { ...data(), sessionToken, eventId: "signup-closed-event" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetch);
+    const res = response();
+    await callback(
+      request({
+        query: {
+          state: state.state,
+          code: "c".repeat(43),
+          intent: "https://evil.example",
+        },
+        cookies: { [TRANSACTION_COOKIE]: transaction.signed },
+      }),
+      res,
+    );
+    expect(res.redirect).toHaveBeenCalledWith(
+      303,
+      "/profile/my-events?eventId=signup-closed-event",
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(String(fetch.mock.calls[0]?.[0])).toContain(
+      "/api/auth/event-sso/exchange",
+    );
+    expect(() =>
+      readTransaction(transaction.signed + "x", state.state),
+    ).toThrow();
+  });
+  it("rejects untyped/duplicate history intent and arbitrary navigation fields; flag-off history uses existing LINE page", () => {
+    for (const query of [
+      { eventId: "event-a", intent: "https://evil.example" },
+      { eventId: "event-a", intent: ["history", "registration"] },
+      { eventId: "event-a", intent: "history", returnTo: "//evil.example" },
+    ]) {
+      const res = response();
+      start(request({ query }), res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.redirect).not.toHaveBeenCalled();
+    }
+    vi.stubEnv("JAOTHUI_EVENT_SSO_ENABLED", "false");
+    const res = response();
+    start(request({ query: { eventId: "event-a", intent: "history" } }), res);
+    expect(res.redirect).toHaveBeenCalledWith(
+      302,
+      "/profile/my-events?eventId=event-a",
+    );
+    expect(res.setHeader).not.toHaveBeenCalledWith(
+      "Set-Cookie",
+      expect.anything(),
+    );
+  });
   it("shares the dotted published event ID contract without traversal or draft IDs", () => {
     expect(isApplicantEventId("event.0")).toBe(true);
     expect(isApplicantEventId("a".repeat(128))).toBe(true);

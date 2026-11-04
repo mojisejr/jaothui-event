@@ -118,7 +118,7 @@ export function LineProvider({ children }: { children: ReactNode }) {
         : undefined;
     if (isApplicantEventId(eventId))
       window.location.assign(
-        `/api/auth/front/start?eventId=${encodeURIComponent(eventId)}`,
+        `/api/auth/front/start?${new URLSearchParams({ eventId, ...(router.pathname === "/profile/my-events" ? { intent: "history" } : {}) })}`,
       );
     else void router.push("/events");
   }
