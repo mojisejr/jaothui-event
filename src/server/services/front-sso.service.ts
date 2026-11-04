@@ -1,7 +1,4 @@
-import {
-  isApplicantEventId,
-  type ApplicantIntent,
-} from "~/lib/applicant-intent";
+import { isApplicantEventId } from "~/lib/applicant-intent";
 import {
   createHash,
   createHmac,
@@ -161,18 +158,13 @@ const transactionSchema = z.object({
   state: token,
   verifier: token,
   eventId: z.string().refine(isApplicantEventId),
-  intent: z.enum(["registration", "history"]).default("registration"),
   expiresAt: z.number().int(),
 });
-export function createTransaction(
-  eventId: string,
-  intent: ApplicantIntent = "registration",
-) {
+export function createTransaction(eventId: string) {
   const config = ssoConfig();
   if (!config) throw new FrontSsoError(404);
   const transaction = transactionSchema.parse({
     eventId,
-    intent,
     state: randomBytes(32).toString("base64url"),
     verifier: randomBytes(32).toString("base64url"),
     expiresAt: Date.now() + 120000,
@@ -182,7 +174,6 @@ export function createTransaction(
   const url = new URL("/api/auth/event-sso/authorize", config.frontOrigin);
   url.search = new URLSearchParams({
     eventId,
-    ...(transaction.intent === "history" ? { intent: transaction.intent } : {}),
     state: transaction.state,
     code_challenge: createHash("sha256")
       .update(transaction.verifier)

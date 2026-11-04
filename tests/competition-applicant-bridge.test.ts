@@ -38,100 +38,6 @@ beforeEach(() => {
   process.env.JAOTHUI_COMPETITION_APPLICANT_BRIDGE_KEY = key;
 });
 describe("dedicated mobile applicant bridge", () => {
-  it("scopes history and cursor to stable event ID while preserving owner and closed signup history", async () => {
-    const event = {
-      _id: "event-a",
-      _type: "event",
-      eventType: "normal",
-      competitionState: "published",
-      registrationActive: false,
-      title: "Same title",
-      startAt: "2099-01-01",
-      endAt: "2099-01-02",
-    };
-    const row = {
-      _type: "eventRegister",
-      _rev: "r",
-      user: { _ref: "owner" },
-      event: { _ref: "event-a" },
-      name: "A",
-      _createdAt: "2026-10-31T00:00:00Z",
-      level: "ประเทศ",
-    };
-    const dataset = [
-      event,
-      { ...event, _id: "event-b" },
-      { ...row, _id: "a" },
-      { ...row, _id: "b" },
-      { ...row, _id: "wrong-event", event: { _ref: "event-b" } },
-      { ...row, _id: "wrong-owner", user: { _ref: "another" } },
-    ];
-    const db = {
-      fetch: vi.fn(async (q: string, params: Record<string, unknown>) =>
-        (await evaluate(parse(q, { params }), { dataset, params })).get(),
-      ),
-    };
-    const service = new CompetitionApplicantCheckInService(
-      db as unknown as SanityClient,
-    );
-    const first = await service.historyPageForOwner("owner", {
-      limit: 1,
-      period: "all",
-      q: "",
-      eventId: "event-a",
-    });
-    expect(first.items.map((item) => item._id)).toEqual(["b"]);
-    expect(first.items[0]?.registrationStatus).toBe("registered");
-    const second = await service.historyPageForOwner("owner", {
-      limit: 1,
-      period: "all",
-      q: "",
-      eventId: "event-a",
-      cursor: first.nextCursor!,
-    });
-    expect(second.items.map((item) => item._id)).toEqual(["a"]);
-    await expect(
-      service.historyPageForOwner("owner", {
-        limit: 1,
-        period: "all",
-        q: "",
-        eventId: "event-b",
-        cursor: first.nextCursor!,
-      }),
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    await expect(
-      service.historyPageForOwner("owner", {
-        limit: 1,
-        period: "all",
-        q: "",
-        eventId: "../escape",
-      }),
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    const history = vi
-      .fn()
-      .mockResolvedValue({ items: [], eventNames: [], nextCursor: null });
-    const handler = applicantBridgeHandler({
-      historyPageForOwner: history,
-    } as unknown as CompetitionApplicantCheckInService);
-    const x = exchange({
-      action: "history",
-      owner: "owner",
-      eventId: "event-a",
-    });
-    await handler(x.req, x.res);
-    expect(x.result.status).toBe(200);
-    expect(history).toHaveBeenCalledWith(
-      "owner",
-      expect.objectContaining({ eventId: "event-a" }),
-    );
-    const invalid = exchange({
-      action: "history",
-      owner: "owner",
-      eventId: "drafts.event-a",
-    });
-    await handler(invalid.req, invalid.res);
-    expect(invalid.result.status).toBe(422);
-  });
   it("authenticates before body/service access and rejects admin key", async () => {
     process.env.JAOTHUI_COMPETITION_ADMIN_API_KEY = "b".repeat(32);
     const history = vi.fn();
@@ -200,10 +106,12 @@ describe("dedicated mobile applicant bridge", () => {
     const status = vi
       .fn()
       .mockResolvedValue({ registrationStatus: "registered" });
-    const pass = vi.fn().mockResolvedValue({
-      application: { registrationStatus: "registered" },
-      qrUrl: "https://example.test/pass",
-    });
+    const pass = vi
+      .fn()
+      .mockResolvedValue({
+        application: { registrationStatus: "registered" },
+        qrUrl: "https://example.test/pass",
+      });
     const handler = applicantBridgeHandler({
       statusForOwner: status,
       passForOwner: pass,

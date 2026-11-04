@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { applicantDestination } from "~/lib/applicant-intent";
 import {
   cookie,
   exchangeSession,
@@ -39,7 +38,7 @@ export default async function handler(
     ]);
     return res.redirect(
       303,
-      applicantDestination(transaction.eventId, transaction.intent),
+      `/events/${encodeURIComponent(transaction.eventId)}`,
     );
   } catch (error) {
     return res

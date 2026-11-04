@@ -19,7 +19,6 @@
 - **Testing**: [Vitest](https://vitest.dev/) (Root-level TDD)
 
 ## 🗺️ Key Landmarks
-- Notification history handoff (#132): `src/lib/applicant-intent.ts` and `src/server/services/front-sso.service.ts` preserve a fixed signed `history` intent through Front login to `/profile/my-events`; omitted intent remains registration for older callers. Owned-history bridge reads support a validated exact `eventId` with a matching cursor scope, including after signup closes. An expired SSO mode marker must never silently switch to a different LIFF account. Push scheduling/sending belongs to Front, not this repository.
 - Competition authority (verified 2026-10-24, #106): Sanity `event` → national/province catalogs and `eventRegister`; Royal supplements are `eventImage`, `eventAddress`, `approvment`. Competition writes below use Sanity, not the legacy Prisma diagram.
 - [src/server/admin/competition-service.ts](src/server/admin/competition-service.ts): canonical event/catalog/application/onsite/approval/export service; revision fences, idempotency and historical age preservation.
 - [src/pages/api/admin/competitions/[[...path]].ts](src/pages/api/admin/competitions/[[...path]].ts): authenticated REST bridge called by dashboard; write kill switch retains read/export.
