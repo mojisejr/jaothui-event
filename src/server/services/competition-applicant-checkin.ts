@@ -10,7 +10,6 @@ import { checkInEligibility, checkInState } from "./competition-checkin-policy";
 import { registrationPolicy } from "./competition-approval-policy";
 import { verifyApplicantAuthorization } from "./line-auth.service";
 import { issueCheckInToken } from "./competition-checkin-token";
-import { isApplicantEventId } from "~/lib/applicant-intent";
 
 export type ApplicantAuthorization = {
   idToken?: string;
@@ -89,27 +88,16 @@ export class CompetitionApplicantCheckInService {
       limit: number;
       period: "active" | "past" | "all";
       q: string;
-      eventId?: string;
       cursor?: string;
     },
   ) {
-    if (input.eventId !== undefined && !isApplicantEventId(input.eventId))
-      throw new TRPCError({ code: "BAD_REQUEST", message: "งานไม่ถูกต้อง" });
     let stamp = "9999",
       id = "~";
     if (input.cursor) {
       try {
-        const decoded: unknown = JSON.parse(
+        const pair: unknown = JSON.parse(
           Buffer.from(input.cursor, "base64url").toString(),
         );
-        const scoped = decoded as { eventId?: unknown; position?: unknown };
-        if (
-          input.eventId
-            ? scoped?.eventId !== input.eventId
-            : !Array.isArray(decoded)
-        )
-          throw new Error();
-        const pair = input.eventId ? scoped.position : decoded;
         if (
           !Array.isArray(pair) ||
           pair.length !== 2 ||
@@ -134,13 +122,12 @@ export class CompetitionApplicantCheckInService {
       '{_id,_rev,_createdAt,name,microchip,type,level,ownerName,farmName,birthday,sex,gender,color,buffaloAge,checkInStatus,checkedInAt,checkedInBy,"event":event->{_id,_rev,title,startAt,eventAt,endAt,eventType,competitionState,isActive},"approval":*[_type=="approvment" && eventRegister._ref==^._id && event._ref==^.event._ref] | order(coalesce(approvementDate,_updatedAt,_createdAt) desc,_id desc)[0]{approvementResult,comment}}';
     const rows = await this.db.fetch<CheckInDocument[]>(
       base +
-        ' && ($eventId=="" || event._ref==$eventId) && ($period=="all" || ($period=="active" && event->endAt >= $today) || ($period=="past" && event->endAt < $today)) && ($q=="" || event->title==$q) && (_createdAt<$stamp || (_createdAt==$stamp && _id<$id))] | order(_createdAt desc,_id desc)[0...$take]' +
+        ' && ($period=="all" || ($period=="active" && event->endAt >= $today) || ($period=="past" && event->endAt < $today)) && ($q=="" || event->title==$q) && (_createdAt<$stamp || (_createdAt==$stamp && _id<$id))] | order(_createdAt desc,_id desc)[0...$take]' +
         projection,
       {
         owner,
         period: input.period,
         q: input.q,
-        eventId: input.eventId ?? "",
         stamp,
         id,
         take: input.limit + 1,
@@ -148,10 +135,8 @@ export class CompetitionApplicantCheckInService {
       },
     );
     const names = await this.db.fetch<string[]>(
-      "array::unique(" +
-        base +
-        ' && ($eventId=="" || event._ref==$eventId)].event->title)',
-      { owner, eventId: input.eventId ?? "" },
+      "array::unique(" + base + "].event->title)",
+      { owner },
     );
     const items = rows.slice(0, input.limit),
       last = items[items.length - 1];
@@ -164,16 +149,9 @@ export class CompetitionApplicantCheckInService {
         .sort(),
       nextCursor:
         rows.length > items.length && last
-          ? Buffer.from(
-              JSON.stringify(
-                input.eventId
-                  ? {
-                      eventId: input.eventId,
-                      position: [last._createdAt, last._id],
-                    }
-                  : [last._createdAt, last._id],
-              ),
-            ).toString("base64url")
+          ? Buffer.from(JSON.stringify([last._createdAt, last._id])).toString(
+              "base64url",
+            )
           : null,
     };
   }

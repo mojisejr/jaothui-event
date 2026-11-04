@@ -1,24 +1,17 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/router";
-import { isApplicantEventId } from "~/lib/applicant-intent";
 import Loading1 from "~/components/Shared/Loading1";
 import { useLine } from "~/context/lineContext";
 import HistoryCard from "~/components/MyEvents/HistoryCard";
 import FilterBar from "~/components/MyEvents/FilterBar";
 import { ApplicantQrDialog } from "~/components/MyEvents/ApplicantQrDialog";
 import { useApplicantHistory } from "~/components/MyEvents/useApplicantHistory";
-import { PushInvitation } from "~/components/MyEvents/PushInvitation";
 import {
   checkInTime,
   isCurrentApplication,
 } from "~/components/MyEvents/applicant-history";
 
 export default function MyEventPage() {
-  const router = useRouter();
-  const targetEventId = isApplicantEventId(router.query.eventId)
-    ? router.query.eventId
-    : undefined;
   const { profile, liff, loggedIn, login } = useLine();
   const { events, loading, error, updatedAt, refresh } = useApplicantHistory(
     liff,
@@ -41,14 +34,12 @@ export default function MyEventPage() {
       events?.filter((event) => {
         const active = isCurrentApplication(event.event.endAt);
         return (
-          (!targetEventId || event.event._id === targetEventId) &&
-          (targetEventId !== undefined ||
-            statusFilter === "all" ||
+          (statusFilter === "all" ||
             (statusFilter === "active" ? active : !active)) &&
           (!eventNameFilter || event.event.title === eventNameFilter)
         );
       }) ?? [],
-    [events, statusFilter, eventNameFilter, targetEventId],
+    [events, statusFilter, eventNameFilter],
   );
   const selected = events?.find((event) => event._id === selectedId);
 
@@ -70,10 +61,6 @@ export default function MyEventPage() {
         </section>
       ) : (
         <>
-          <PushInvitation
-            ownerKey={profile?.userId}
-            eligible={Boolean(events?.length) && !error}
-          />
           {error ? (
             <p
               role="alert"
@@ -111,43 +98,17 @@ export default function MyEventPage() {
               </section>
             ) : (
               <>
-                {targetEventId ? (
-                  <div className="mb-4 text-center">
-                    <Link
-                      href="/profile/my-events"
-                      className="btn btn-outline btn-secondary min-h-[44px]"
-                    >
-                      ดูใบสมัครทุกงาน
-                    </Link>
-                  </div>
-                ) : null}
                 <FilterBar
-                  statusFilter={targetEventId ? "all" : statusFilter}
-                  onStatusFilterChange={(value) => {
-                    setStatusFilter(value);
-                    if (targetEventId)
-                      void router.replace("/profile/my-events", undefined, {
-                        shallow: true,
-                      });
-                  }}
+                  statusFilter={statusFilter}
+                  onStatusFilterChange={setStatusFilter}
                   eventNameFilter={eventNameFilter}
-                  onEventNameFilterChange={(value) => {
-                    setEventNameFilter(value);
-                    if (targetEventId)
-                      void router.replace("/profile/my-events", undefined, {
-                        shallow: true,
-                      });
-                  }}
+                  onEventNameFilterChange={setEventNameFilter}
                   uniqueEvents={uniqueEvents}
                   resultCount={filteredEvents.length}
                   totalCount={events.length}
                   onClearFilters={() => {
                     setStatusFilter("active");
                     setEventNameFilter("");
-                    if (targetEventId)
-                      void router.replace("/profile/my-events", undefined, {
-                        shallow: true,
-                      });
                   }}
                 />
                 {!filteredEvents.length ? (
