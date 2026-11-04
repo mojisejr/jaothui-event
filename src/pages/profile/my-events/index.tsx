@@ -8,6 +8,7 @@ import HistoryCard from "~/components/MyEvents/HistoryCard";
 import FilterBar from "~/components/MyEvents/FilterBar";
 import { ApplicantQrDialog } from "~/components/MyEvents/ApplicantQrDialog";
 import { useApplicantHistory } from "~/components/MyEvents/useApplicantHistory";
+import { PushInvitation } from "~/components/MyEvents/PushInvitation";
 import {
   checkInTime,
   isCurrentApplication,
@@ -69,6 +70,10 @@ export default function MyEventPage() {
         </section>
       ) : (
         <>
+          <PushInvitation
+            ownerKey={profile?.userId}
+            eligible={Boolean(events?.length) && !error}
+          />
           {error ? (
             <p
               role="alert"
