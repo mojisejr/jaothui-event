@@ -221,6 +221,90 @@ describe("source export metadata and coherent snapshots", () => {
     });
     expect(m.db.transaction).not.toHaveBeenCalled();
   });
+  it.each(["normal", "royal"])(
+    "exports every %s application by level and catalog without saving a layout",
+    async (eventType) => {
+      const m = fixture();
+      const event = m.docs.get("event")!;
+      Object.assign(event, {
+        eventType,
+        competitionRegistrationCount: 3,
+        exportLayoutDraft: m.layout,
+      });
+      m.docs.get("catalog")!.data.unshift("รุ่นพิเศษ");
+      m.docs.set("province", {
+        ...m.docs.get("catalog")!,
+        _id: "province",
+        _type: "provinceEventType",
+      });
+      const row = m.docs.get("row1")!;
+      m.docs.set("row2", {
+        ...row,
+        _id: "row2",
+        type: "รุ่นพิเศษ",
+        sex: "female",
+      });
+      m.docs.set("row3", { ...row, _id: "row3", level: "จังหวัด" });
+      const detail = await m.service.exportLayout("event", true);
+      expect(detail.layout).toBeNull();
+      expect(detail.proposedLayout.categories).toHaveLength(1);
+      expect(detail).toMatchObject({
+        layoutSource: "automatic",
+        rowCount: 3,
+        plan: { state: "ready" },
+      });
+      const data = await m.service.export("event", true);
+      expect(data.exportPlan).toEqual(detail.plan);
+      expect(
+        data.exportPlan.groups.flatMap((group) => group.registrationIds),
+      ).toEqual(["row2", "row1", "row3"]);
+      expect(data.registrations[0]?.exportAge).toBe(0);
+      expect(m.db.transaction).not.toHaveBeenCalled();
+    },
+  );
+  it("keeps saved custom order and rejects invalid/stale saved configurations even with automatic ordering", async () => {
+    const m = fixture();
+    m.docs.get("event")!.exportLayout = m.layout;
+    expect(await m.service.export("event", true)).toMatchObject({
+      layoutSource: "saved",
+      exportPlan: (await m.service.export("event")).exportPlan,
+    });
+    for (const value of [
+      {},
+      { ...m.layout, reviewedCatalogFingerprint: "0".repeat(64) },
+    ]) {
+      m.docs.get("event")!.exportLayout = value;
+      expect((await m.service.exportLayout("event", true)).plan.state).toBe(
+        "needs-review",
+      );
+      await expect(m.service.export("event", true)).rejects.toMatchObject({
+        code: "EXPORT_NOT_READY",
+      });
+    }
+    expect(m.db.transaction).not.toHaveBeenCalled();
+  });
+  it("returns a valid zero-row plan and blocks genuinely unresolved legacy registrations", async () => {
+    const m = fixture();
+    m.docs.get("row1")!.type = "รุ่นที่ไม่มีในรายการ";
+    await expect(m.service.export("event", true)).rejects.toMatchObject({
+      details: {
+        diagnostics: expect.arrayContaining([
+          expect.objectContaining({
+            code: "UNMAPPED_REGISTRATION",
+            registrationIds: ["row1"],
+          }),
+        ]),
+      },
+    });
+    m.docs.delete("row1");
+    m.docs.get("event")!.competitionRegistrationCount = 0;
+    expect(await m.service.export("event", true)).toMatchObject({
+      rowCount: 0,
+      layoutSource: "automatic",
+      exportPlan: { state: "ready", groups: [] },
+    });
+    expect(m.db.transaction).not.toHaveBeenCalled();
+  });
   it("atomically saves layout with one replay-safe audit without changing signup data or counts", async () => {
     const m = fixture();
     const originalCatalog = structuredClone(m.docs.get("catalog")!.data);

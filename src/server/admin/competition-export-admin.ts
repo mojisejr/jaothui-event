@@ -276,34 +276,65 @@ export class CompetitionExportAdmin {
     return exportLayoutSchema.parse(layout);
   }
 
+  private resolveOrder(
+    snapshot: Awaited<ReturnType<CompetitionExportAdmin["snapshot"]>>,
+    allowAutomatic: boolean,
+  ) {
+    const { source, event, registrations } = snapshot;
+    const automaticLayout =
+      allowAutomatic && source.exportLayout == null
+        ? this.proposal(event, registrations)
+        : undefined;
+    return {
+      automaticLayout,
+      plan: compileCompetitionExport({
+        event,
+        registrations,
+        layout: automaticLayout ?? source.exportLayout,
+      }),
+      sourceInfo: allowAutomatic
+        ? {
+            layoutSource: automaticLayout
+              ? ("automatic" as const)
+              : ("saved" as const),
+          }
+        : {},
+    };
+  }
+
   private detailFrom(
     snapshot: Awaited<ReturnType<CompetitionExportAdmin["snapshot"]>>,
+    allowAutomatic: boolean,
   ) {
     const { source, event, registrations, rowCount, ageWarningCount } =
       snapshot;
     const saved = exportLayoutSchema.safeParse(source.exportLayout);
     const layout = saved.success ? saved.data : null;
+    const { automaticLayout, plan, sourceInfo } = this.resolveOrder(
+      snapshot,
+      allowAutomatic,
+    );
     return {
       exportPresentationVersion: 1 as const,
       event,
       layout,
-      proposedLayout: this.proposal(
-        event,
-        registrations,
-        layout ?? source.exportLayoutDraft,
-      ),
-      plan: compileCompetitionExport({
-        event,
-        registrations,
-        layout: source.exportLayout,
-      }),
+      proposedLayout:
+        automaticLayout && source.exportLayoutDraft == null
+          ? automaticLayout
+          : this.proposal(
+              event,
+              registrations,
+              layout ?? source.exportLayoutDraft,
+            ),
+      plan,
+      ...sourceInfo,
       bindings: this.bindings(event, registrations),
       rowCount,
       ageWarningCount,
     };
   }
-  async detail(id: string) {
-    return this.detailFrom(await this.snapshot(id));
+  async detail(id: string, allowAutomatic = false) {
+    return this.detailFrom(await this.snapshot(id), allowAutomatic);
   }
   async preview(id: string, layout: unknown) {
     const snapshot = await this.snapshot(id);
@@ -377,13 +408,12 @@ export class CompetitionExportAdmin {
     await tx.commit({ visibility: "sync" });
     return this.detail(id);
   }
-  async export(id: string) {
+  async export(id: string, allowAutomatic = false) {
     const snapshot = await this.snapshot(id);
-    const exportPlan = compileCompetitionExport({
-      event: snapshot.event,
-      registrations: snapshot.registrations,
-      layout: snapshot.source.exportLayout,
-    });
+    const { plan: exportPlan, sourceInfo } = this.resolveOrder(
+      snapshot,
+      allowAutomatic,
+    );
     if (exportPlan.state !== "ready")
       fail(
         "EXPORT_NOT_READY",
@@ -397,6 +427,7 @@ export class CompetitionExportAdmin {
       registrationPolicyVersion: 1 as const,
       exportPresentationVersion: 1 as const,
       exportPlan,
+      ...sourceInfo,
     };
   }
   async inventory(raw: unknown) {

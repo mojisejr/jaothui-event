@@ -1032,11 +1032,11 @@ export class CompetitionAdminService {
       approvalProjection,
     });
   }
-  export(id: string) {
-    return this.exportAdmin().export(id);
+  export(id: string, allowAutomatic = false) {
+    return this.exportAdmin().export(id, allowAutomatic);
   }
-  exportLayout(id: string) {
-    return this.exportAdmin().detail(id);
+  exportLayout(id: string, allowAutomatic = false) {
+    return this.exportAdmin().detail(id, allowAutomatic);
   }
   previewExportLayout(id: string, layout: unknown) {
     return this.exportAdmin().preview(id, layout);
