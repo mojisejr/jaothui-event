@@ -141,7 +141,7 @@ export default async function handler(
       const id = documentId.parse(path[0]);
       const action = path[1];
       if (path.length === 2 && action === "export-layout" && method === "GET")
-        data = await service.exportLayout(id);
+        data = await service.exportLayout(id, req.query.order === "automatic");
       else if (readOnlyExportPreview) {
         const input = z.object({ layout: z.unknown() }).strict().parse(body);
         data = await service.previewExportLayout(id, input.layout);
@@ -329,7 +329,7 @@ export default async function handler(
             "SOURCE_UPGRADE_REQUIRED",
             "กรุณาอัปเดตหน้าจอส่งออกให้รองรับรูปแบบไฟล์รุ่นใหม่ก่อนดาวน์โหลด",
           );
-        data = await service.export(id);
+        data = await service.export(id, req.query.order === "automatic");
       } else
         throw new CompetitionAdminError(
           405,

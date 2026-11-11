@@ -162,7 +162,7 @@ describe("source competition HTTP boundary", () => {
     const detail = exchange(["event", "export-layout"], "GET");
     await handler(detail.req, detail.res);
     expect(detail.result.status).toBe(200);
-    expect(stubs.exportLayout).toHaveBeenCalledWith("event");
+    expect(stubs.exportLayout).toHaveBeenCalledWith("event", false);
     stubs.exportReadiness.mockResolvedValue({ items: [], total: 0 });
     const inventory = exchange(["export-readiness"], "GET");
     await handler(inventory.req, inventory.res);
@@ -170,6 +170,19 @@ describe("source competition HTTP boundary", () => {
     expect(stubs.exportReadiness).toHaveBeenCalledWith({
       path: ["export-readiness"],
     });
+  });
+  it("opts in to automatic ordering independently on detail and export", async () => {
+    for (const action of ["export-layout", "export"]) {
+      const x = exchange(["event", action], "GET", undefined, {
+        "x-export-presentation-version": "1",
+      });
+      x.req.query.order = "automatic";
+      await handler(x.req, x.res);
+      expect(x.result.status).toBe(200);
+      expect(
+        action === "export" ? stubs.export : stubs.exportLayout,
+      ).toHaveBeenCalledWith("event", true);
+    }
   });
   it("refuses old or unsupported export consumers without invoking the exporter", async () => {
     for (const version of [undefined, "0", "2", "01"]) {
@@ -293,7 +306,7 @@ describe("source competition HTTP boundary", () => {
     });
     await handler(exported.req, exported.res);
     expect(exported.result.status).toBe(200);
-    expect(stubs.export).toHaveBeenCalledWith("ended-event");
+    expect(stubs.export).toHaveBeenCalledWith("ended-event", false);
     expect(exported.result.body.data.event.id).toBe("ended-event");
     vi.unstubAllEnvs();
   });
